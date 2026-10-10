@@ -374,6 +374,7 @@ html.ai-hide .ai-sg:hover{background:none}
 .ai-chips button:hover{background:var(--hover)}
 .ai-chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .btn:disabled,.mi:disabled{opacity:.45;cursor:default}
+.tb:disabled{opacity:.3;cursor:default;background:transparent}
 .mi:disabled:hover{background:transparent}
 .ai-item{
   display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:9px;
@@ -931,7 +932,33 @@ function exec(cmd, arg){
   restore();
   document.execCommand('styleWithCSS', false, false);
   document.execCommand(cmd, false, arg);
+  if (/List$|^(indent|outdent)$/.test(cmd)) fixLists();
   changed(); queueToolbar();
+}
+// Chrome et Safari créent parfois une liste DANS un paragraphe (<p><ul>…</ul></p>), ce qui n'est pas
+// du HTML valide : au rechargement, le navigateur ajoute des lignes vides autour. On remet la liste
+// au bon niveau, et une sous-liste se range dans l'élément de liste qui la précède.
+function fixLists(){
+  const s = getSelection(), keep = s.rangeCount ? [s.anchorNode, s.anchorOffset, s.focusNode, s.focusOffset] : null;
+  let moved = false;
+  editor.querySelectorAll(':is(p,h1,h2,h3) > :is(ul,ol)').forEach(list => {
+    const par = list.parentElement;
+    const before = document.createRange(); before.setStart(par, 0); before.setEndBefore(list);
+    const bf = before.extractContents();
+    const after = document.createRange(); after.setStartAfter(list); after.setEnd(par, par.childNodes.length);
+    const af = after.extractContents();
+    if (hasContent(bf)) { const p1 = par.cloneNode(false); p1.append(bf); par.before(p1); }
+    par.before(list);
+    if (hasContent(af)) { const p2 = par.cloneNode(false); p2.append(af); list.after(p2); }
+    par.remove(); moved = true;
+  });
+  editor.querySelectorAll(':is(ul,ol) > :is(ul,ol)').forEach(sub => {
+    const prev = sub.previousElementSibling;
+    if (prev && prev.tagName === 'LI') { prev.append(sub); moved = true; }
+  });
+  if (moved && keep && keep[0] && editor.contains(keep[0]) && editor.contains(keep[2])) {
+    try { s.setBaseAndExtent(keep[0], keep[1], keep[2], keep[3]); } catch (e) {}
+  }
 }
 function anchorEl(){
   const s = getSelection();
@@ -969,11 +996,12 @@ function updateToolbar(){
 
 /* ---------- Menus ---------- */
 let popOwner = null;
+let popAt = 0;
 function closePop(){ pop.hidden = true; popOwner?.setAttribute('aria-expanded','false'); popOwner = null; }
 function openPop(btn, html, bind){
   if (popOwner === btn) { closePop(); return; }
   closePop(); closeMath(false);
-  pop.innerHTML = html; pop.hidden = false; popOwner = btn; btn.setAttribute('aria-expanded','true');
+  pop.innerHTML = html; pop.hidden = false; popOwner = btn; popAt = Date.now(); btn.setAttribute('aria-expanded','true');
   bind && bind(pop);
   const r = btn.getBoundingClientRect(), w = pop.offsetWidth;
   pop.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
@@ -987,7 +1015,7 @@ $('.bar').addEventListener('mousedown', e => { if (e.target.closest('button')) e
 window.addEventListener('resize', closePop);
 // Un défilement fait par le mode machine à écrire ne doit pas fermer le menu qu'on vient d'ouvrir.
 window.addEventListener('scroll', () => { if (Date.now() > twScrollUntil) closePop(); }, { passive:true });
-$('.tools').addEventListener('scroll', closePop, { passive:true });
+$('.tools').addEventListener('scroll', () => { if (Date.now() - popAt > 400) closePop(); }, { passive:true });
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -1095,8 +1123,8 @@ const MENUS = {
         <kbd>Ctrl ⌥ M</kbd><span>commenter la sélection</span>
         <kbd>Ctrl =</kbd><span>indice (x₂)</span>
         <kbd>Ctrl ⇧ =</kbd><span>exposant (x²)</span>
-        <kbd>Ctrl K</kbd><span>demander à Claude d'écrire</span>
-        <kbd>Ctrl ⇧ H</kbd><span>masquer / afficher le texte de l'IA</span>
+        ${window.plumeNoAI ? '' : `<kbd>Ctrl K</kbd><span>demander à Claude d'écrire</span>
+        <kbd>Ctrl ⇧ H</kbd><span>masquer / afficher le texte de l'IA</span>`}
         <kbd>$x^2$</kbd><span>formule dans la ligne</span>
         <kbd>$$x^2$$</kbd><span>formule centrée</span>
         <kbd>Ctrl S</kbd><span>enregistrer maintenant</span>
@@ -1124,8 +1152,93 @@ const MENUS = {
 document.querySelectorAll('[data-menu]').forEach(b => b.addEventListener('click', () => MENUS[b.dataset.menu](b)));
 document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => exec(b.dataset.cmd)));
 $('#clear-btn').addEventListener('click', clearAll);
-// Annuler / rétablir : l'historique du navigateur, comme Ctrl+Z et Ctrl+Y.
-function undoRedo(cmd){ editor.focus({ preventScroll: true }); document.execCommand(cmd); changed(); queueToolbar(); }
+/* Annuler / rétablir : un historique propre à Plume. Celui du navigateur ignorait les couleurs,
+   les notes, les sections repliées ou les propositions de l'IA, et laissait des morceaux derrière lui.
+   Chaque état est une copie du document avec la position du curseur ; la frappe est regroupée
+   par rafales (une pause d'une demi-seconde, ou un clic, termine la rafale). */
+const hist = { list: [], i: -1, t: 0, busy: false, before: null };
+function caretOffsets(){
+  const s = getSelection(); if (!s.rangeCount || !editor.contains(s.anchorNode)) return null;
+  const r = s.getRangeAt(0), pos = (node, off) => {
+    const pre = document.createRange(); pre.selectNodeContents(editor);
+    try { pre.setEnd(node, off); } catch(e) { return 0; }
+    return pre.toString().length;
+  };
+  return [pos(r.startContainer, r.startOffset), pos(r.endContainer, r.endOffset)];
+}
+function setCaretOffsets(o){
+  if (!o) return;
+  const w = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT); let pos = 0, n, a = null, b = null;
+  while ((n = w.nextNode())) {
+    const L = n.data.length;
+    if (!a && o[0] <= pos + L) a = [n, o[0] - pos];
+    if (o[1] <= pos + L) { b = [n, o[1] - pos]; break; }
+    pos += L;
+  }
+  const r = document.createRange();
+  if (a && b) { r.setStart(a[0], a[1]); r.setEnd(b[0], b[1]); } else { r.selectNodeContents(editor); r.collapse(false); }
+  editor.focus({ preventScroll: true }); setRange(r);
+}
+// Les propositions de l'IA ne font pas partie de l'historique : on garde le texte d'origine.
+function histHTML(){
+  if (!editor.querySelector('.ai-sg,.ai-block')) return editor.innerHTML;
+  const c = editor.cloneNode(true); resolveSuggestions(c); return c.innerHTML;
+}
+function histSnap(){
+  clearTimeout(hist.t); hist.t = 0;
+  const html = histHTML(), cur = hist.list[hist.i];
+  if (cur && cur.html === html) { cur.caret = caretOffsets() || cur.caret; return; }
+  hist.list.length = hist.i + 1;
+  hist.list.push({ html, caret: caretOffsets(), before: hist.before }); hist.before = null;
+  if (hist.list.length > 200) hist.list.shift();
+  hist.i = hist.list.length - 1;
+  updateUndoBtns();
+}
+function histMark(typing){
+  if (hist.busy) return;
+  clearTimeout(hist.t);
+  hist.t = setTimeout(histSnap, typing ? 600 : 0);
+}
+function histFlush(){ if (hist.t) histSnap(); }
+function histReset(){ clearTimeout(hist.t); hist.t = 0; hist.before = null; hist.list = [{ html: histHTML(), caret: caretOffsets() }]; hist.i = 0; updateUndoBtns(); }
+function updateUndoBtns(){
+  $('#undo-btn').disabled = hist.i <= 0 && !hist.t;
+  $('#redo-btn').disabled = hist.i >= hist.list.length - 1;
+}
+function undoRedo(cmd){
+  histFlush();
+  let j = hist.i + (cmd === 'undo' ? -1 : 1);
+  // Un texte écrit par l'IA en attente : Annuler le retire d'abord, sans toucher au reste.
+  if (cmd === 'undo' && editor.querySelector('.ai-block')) j = hist.i;
+  if (j < 0 || j >= hist.list.length) return;
+  // Le curseur revient là où l'on avait modifié : après l'action pour Rétablir, avant pour Annuler.
+  const st = hist.list[j], caret = cmd === 'undo' ? (hist.list[hist.i].before || st.caret) : st.caret;
+  hist.i = j; hist.busy = true;
+  // Les corrections proposées par l'IA et pas encore traitées sont remises en place après coup.
+  const sgs = [...editor.querySelectorAll('.ai-sg')].map(sp => {
+    const info = SG.get(sp.dataset.id) || {}, d = sp.querySelector('del'), idea = sp.classList.contains('idea');
+    let ex = d ? d.textContent : '';
+    if (idea) { const b = blockOf(sp), r = document.createRange(); if (b) { r.setStart(b, 0); r.setEndBefore(sp); ex = r.toString().replace(/​/g, '').slice(-40); } }
+    return { idea, type: info.type, why: info.why, ex, rep: sp.querySelector('ins')?.textContent || '' };
+  });
+  aiCtl?.abort(); SG.clear();
+  editor.innerHTML = st.html;
+  for (const g of sgs) { if (!g.type) continue; if (g.idea) insertIdea(g.ex, g.why); else insertSg(g.type, g.ex, g.rep, g.why); }
+  if (!pendingCount()) dockMsg = '';
+  renderMissingMath(); refold(); renderNotes(); updateEmpty();
+  setCaretOffsets(caret); markCurrent();
+  hist.busy = false;
+  clearTimeout(saveT); saveT = setTimeout(save, 700);
+  updateDock(); updateUndoBtns(); queueToolbar(); centerSoon();
+}
+// Le curseur juste avant une modification, pour y revenir en annulant.
+editor.addEventListener('beforeinput', e => {
+  if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') { e.preventDefault(); undoRedo(e.inputType === 'historyUndo' ? 'undo' : 'redo'); return; }
+  if (!hist.t && !hist.before) hist.before = caretOffsets();
+});
+// Un clic ou un raccourci termine la rafale de frappe en cours.
+document.addEventListener('mousedown', histFlush, true);
+document.addEventListener('touchstart', histFlush, { capture: true, passive: true });
 $('#undo-btn').addEventListener('click', () => undoRedo('undo'));
 $('#redo-btn').addEventListener('click', () => undoRedo('redo'));
 $('#math-btn').addEventListener('click', () => openMath(null));
@@ -1257,10 +1370,12 @@ function tryAutoMath(){
 document.execCommand('defaultParagraphSeparator', false, 'p');
 editor.addEventListener('input', e => {
   if (e.inputType === 'insertText' && e.data && e.data.endsWith('$')) tryAutoMath();
-  changed(); markCurrent();
+  changed(/^(insert(Text|ReplacementText|CompositionText|Paragraph|LineBreak)|delete(Content|Word|Soft|Hard))/.test(e.inputType || '')); markCurrent();
 });
 editor.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (mod && k === 'z') { e.preventDefault(); undoRedo(e.shiftKey ? 'redo' : 'undo'); return; }
+  if (mod || e.key === 'Tab') histFlush();
   if (mod && e.code === 'Equal') { e.preventDefault(); exec(e.shiftKey ? 'superscript' : 'subscript'); }
   else if (mod && k === 'k') { e.preventDefault(); openClaude('write'); }
   else if (mod && e.altKey && e.code === 'KeyM') { e.preventDefault(); addNote(); }
@@ -1272,7 +1387,7 @@ editor.addEventListener('keydown', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closePop(); hideSelbar(); if (!cp.hidden) closeClaude(); }
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'h') { e.preventDefault(); setAiHidden(!aiHidden); toast(aiHidden ? "Texte de l'IA masqué" : "Texte de l'IA affiché"); }
+  if (!window.plumeNoAI && (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'h') { e.preventDefault(); setAiHidden(!aiHidden); toast(aiHidden ? "Texte de l'IA masqué" : "Texte de l'IA affiché"); }
 });
 editor.addEventListener('paste', e => {
   const cd = e.clipboardData; if (!cd) return;
@@ -1321,22 +1436,48 @@ function clean(node){
   }
 }
 function textToHTML(txt){
-  return txt.replace(/\r/g,'').split(/\n{2,}/).filter(b => b.trim()).map(b => {
-    let h = esc(b)
-      .replace(/\$\$([^$]+)\$\$/g, (_, t) => `<span class="math" data-display="1" data-tex="${t.trim()}"></span>`)
-      .replace(/(^|[^$\\])\$([^\s$](?:[^$\n]*[^\s$\\])?)\$/g, (_, p, t) => `${p}<span class="math" data-tex="${t}"></span>`)
-      .replace(/\n/g,'<br>');
-    const hm = h.match(/^(#{1,3}) (.*)$/s);
-    return hm ? `<h${hm[1].length}>${hm[2]}</h${hm[1].length}>` : `<p>${h}</p>`;
-  }).join('');
+  // Texte brut ou Markdown : titres #, listes - * 1., citations >, **gras**, *italique*, ~~barré~~, formules $…$.
+  const inline = t => esc(t)
+    .replace(/\$\$([^$]+)\$\$/g, (_, x) => `<span class="math" data-display="1" data-tex="${x.trim()}"></span>`)
+    .replace(/(^|[^$\\])\$([^\s$](?:[^$\n]*[^\s$\\])?)\$/g, (_, p, x) => `${p}<span class="math" data-tex="${x}"></span>`)
+    .replace(/\*\*(?=\S)(.+?)\*\*/g, '<b>$1</b>').replace(/__(?=\S)(.+?)__/g, '<b>$1</b>')
+    .replace(/(^|[^*\w])\*(?=\S)([^*]+?)\*(?!\w)/g, '$1<i>$2</i>').replace(/(^|[^_\w])_(?=\S)([^_]+?)_(?!\w)/g, '$1<i>$2</i>')
+    .replace(/~~(?=\S)(.+?)~~/g, '<s>$1</s>');
+  const out = [];
+  for (const b of txt.replace(/\r/g, '').split(/\n{2,}/)) {
+    if (!b.trim()) continue;
+    const lines = b.split('\n').filter(l => l.trim());
+    const ul = lines.every(l => /^\s*[-*+] /.test(l)), ol = lines.every(l => /^\s*\d+[.)] /.test(l));
+    if (ul || ol) {
+      const tag = ul ? 'ul' : 'ol';
+      out.push(`<${tag}>` + lines.map(l => `<li>${inline(l.replace(/^\s*([-*+]|\d+[.)]) /, ''))}</li>`).join('') + `</${tag}>`);
+    } else if (lines.every(l => /^> ?/.test(l))) {
+      out.push(`<blockquote>${lines.map(l => inline(l.replace(/^> ?/, ''))).join('<br>')}</blockquote>`);
+    } else if (lines.length === 1 && /^#{1,6} /.test(lines[0])) {
+      const n = Math.min(3, lines[0].match(/^#+/)[0].length);
+      out.push(`<h${n}>${inline(lines[0].replace(/^#+ /, ''))}</h${n}>`);
+    } else if (/^\$\$/.test(b.trim()) && /\$\$$/.test(b.trim())) {
+      out.push(`<p>${inline(b.trim().replace(/\n/g, ' '))}</p>`);
+    } else {
+      // Un titre en tête de bloc, suivi de texte sans ligne vide.
+      const hm = /^(#{1,6}) (.*)$/.exec(lines[0]);
+      if (hm) { const n = Math.min(3, hm[1].length); out.push(`<h${n}>${inline(hm[2])}</h${n}>`); lines.shift(); }
+      if (lines.length) out.push(`<p>${lines.map(inline).join('<br>')}</p>`);
+    }
+  }
+  return out.join('');
 }
 $('#file').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
   const rd = new FileReader();
   rd.onload = () => {
     const isHtml = /\.html?$/i.test(f.name);
-    editor.innerHTML = sanitize(isHtml ? rd.result : textToHTML(rd.result)) || '<p><br></p>';
-    renderAllMath(); changed(); restoreToStart(); toast(`« ${f.name} » ouvert`);
+    const html = sanitize(isHtml ? rd.result : textToHTML(rd.result)) || '<p><br></p>';
+    // Le fichier s'ouvre dans un nouvel onglet : le document en cours n'est jamais écrasé.
+    const id = newId();
+    docs.push({ id, title: 'Sans titre', updated: Date.now() });
+    store.set('plume-doc:' + id, html); saveDocs();
+    openDoc(id); save(); toast(`« ${f.name} » ouvert dans un nouvel onglet`);
   };
   rd.readAsText(f); e.target.value = '';
 });
@@ -1366,7 +1507,7 @@ function copy(text){
 
 /* ---------- Enregistrement, compteur ---------- */
 let saveT;
-function changed(){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); refold(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
+function changed(typing){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); refold(); histMark(typing === true); updateUndoBtns(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
 function save(){
   clearTimeout(saveT);
   const ok = store.set('plume-doc:' + activeId, serialize());
@@ -2136,6 +2277,8 @@ function copyStyle(){
   }
   for (const c of ['bold','italic','strikeThrough','subscript','superscript']) { try { st.cmd[c] = document.queryCommandState(c); } catch(e) { st.cmd[c] = false; } }
   painter = st;
+  // La sélection d'origine ne doit pas recevoir le style tout de suite : on la referme.
+  const s = getSelection(); if (s.rangeCount && !s.isCollapsed) { const r = s.getRangeAt(0).cloneRange(); r.collapse(false); setRange(r); }
   document.body.classList.add('painting'); paintBtn.setAttribute('aria-pressed', 'true');
   toast('Style copié. Sélectionne le texte à mettre en forme.');
 }
@@ -2180,10 +2323,10 @@ function addNote(){
   hideSelbar(); openNotes(id, true); changed();
 }
 function deleteNote(id){
-  noteSpans(id).forEach(e => { e.removeAttribute('data-nt'); clearProp(e, 'n'); });
+  noteSpans(id).forEach(e => { e.removeAttribute('data-nt'); e.classList.remove('on'); if (!e.classList.length) e.removeAttribute('class'); clearProp(e, 'n'); });
   editor.normalize(); renderNotes(); changed();
 }
-function setNoteText(id, text){ noteSpans(id).forEach((e, i) => e.setAttribute('data-nt', i === 0 ? text : '')); changed(); }
+function setNoteText(id, text){ noteSpans(id).forEach((e, i) => e.setAttribute('data-nt', i === 0 ? text : '')); changed(true); }
 function renderNotes(){
   updateNotesCount();
   if (notesSide.hidden) return;
@@ -2315,7 +2458,7 @@ function openDoc(id){
   activeId = id; store.set('plume-active', id);
   const html = store.get('plume-doc:' + id);
   editor.innerHTML = sanitize(html && html.trim() ? html : '<p><br></p>');
-  renderAllMath(); refold(); renderNotes(); dockMsg = ''; updateDock(); updateEmpty();
+  renderAllMath(); refold(); histReset(); renderNotes(); dockMsg = ''; updateDock(); updateEmpty();
   statusEl.textContent = countLabel();
   window.scrollTo(0, 0); renderTabs(); restoreToStart(); markCurrent();
   tabbar.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
@@ -2463,7 +2606,7 @@ document.querySelectorAll('.grip').forEach(g => {
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
 <h1>Bienvenue dans Plume</h1>
-<p><span data-c="gris">Ceci est un texte d'exemple. Pour repartir de zéro : menu ⋯ en haut à droite, puis « Nouveau document ».</span></p>
+<p><span data-c="gris">Ceci est un texte d'exemple. Pour repartir de zéro : menu ⋯ en haut à droite, puis « Nouvel onglet ».</span></p>
 <p>Écrivez, tout simplement. En mode clair, le texte est noir sur fond blanc ; en mode sombre, il devient <b>blanc sur fond noir</b>. Les couleurs suivent aussi : chaque teinte a une version pour chaque mode.</p>
 <p>Sélectionnez un mot pour changer sa <span data-c="bleu">couleur</span>, sa <span data-s="26" style="font-size:26px">taille</span> ou sa <span data-f="caveat" data-s="26" style="font-size:26px">police</span>. Surlignez <span data-h="jaune marqueur">au marqueur</span>, <span data-h="vert plein">en aplat</span> ou <span data-h="rose contour">avec un contour</span>, et soulignez en <span data-u="ondule">ondulé</span>, en <span data-u="double">double</span>, en <span data-u="pointille">pointillé</span> ou en <span data-u="epais">trait épais</span>.</p>
 <h2>Les formules</h2>
@@ -2488,6 +2631,7 @@ activeId = docs.find(d => d.id === store.get('plume-active')) ? store.get('plume
 { const html = store.get('plume-doc:' + activeId); editor.innerHTML = sanitize(html && html.trim() ? html : SAMPLE); }
 renderAllMath();
 refold();
+histReset();
 updateNotesCount();
 setWidth(store.get('plume-width'));
 applyTheme();
