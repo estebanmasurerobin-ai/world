@@ -1611,6 +1611,10 @@ function liveHTML(){
   c.querySelectorAll('.math').forEach(m => { m.removeAttribute('title'); m.classList.remove('pending'); if (!m.querySelector('svg')) m.textContent = m.dataset.display === '1' ? `$$${m.dataset.tex}$$` : `$${m.dataset.tex}$`; });
   return c.innerHTML.replace(/​/g, '');
 }
+// Dans Claude, l'enregistrement passe par la fenêtre de confirmation de claude.ai
+// (sur iPhone et iPad, l'app Claude ouvre alors la feuille de partage → « Enregistrer dans Fichiers »).
+let dlApi = null;
+if (!window.plumeStandalone && window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(d => { dlApi = d; }, () => {});
 async function saveToFiles(all){
   save();
   let files;
@@ -1624,6 +1628,19 @@ async function saveToFiles(all){
     const seen = {};
     files = files.map(f => { const n = seen[f.name] = (seen[f.name] || 0) + 1; return n > 1 ? new File([f], f.name.replace(/\.html$/, ` ${n}.html`), { type: f.type }) : f; });
   } else files = [fileFor(liveHTML(), docs.find(d => d.id === activeId)?.title)];
+  if (dlApi) {
+    let n = 0;
+    for (const f of files) {
+      try { await dlApi.save({ filename: f.name, data: f }); n++; }
+      catch (e) {
+        if (e && e.code === 'declined') return;
+        if (e && e.code === 'rate_limited') { toast('Une fenêtre d\'enregistrement est déjà ouverte.'); return; }
+        toast("L'enregistrement de fichiers n'est pas disponible ici."); return;
+      }
+    }
+    if (n) toast(n > 1 ? `${n} fichiers enregistrés` : `« ${files[0].name} » enregistré`);
+    return;
+  }
   // Sur iPhone et iPad : la feuille de partage propose « Enregistrer dans Fichiers » (iCloud Drive).
   if (navigator.canShare && navigator.share) {
     let can = false; try { can = navigator.canShare({ files }); } catch(e) {}
