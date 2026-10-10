@@ -471,6 +471,33 @@ body.side-open .page{padding-right:calc(340px + 16px)}
 @media (min-width:1100px){ .ai-dock .btn[data-a="side"]{display:inline-flex} }
 @media (max-width:1099px){ .ai-side{display:none} body.side-open .page{padding-right:16px} }
 
+/* ---------- Notes (commentaires) ---------- */
+:root{--note-bg:rgba(255,190,0,.16);--note-line:#e0a800;--note-on:rgba(255,190,0,.34)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--note-bg:rgba(255,200,40,.14);--note-line:#c99a1a;--note-on:rgba(255,200,40,.3)} }
+:root[data-theme="dark"]{--note-bg:rgba(255,200,40,.14);--note-line:#c99a1a;--note-on:rgba(255,200,40,.3)}
+#editor [data-n]{background:var(--note-bg);border-bottom:2px solid var(--note-line);-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-color .2s}
+#editor [data-n].on{background:var(--note-on)}
+.notes-side{
+  position:fixed;right:0;bottom:0;top:calc(var(--bar-h,0px) + var(--vv-top,0px));z-index:31;width:340px;max-width:100vw;box-sizing:border-box;
+  display:flex;flex-direction:column;background:var(--glass,var(--bg));color:var(--fg);
+  -webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
+  border-left:.5px solid var(--glass-line,var(--line));
+}
+@media (min-width:1100px){ body.notes-open .page{padding-right:calc(340px + 16px)} body.notes-open .ai-side{display:none} }
+@media (max-width:1099px){ .notes-side{box-shadow:var(--pop-shadow,0 8px 30px rgba(0,0,0,.15))} }
+.notes-side .nt-head{display:flex;align-items:center;gap:8px;padding:12px 12px 10px 16px;border-bottom:.5px solid var(--glass-line,var(--line))}
+.notes-side .nt-head h2{margin:0;font-size:15px;font-weight:600;flex:1}
+.notes-side .nt-list{flex:1;overflow-y:auto;padding:12px 14px 40px;display:flex;flex-direction:column;gap:10px}
+.nt-empty{color:var(--ui);font-size:13.5px;line-height:1.55;padding:6px 2px}
+.nt-card{background:var(--fill,var(--hover));border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-left:3px solid var(--note-line);cursor:pointer}
+.nt-card.on{box-shadow:0 0 0 2px var(--note-line)}
+.nt-quote{margin:0;font-family:var(--doc-font);font-size:13.5px;line-height:1.45;color:var(--ui);overflow-wrap:anywhere}
+.nt-text{border:0;background:var(--bg);color:var(--fg);border-radius:10px;padding:8px 10px;font:inherit;font-size:15px;line-height:1.45;resize:none;min-height:38px;width:100%;box-sizing:border-box;cursor:text}
+.nt-text:focus{outline:none;box-shadow:0 0 0 3px var(--ring,var(--sel))}
+.nt-acts{display:flex;justify-content:flex-end}
+.nt-acts .btn{padding:4px 11px;font-size:12.5px;border-radius:999px}
+#notes-btn .count{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ui);min-width:.6em}
+
 /* Barre en bas pendant et après l'analyse */
 .ai-dock{
   position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);z-index:35;
@@ -611,6 +638,7 @@ body{-webkit-font-smoothing:antialiased}
   </div>
   <div class="meta">
     <span class="status" id="status" aria-live="polite"></span>
+    <button class="tb" id="notes-btn" title="Notes (Ctrl+Alt+M pour commenter la sélection)" aria-label="Notes" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span class="count" id="notes-count"></span></button>
     <button class="tb" id="focus-btn" title="Mode concentration : seul le paragraphe en cours reste net" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
     <button class="tb" id="ai-btn" data-menu="ai" title="Suggestions de l'IA"><span class="spark">✦</span><span style="font-size:13px">IA</span></button>
     <button class="tb" id="fs-btn" title="Plein écran" hidden></button>
@@ -631,6 +659,7 @@ body{-webkit-font-smoothing:antialiased}
 
 <div class="selbar" id="selbar" hidden>
   <button data-sb="copy"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copier</button>
+  <button data-sb="note"><svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Commenter</button>
   <button data-sb="ask" class="needs-ai"><span class="spark cool">✦</span>Demander à Claude</button>
   <button data-sb="reform" class="needs-ai"><span class="spark">✦</span>Reformuler</button>
   <a id="sb-search" href="https://www.google.com/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>Rechercher sur le web</a>
@@ -658,6 +687,14 @@ body{-webkit-font-smoothing:antialiased}
 </section>
 
 <div class="pop" id="pop" hidden></div>
+
+<aside class="notes-side" id="notes-side" hidden aria-label="Notes">
+  <div class="nt-head">
+    <h2 id="nt-title">Notes</h2>
+    <button class="tb" id="nt-close" title="Fermer les notes" aria-label="Fermer les notes"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="nt-list" id="nt-list"></div>
+</aside>
 
 <div class="ai-dock" id="ai-dock" hidden aria-live="polite"></div>
 
@@ -791,6 +828,7 @@ function clearProp(el, cat){
   el.removeAttribute('data-' + cat);
   if (cat === 's') el.style.removeProperty('font-size');
   if (cat === 'c') { el.style.removeProperty('--cl'); el.style.removeProperty('--cd'); }
+  if (cat === 'n') el.removeAttribute('data-nt');
   if (el.style.length === 0) el.removeAttribute('style');
   if (el.tagName === 'SPAN' && el.attributes.length === 0) el.replaceWith(...el.childNodes);
 }
@@ -990,6 +1028,7 @@ const MENUS = {
       <div class="keys">
         <kbd>Ctrl B / I / U</kbd><span>gras, italique, souligné</span>
         <kbd>Ctrl M</kbd><span>insérer une formule</span>
+        <kbd>Ctrl ⌥ M</kbd><span>commenter la sélection</span>
         <kbd>Ctrl =</kbd><span>indice (x₂)</span>
         <kbd>Ctrl ⇧ =</kbd><span>exposant (x²)</span>
         <kbd>Ctrl K</kbd><span>demander à Claude d'écrire</span>
@@ -1153,6 +1192,7 @@ editor.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (mod && e.code === 'Equal') { e.preventDefault(); exec(e.shiftKey ? 'superscript' : 'subscript'); }
   else if (mod && k === 'k') { e.preventDefault(); openClaude('write'); }
+  else if (mod && e.altKey && e.code === 'KeyM') { e.preventDefault(); addNote(); }
   else if (mod && k === 'm') { e.preventDefault(); openMath(null); }
   else if (mod && k === 'u') { e.preventDefault(); toggleUnderline(); }
   else if (mod && k === 's') { e.preventDefault(); save(); toast('Enregistré'); }
@@ -1194,12 +1234,14 @@ function clean(node){
     if (tag === 'H4' || tag === 'H5' || tag === 'H6') { const h = el.ownerDocument.createElement('h3'); h.append(...el.childNodes); el.replaceWith(h); continue; }
     if (!KEEP.has(tag)) { el.replaceWith(...el.childNodes); continue; }
     const keep = {};
-    for (const k of ['c','h','u','f','s']) { const v = el.getAttribute('data-' + k); if (v && /^[a-z0-9 -]{1,40}$/.test(v)) keep[k] = v; }
+    for (const k of ['c','h','u','f','s','n']) { const v = el.getAttribute('data-' + k); if (v && /^[a-z0-9 -]{1,40}$/.test(v)) keep[k] = v; }
+    const noteText = keep.n ? (el.getAttribute('data-nt') || '').slice(0, 4000) : '';
     const fs = el.style.fontSize, cl = el.style.getPropertyValue('--cl').trim(), cdk = el.style.getPropertyValue('--cd').trim(), ta = el.style.textAlign;
     const folded = /^H[123]$/.test(tag) && el.getAttribute('data-fold') === '1';
     for (const a of [...el.attributes]) el.removeAttribute(a.name);
     for (const k in keep) el.setAttribute('data-' + k, keep[k]);
     if (folded) el.setAttribute('data-fold', '1');
+    if (keep.n) el.setAttribute('data-nt', noteText);
     if (keep.s && /^\d+px$/.test(fs)) el.style.fontSize = fs;
     if (keep.c === 'perso') { if (isHex(cl) && isHex(cdk)) { el.style.setProperty('--cl', cl); el.style.setProperty('--cd', cdk); } else el.removeAttribute('data-c'); }
     if (/^(left|right|center|justify)$/.test(ta) && /^(P|H1|H2|H3|DIV|LI|BLOCKQUOTE)$/.test(tag)) el.style.textAlign = ta;
@@ -1795,6 +1837,7 @@ selbar.addEventListener('click', e => {
   if (k === 'copy') copy(selectedText());
   else if (k === 'ask') openClaude('ask');
   else if (k === 'reform') reformulate();
+  else if (k === 'note') addNote();
 });
 
 /* ---------- Liste des propositions sur le côté (grand écran) ----------
@@ -2046,6 +2089,95 @@ document.addEventListener('touchend', () => setTimeout(maybePaint, 300));
 editor.addEventListener('keyup', e => { if (e.key === 'Shift') maybePaint(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && painter) stopPainting(); });
 
+/* ---------- Notes (commentaires) ----------
+   Une note est un <span data-n="id" data-nt="texte de la note"> autour du passage commenté :
+   elle suit le texte quand on le déplace, et s'enregistre avec le document. */
+const notesSide = $('#notes-side'), ntList = $('#nt-list'), notesBtn = $('#notes-btn');
+const noteSpans = id => [...editor.querySelectorAll(`[data-n="${CSS.escape(id)}"]`)];
+function noteIds(){ const ids = []; editor.querySelectorAll('[data-n]').forEach(e => { if (!ids.includes(e.dataset.n)) ids.push(e.dataset.n); }); return ids; }
+function noteText(id){ const s = noteSpans(id).find(e => e.dataset.nt); return s ? s.dataset.nt : ''; }
+function updateNotesCount(){ const n = noteIds().length; $('#notes-count').textContent = n || ''; }
+function addNote(){
+  const s = getSelection();
+  if (!s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode)) { toast('Sélectionne d\'abord le passage à commenter.'); return; }
+  saved = s.getRangeAt(0).cloneRange();
+  const id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  applyProp('n', id);
+  noteSpans(id).forEach(e => e.setAttribute('data-nt', ''));
+  if (!noteSpans(id).length) return;
+  hideSelbar(); openNotes(id, true); changed();
+}
+function deleteNote(id){
+  noteSpans(id).forEach(e => { e.removeAttribute('data-nt'); clearProp(e, 'n'); });
+  editor.normalize(); renderNotes(); changed();
+}
+function setNoteText(id, text){ noteSpans(id).forEach((e, i) => e.setAttribute('data-nt', i === 0 ? text : '')); changed(); }
+function renderNotes(){
+  updateNotesCount();
+  if (notesSide.hidden) return;
+  const ids = noteIds();
+  $('#nt-title').textContent = ids.length ? `Notes · ${ids.length}` : 'Notes';
+  if (!ids.length) { ntList.innerHTML = '<p class="nt-empty">Aucune note pour l\'instant. Sélectionne un passage, puis « Commenter » dans la bulle qui apparaît (ou Ctrl+Alt+M).</p>'; return; }
+  ntList.replaceChildren(...ids.map(id => {
+    const c = document.createElement('article'); c.className = 'nt-card'; c.dataset.id = id;
+    const q = document.createElement('p'); q.className = 'nt-quote';
+    const t = noteSpans(id).map(e => e.textContent).join(' ').replace(/​/g, '').trim();
+    q.textContent = '« ' + (t.length > 140 ? t.slice(0, 140) + '…' : t) + ' »';
+    const ta = document.createElement('textarea'); ta.className = 'nt-text'; ta.rows = 1; ta.placeholder = 'Écris ta note…';
+    ta.value = noteText(id); ta.setAttribute('aria-label', 'Note sur « ' + t.slice(0, 40) + ' »');
+    const acts = document.createElement('div'); acts.className = 'nt-acts';
+    acts.innerHTML = '<button class="btn" data-a="del">Supprimer la note</button>';
+    c.append(q, ta, acts);
+    return c;
+  }));
+  ntList.querySelectorAll('.nt-text').forEach(growNote);
+}
+function growNote(ta){ ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+function highlightNote(id){
+  editor.querySelectorAll('[data-n].on').forEach(e => e.classList.remove('on'));
+  ntList.querySelectorAll('.nt-card.on').forEach(c => c.classList.remove('on'));
+  if (!id) return;
+  noteSpans(id).forEach(e => e.classList.add('on'));
+  const c = ntList.querySelector(`.nt-card[data-id="${CSS.escape(id)}"]`);
+  if (c) { c.classList.add('on'); c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+function openNotes(id, focus){
+  notesSide.hidden = false; document.body.classList.add('notes-open'); notesBtn.setAttribute('aria-pressed', 'true');
+  renderNotes();
+  if (id) { highlightNote(id); if (focus) ntList.querySelector(`.nt-card[data-id="${CSS.escape(id)}"] .nt-text`)?.focus(); }
+}
+function closeNotes(){
+  notesSide.hidden = true; document.body.classList.remove('notes-open'); notesBtn.setAttribute('aria-pressed', 'false');
+  highlightNote(null);
+}
+notesBtn.addEventListener('click', () => notesSide.hidden ? openNotes() : closeNotes());
+$('#nt-close').addEventListener('click', closeNotes);
+ntList.addEventListener('input', e => {
+  const ta = e.target.closest('.nt-text'); if (!ta) return;
+  growNote(ta); setNoteText(ta.closest('.nt-card').dataset.id, ta.value);
+});
+// Une note laissée vide est retirée quand on la quitte.
+ntList.addEventListener('focusout', e => {
+  const ta = e.target.closest('.nt-text'); if (!ta) return;
+  const id = ta.closest('.nt-card').dataset.id;
+  setTimeout(() => { if (!ta.value.trim() && document.activeElement !== ta && noteSpans(id).length) deleteNote(id); }, 150);
+});
+ntList.addEventListener('click', e => {
+  const c = e.target.closest('.nt-card'); if (!c) return;
+  const id = c.dataset.id;
+  if (e.target.closest('[data-a="del"]')) { deleteNote(id); return; }
+  highlightNote(id);
+  if (!e.target.closest('.nt-text')) noteSpans(id)[0]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+});
+// Toucher un passage commenté : sa note apparaît dans le panneau.
+editor.addEventListener('click', e => {
+  const n = e.target instanceof Element && e.target.closest('[data-n]');
+  if (!n || !editor.contains(n)) return;
+  openNotes(n.dataset.n, false);
+});
+let ntT = 0;
+editor.addEventListener('input', () => { clearTimeout(ntT); ntT = setTimeout(() => { updateNotesCount(); if (!notesSide.hidden && !notesSide.contains(document.activeElement)) renderNotes(); }, 400); });
+
 /* ---------- Mode concentration ---------- */
 let focusOn = store.get('plume-focus') !== '0';
 function markCurrent(){
@@ -2111,7 +2243,7 @@ function openDoc(id){
   activeId = id; store.set('plume-active', id);
   const html = store.get('plume-doc:' + id);
   editor.innerHTML = sanitize(html && html.trim() ? html : '<p><br></p>');
-  renderAllMath(); refold(); dockMsg = ''; updateDock(); updateEmpty();
+  renderAllMath(); refold(); renderNotes(); dockMsg = ''; updateDock(); updateEmpty();
   statusEl.textContent = countLabel();
   window.scrollTo(0, 0); renderTabs(); restoreToStart(); markCurrent();
   tabbar.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
@@ -2284,6 +2416,7 @@ activeId = docs.find(d => d.id === store.get('plume-active')) ? store.get('plume
 { const html = store.get('plume-doc:' + activeId); editor.innerHTML = sanitize(html && html.trim() ? html : SAMPLE); }
 renderAllMath();
 refold();
+updateNotesCount();
 setWidth(store.get('plume-width'));
 applyTheme();
 applyFocus();
