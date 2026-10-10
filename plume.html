@@ -54,6 +54,9 @@
 
 [hidden]{display:none!important}
 html,body{background:var(--bg);color:var(--fg)}
+/* Pas d'effet d'élastique au-delà du début ou de la fin du document (iPad, iPhone, Mac) */
+html,body{overscroll-behavior:none}
+.tb .tb-label{font-size:13px;line-height:1}
 body{font-family:var(--ui-font);font-size:14px;transition:background-color .2s,color .2s}
 @media (prefers-reduced-motion: reduce){body,*{transition:none!important;animation:none!important}}
 
@@ -593,7 +596,7 @@ body{-webkit-font-smoothing:antialiased}
     <button class="tb" data-cmd="insertOrderedList" title="Liste numérotée"><svg viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 4.5l1.5-1v5M3.8 13.5c.3-1 2.4-1 2.4.3 0 1-2.4 1.6-2.4 3.2h2.6" stroke-width="1.3"/></svg></button>
     <button class="tb" data-menu="align" title="Alignement"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
-    <button class="tb" id="math-btn" title="Formule LaTeX (Ctrl+M)"><span class="glyph" style="font-size:18px">∑</span><span style="font-size:13px">Formule</span></button>
+    <button class="tb" id="math-btn" title="Formule LaTeX (Ctrl+M)"><svg viewBox="0 0 24 24"><path d="M17 5H7l5.5 7L7 19h10"/></svg><span class="tb-label">Formule</span></button>
     <button class="tb" id="paint-btn" title="Copier le style : copie la mise en forme du texte où est le curseur, puis sélectionne le texte à mettre en forme" aria-label="Copier le style" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 4h11a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M17 6.5h2.5V12H11v3"/><path d="M10 15h2v5a1 1 0 0 1-1 1h0a1 1 0 0 1-1-1z"/></svg></button>
     <button class="tb" id="clear-btn" title="Effacer la mise en forme de la sélection (couleurs, tailles, polices, surlignages…)" aria-label="Effacer la mise en forme"><svg viewBox="0 0 24 24"><path d="M16.5 4.5l4 4-9.5 9.5H7l-2.5-2.5z"/><path d="M11 9l4 4M7 18h13"/></svg></button>
   </div>
@@ -1969,7 +1972,11 @@ const barEl = $('.bar'), barToggle = $('#bar-toggle');
 function syncBarHeight(){ document.documentElement.style.setProperty('--bar-h', barEl.offsetHeight + 'px'); }
 new ResizeObserver(syncBarHeight).observe(barEl);
 function placeBar(){
-  const vv = window.visualViewport, off = vv ? Math.max(0, vv.offsetTop) : 0;
+  // On ne recale la barre que lorsque le clavier occupe vraiment l'écran : pendant l'effet
+  // d'élastique en bout de document, Safari fait aussi varier offsetTop, et la barre suivait.
+  const vv = window.visualViewport;
+  const keyboard = vv && innerHeight - vv.height > 120;
+  const off = keyboard ? Math.max(0, Math.min(vv.offsetTop, innerHeight - vv.height)) : 0;
   barEl.style.transform = off ? `translateY(${off}px)` : '';
   document.documentElement.style.setProperty('--vv-top', off + 'px');
 }
