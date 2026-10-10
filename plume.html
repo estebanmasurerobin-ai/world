@@ -1849,9 +1849,25 @@ function centerSoon(){ clearTimeout(twT); requestAnimationFrame(() => centerCare
 editor.addEventListener('input', () => requestAnimationFrame(() => centerCaret(true)));
 editor.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End|Enter|Backspace|Delete)/.test(e.key)) centerSoon(); });
 editor.addEventListener('mouseup', () => setTimeout(centerSoon, 0));
-editor.addEventListener('touchend', () => setTimeout(centerSoon, 350));
+// Sur écran tactile : on recentre après un simple toucher, jamais après un glissement du doigt
+// (sinon la page revient vers le curseur dès qu'on lâche l'écran en faisant défiler).
+let touchStart = null;
+editor.addEventListener('touchstart', e => { const t = e.touches[0]; touchStart = t ? { x: t.clientX, y: t.clientY, y0: window.scrollY, at: Date.now() } : null; }, { passive: true });
+editor.addEventListener('touchend', e => {
+  const t = e.changedTouches[0], st = touchStart; touchStart = null;
+  if (!st || !t) return;
+  const moved = Math.abs(t.clientX - st.x) > 10 || Math.abs(t.clientY - st.y) > 10 || Math.abs(window.scrollY - st.y0) > 10;
+  if (!moved && Date.now() - st.at < 600) setTimeout(centerSoon, 350);
+}, { passive: true });
 editor.addEventListener('focus', () => setTimeout(centerSoon, 0));
-window.visualViewport?.addEventListener('resize', () => centerSoon()); // ouverture / fermeture du clavier
+// Ouverture ou fermeture du clavier : seulement quand la hauteur visible change franchement,
+// pas pour les petites variations de la barre de Safari pendant le défilement.
+let vvH = window.visualViewport ? window.visualViewport.height : 0;
+window.visualViewport?.addEventListener('resize', () => {
+  const h = window.visualViewport.height;
+  if (Math.abs(h - vvH) > 120) centerSoon();
+  vvH = h;
+});
 function applyTw(){ document.body.classList.add('tw'); }
 
 /* ---------- Mode concentration ---------- */
