@@ -59,7 +59,7 @@ body{font-family:var(--ui-font);font-size:14px;transition:background-color .2s,c
 
 /* ---------- Barre d'outils ---------- */
 .bar{
-  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  position:fixed;top:0;left:0;right:0;z-index:20;padding-top:env(safe-area-inset-top,0px);
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:0;
   padding:6px 16px;background:var(--bg);border-bottom:1px solid var(--line);
 }
@@ -143,9 +143,25 @@ body{font-family:var(--ui-font);font-size:14px;transition:background-color .2s,c
 .keys kbd{font-family:var(--mono);font-size:11.5px;color:var(--fg)}
 
 /* ---------- Page ---------- */
-.page{padding-inline:16px;padding-block:56px 40vh}
+.page{padding-inline:16px;padding-block:calc(var(--bar-h,0px) + 56px) 40vh}
+/* Barre masquée : il ne reste que le petit bouton pour la rouvrir */
+body.bar-hidden .bar{display:none}
+.bar-toggle{
+  position:fixed;z-index:21;left:10px;top:calc(var(--bar-h,0px) + 10px + var(--vv-top,0px));
+  width:30px;height:30px;border-radius:50%;border:.5px solid var(--glass-line,var(--line));padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:var(--ui);
+  background:var(--glass,var(--bg));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  box-shadow:0 2px 10px rgba(0,0,0,.08);opacity:.75;transition:opacity .15s;
+}
+body.bar-hidden .bar-toggle{top:calc(env(safe-area-inset-top,0px) + 10px + var(--vv-top,0px))}
+.bar-toggle:hover{opacity:1;color:var(--fg)}
+.bar-toggle svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+body.bar-hidden .bar-toggle svg{transform:rotate(180deg)}
+.bar-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Copier le style : le pinceau reste enfoncé tant qu'il attend un texte à mettre en forme */
+body.painting #editor{cursor:copy}
 /* Machine à écrire : de la marge en haut et en bas pour que la ligne en cours puisse toujours rester au milieu */
-body.tw .page{padding-block:56px 58vh} /* le haut reste en haut ; seul le bas a de la marge pour centrer les dernières lignes */
+body.tw .page{padding-block:calc(var(--bar-h,0px) + 56px) 58vh} /* le haut reste en haut ; seul le bas a de la marge pour centrer les dernières lignes */
 #editor{
   position:relative;max-width:var(--measure);margin:0 auto;min-height:60vh;
   font-family:var(--doc-font);font-size:19px;line-height:1.7;color:var(--fg);
@@ -578,6 +594,7 @@ body{-webkit-font-smoothing:antialiased}
     <button class="tb" data-menu="align" title="Alignement"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
     <button class="tb" id="math-btn" title="Formule LaTeX (Ctrl+M)"><span class="glyph" style="font-size:18px">∑</span><span style="font-size:13px">Formule</span></button>
+    <button class="tb" id="paint-btn" title="Copier le style : copie la mise en forme du texte où est le curseur, puis sélectionne le texte à mettre en forme" aria-label="Copier le style" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 4h11a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M17 6.5h2.5V12H11v3"/><path d="M10 15h2v5a1 1 0 0 1-1 1h0a1 1 0 0 1-1-1z"/></svg></button>
     <button class="tb" id="clear-btn" title="Effacer la mise en forme de la sélection (couleurs, tailles, polices, surlignages…)" aria-label="Effacer la mise en forme"><svg viewBox="0 0 24 24"><path d="M16.5 4.5l4 4-9.5 9.5H7l-2.5-2.5z"/><path d="M11 9l4 4M7 18h13"/></svg></button>
   </div>
   <div class="meta">
@@ -589,6 +606,8 @@ body{-webkit-font-smoothing:antialiased}
     <button class="tb" data-menu="doc" title="Document"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
   </div>
 </header>
+
+<button class="bar-toggle" id="bar-toggle" title="Masquer la barre d'outils" aria-label="Masquer la barre d'outils"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
 
 <main class="page">
   <div class="sheet">
@@ -1732,7 +1751,7 @@ const selbar = $('#selbar');
 function hideSelbar(){ selbar.hidden = true; }
 function showSelbar(){
   const s = getSelection();
-  if (!s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode) || !cp.hidden || !mathPanel.hidden) { hideSelbar(); return; }
+  if (painter || !s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode) || !cp.hidden || !mathPanel.hidden) { hideSelbar(); return; }
   const r = s.getRangeAt(0), t = r.toString().replace(/​/g, '').trim();
   if (!t) { hideSelbar(); return; }
   $('#sb-search').href = 'https://www.google.com/search?q=' + encodeURIComponent(t.slice(0, 300));
@@ -1942,6 +1961,71 @@ editor.addEventListener('mousedown', e => {
   if (e.clientX >= left - 2) return;
   e.preventDefault(); toggleFold(h);
 });
+
+/* ---------- Barre d'outils : toujours en haut, masquable ----------
+   Sur iPad, quand le clavier est ouvert, Safari fait glisser la page sous l'écran : on recale
+   la barre sur la partie visible pour qu'elle ne disparaisse jamais en défilant. */
+const barEl = $('.bar'), barToggle = $('#bar-toggle');
+function syncBarHeight(){ document.documentElement.style.setProperty('--bar-h', barEl.offsetHeight + 'px'); }
+new ResizeObserver(syncBarHeight).observe(barEl);
+function placeBar(){
+  const vv = window.visualViewport, off = vv ? Math.max(0, vv.offsetTop) : 0;
+  barEl.style.transform = off ? `translateY(${off}px)` : '';
+  document.documentElement.style.setProperty('--vv-top', off + 'px');
+}
+window.visualViewport?.addEventListener('scroll', placeBar);
+window.visualViewport?.addEventListener('resize', placeBar);
+function setBarHidden(h){
+  document.body.classList.toggle('bar-hidden', h);
+  store.set('plume-bar-hidden', h ? '1' : '0');
+  const label = h ? "Afficher la barre d'outils" : "Masquer la barre d'outils";
+  barToggle.title = label; barToggle.setAttribute('aria-label', label);
+  if (h) closePop();
+  syncBarHeight();
+}
+barToggle.addEventListener('mousedown', e => e.preventDefault()); // garder le curseur dans le texte
+barToggle.addEventListener('click', () => setBarHidden(!document.body.classList.contains('bar-hidden')));
+
+/* ---------- Copier le style (pinceau) ----------
+   1. Le curseur dans un texte mis en forme, appuyer sur le pinceau : le style est copié.
+   2. Sélectionner un autre texte : il prend ce style (couleur, surlignage, soulignement,
+      police, taille, gras, italique, barré). Échap ou un nouvel appui annule. */
+let painter = null;
+const paintBtn = $('#paint-btn');
+function copyStyle(){
+  const el = anchorEl(); if (!el) { toast('Place d\'abord le curseur dans le texte dont tu veux copier le style.'); return; }
+  const st = { cmd: {} };
+  for (const cat of ['c','h','u','f','s']) {
+    const n = el.closest(`[data-${cat}]`);
+    st[cat] = n && editor.contains(n) ? n.getAttribute(`data-${cat}`) : null;
+    if (cat === 'c' && st.c === 'perso') st.cExtra = { light: n.style.getPropertyValue('--cl').trim(), dark: n.style.getPropertyValue('--cd').trim() };
+  }
+  for (const c of ['bold','italic','strikeThrough']) { try { st.cmd[c] = document.queryCommandState(c); } catch(e) { st.cmd[c] = false; } }
+  painter = st;
+  document.body.classList.add('painting'); paintBtn.setAttribute('aria-pressed', 'true');
+  toast('Style copié. Sélectionne le texte à mettre en forme.');
+}
+function stopPainting(){ painter = null; document.body.classList.remove('painting'); paintBtn.setAttribute('aria-pressed', 'false'); }
+function pasteStyle(){
+  const st = painter; stopPainting();
+  const s = getSelection(); if (!s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode)) return;
+  saved = s.getRangeAt(0).cloneRange();
+  for (const cat of ['c','h','u','f','s']) applyProp(cat, st[cat], cat === 'c' ? st.cExtra : undefined);
+  restore();
+  for (const c of ['bold','italic','strikeThrough']) {
+    let on = false; try { on = document.queryCommandState(c); } catch(e) {}
+    if (on !== st.cmd[c]) document.execCommand(c);
+  }
+  hideSelbar(); changed(); queueToolbar();
+  toast('Style appliqué');
+}
+paintBtn.addEventListener('click', () => painter ? stopPainting() : copyStyle());
+// La sélection est terminée (souris lâchée, doigt levé, Maj relâchée) : on applique le style copié.
+function maybePaint(){ if (!painter) return; const s = getSelection(); if (s.rangeCount && !s.isCollapsed && editor.contains(s.anchorNode)) pasteStyle(); }
+document.addEventListener('mouseup', () => setTimeout(maybePaint, 0));
+document.addEventListener('touchend', () => setTimeout(maybePaint, 300));
+editor.addEventListener('keyup', e => { if (e.key === 'Shift') maybePaint(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && painter) stopPainting(); });
 
 /* ---------- Mode concentration ---------- */
 let focusOn = store.get('plume-focus') !== '0';
@@ -2185,6 +2269,8 @@ setWidth(store.get('plume-width'));
 applyTheme();
 applyFocus();
 applyTw();
+setBarHidden(store.get('plume-bar-hidden') === '1');
+placeBar();
 setAiHidden(aiHidden);
 updateEmpty();
 statusEl.textContent = countLabel();
