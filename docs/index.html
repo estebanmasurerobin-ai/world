@@ -172,6 +172,20 @@ body.tw .page{padding-block:56px 58vh} /* le haut reste en haut ; seul le bas a 
 #editor ::selection{background:var(--sel)}
 #editor > *:first-child{margin-top:0}
 #editor p,#editor div{margin:0 0 .85em}
+/* Sections repliables, comme dans Notes : une flèche à gauche de chaque titre.
+   Repliée, la section cache tout jusqu'au prochain titre de même niveau ou plus haut. */
+#editor > :is(h1,h2,h3){position:relative}
+#editor > :is(h1,h2,h3)::before{
+  content:"";position:absolute;left:-28px;top:0;width:20px;height:1.18em;cursor:pointer;
+  background:var(--ui);opacity:0;transform:rotate(90deg);transition:opacity .15s,transform .2s;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M4 2l4 4-4 4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px 12px no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M4 2l4 4-4 4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px 12px no-repeat;
+}
+#editor > :is(h1,h2,h3):hover::before,#editor > :is(h1,h2,h3).is-cur::before{opacity:.55}
+#editor > :is(h1,h2,h3)[data-fold="1"]::before{opacity:.8;transform:none}
+@media (hover:none){ #editor > :is(h1,h2,h3)::before{opacity:.35} }
+@media (max-width:640px){ #editor > :is(h1,h2,h3){padding-left:24px} #editor > :is(h1,h2,h3)::before{left:-2px} }
+#editor > .fold-hidden{display:none!important}
 #editor h1{font-size:2.05em;line-height:1.18;margin:1.1em 0 .45em;font-weight:700;text-wrap:balance}
 #editor h2{font-size:1.5em;line-height:1.25;margin:1.2em 0 .4em;font-weight:700;text-wrap:balance}
 #editor h3{font-size:1.2em;line-height:1.35;margin:1.1em 0 .35em;font-weight:700}
@@ -414,7 +428,7 @@ html.ai-hide .ai-sg:hover{background:none}
 /* Colonne de texte redimensionnable */
 .sheet{position:relative;max-width:var(--measure);margin:0 auto}
 .grip{position:absolute;top:0;bottom:0;width:18px;cursor:ew-resize;touch-action:none;display:flex;justify-content:center;z-index:2}
-.grip.l{left:-38px}.grip.r{right:-38px}
+.grip.l{left:-58px}.grip.r{right:-58px}
 .grip::before{content:"";width:2px;height:100%;max-height:100vh;position:sticky;top:0;border-radius:2px;background:var(--line);opacity:0;transition:opacity .2s}
 .sheet:hover .grip::before{opacity:.45}
 .grip:hover::before,.grip.drag::before{opacity:1;background:var(--accent)}
@@ -938,6 +952,9 @@ const MENUS = {
     openPop(btn, `
       <button class="mi" id="new-doc">Nouvel onglet</button>
       <button class="mi" id="reopen-doc">Rouvrir le dernier onglet fermé</button>
+      <div class="hr"></div>
+      <button class="mi" id="fold-all">Replier toutes les sections</button>
+      <button class="mi" id="unfold-all">Déplier toutes les sections</button>
       ${window.plumeKey ? '<div class="hr"></div><button class="mi" id="api-key">Clé d\'API Claude…</button>' : ''}
       <div class="hr"></div>
       <button class="mi" id="autofs-toggle" aria-checked="${autoFs}">Plein écran automatique<span class="hint">${autoFs ? 'activé' : 'désactivé'}</span></button>
@@ -963,6 +980,8 @@ const MENUS = {
     p => {
       p.querySelector('#new-doc').onclick = () => { closePop(); newDoc(); };
       p.querySelector('#reopen-doc').onclick = () => { closePop(); reopenClosed(); };
+      p.querySelector('#fold-all').onclick = () => { closePop(); foldAll(true); };
+      p.querySelector('#unfold-all').onclick = () => { closePop(); foldAll(false); };
       p.querySelector('#api-key')?.addEventListener('click', () => { closePop(); window.plumeKey.open(); });
       p.querySelector('#autofs-toggle').onclick = e => {
         autoFs = !autoFs; store.set('plume-autofs', autoFs ? '1' : '0');
@@ -1155,8 +1174,10 @@ function clean(node){
     const keep = {};
     for (const k of ['c','h','u','f','s']) { const v = el.getAttribute('data-' + k); if (v && /^[a-z0-9 -]{1,40}$/.test(v)) keep[k] = v; }
     const fs = el.style.fontSize, cl = el.style.getPropertyValue('--cl').trim(), cdk = el.style.getPropertyValue('--cd').trim(), ta = el.style.textAlign;
+    const folded = /^H[123]$/.test(tag) && el.getAttribute('data-fold') === '1';
     for (const a of [...el.attributes]) el.removeAttribute(a.name);
     for (const k in keep) el.setAttribute('data-' + k, keep[k]);
+    if (folded) el.setAttribute('data-fold', '1');
     if (keep.s && /^\d+px$/.test(fs)) el.style.fontSize = fs;
     if (keep.c === 'perso') { if (isHex(cl) && isHex(cdk)) { el.style.setProperty('--cl', cl); el.style.setProperty('--cd', cdk); } else el.removeAttribute('data-c'); }
     if (/^(left|right|center|justify)$/.test(ta) && /^(P|H1|H2|H3|DIV|LI|BLOCKQUOTE)$/.test(tag)) el.style.textAlign = ta;
@@ -1195,6 +1216,7 @@ function plainText(){
 function serialize(){
   const c = editor.cloneNode(true); resolveSuggestions(c);
   c.querySelectorAll('.flash').forEach(e => e.classList.remove('flash'));
+  c.querySelectorAll('.fold-hidden').forEach(e => { e.classList.remove('fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
   c.querySelectorAll('.is-cur').forEach(e => { e.classList.remove('is-cur'); if (!e.classList.length) e.removeAttribute('class'); });
   c.querySelectorAll('.math').forEach(m => { m.replaceChildren(); m.classList.remove('pending'); m.removeAttribute('title'); });
   return c.innerHTML.replace(/​/g, '');
@@ -1208,7 +1230,7 @@ function copy(text){
 
 /* ---------- Enregistrement, compteur ---------- */
 let saveT;
-function changed(){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
+function changed(){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); refold(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
 function save(){
   clearTimeout(saveT);
   const ok = store.set('plume-doc:' + activeId, serialize());
@@ -1887,6 +1909,52 @@ window.visualViewport?.addEventListener('resize', () => {
 });
 function applyTw(){ document.body.classList.add('tw'); }
 
+/* ---------- Sections repliables (titres 1, 2, 3) ----------
+   Un titre replié porte data-fold="1" (enregistré avec le document). Tout ce qui le suit
+   est caché jusqu'au prochain titre de même niveau ou de niveau supérieur. */
+function refold(){
+  const s = getSelection(), caret = s.rangeCount ? s.anchorNode : null;
+  let hideLevel = 0, hider = null, again = false;
+  for (const el of editor.children) {
+    const m = /^H([123])$/.exec(el.tagName), lvl = m ? +m[1] : 0;
+    if (hideLevel && lvl && lvl <= hideLevel) { hideLevel = 0; hider = null; }
+    let hidden = !!hideLevel;
+    // Ne jamais cacher l'endroit où l'on écrit, ni une proposition de Claude : on rouvre la section.
+    if (hidden && hider && ((caret && el.contains(caret)) || el.matches('.ai-block') || el.querySelector('.ai-sg,.ai-block'))) {
+      delete hider.dataset.fold; again = true; break;
+    }
+    if (el.classList.contains('fold-hidden') !== hidden) {
+      el.classList.toggle('fold-hidden', hidden);
+      if (!el.classList.length) el.removeAttribute('class');
+    }
+    if (!hidden && lvl && el.dataset.fold === '1') { hideLevel = lvl; hider = el; }
+  }
+  if (again) refold();
+}
+function toggleFold(h){
+  if (h.dataset.fold === '1') delete h.dataset.fold; else h.dataset.fold = '1';
+  // Si le curseur était dans la partie qui se replie, il remonte à la fin du titre.
+  const s = getSelection();
+  if (h.dataset.fold === '1' && s.rangeCount && editor.contains(s.anchorNode) && !h.contains(s.anchorNode)) {
+    const n = s.anchorNode, after = h.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING;
+    if (after) { const r = document.createRange(); r.selectNodeContents(h); r.collapse(false); setRange(r); }
+  }
+  refold(); changed();
+}
+function foldAll(fold){
+  editor.querySelectorAll(':scope > :is(h1,h2,h3)').forEach(h => { if (fold) h.dataset.fold = '1'; else delete h.dataset.fold; });
+  if (fold) { const first = editor.querySelector(':scope > :is(h1,h2,h3)'); if (first) { const r = document.createRange(); r.selectNodeContents(first); r.collapse(false); setRange(r); } }
+  refold(); changed();
+}
+// La flèche est dessinée à gauche du titre : un clic à gauche du texte du titre la déclenche.
+editor.addEventListener('mousedown', e => {
+  const h = e.target instanceof Element && e.target.closest('h1,h2,h3');
+  if (!h || h.parentElement !== editor) return;
+  const left = h.getBoundingClientRect().left + parseFloat(getComputedStyle(h).paddingLeft || 0);
+  if (e.clientX >= left - 2) return;
+  e.preventDefault(); toggleFold(h);
+});
+
 /* ---------- Mode concentration ---------- */
 let focusOn = store.get('plume-focus') !== '0';
 function markCurrent(){
@@ -1950,7 +2018,7 @@ function openDoc(id){
   activeId = id; store.set('plume-active', id);
   const html = store.get('plume-doc:' + id);
   editor.innerHTML = sanitize(html && html.trim() ? html : '<p><br></p>');
-  renderAllMath(); dockMsg = ''; updateDock(); updateEmpty();
+  renderAllMath(); refold(); dockMsg = ''; updateDock(); updateEmpty();
   statusEl.textContent = countLabel();
   window.scrollTo(0, 0); renderTabs(); restoreToStart(); markCurrent();
   tabbar.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
@@ -2121,6 +2189,7 @@ if (!docs.length) {
 activeId = docs.find(d => d.id === store.get('plume-active')) ? store.get('plume-active') : docs[0].id;
 { const html = store.get('plume-doc:' + activeId); editor.innerHTML = sanitize(html && html.trim() ? html : SAMPLE); }
 renderAllMath();
+refold();
 setWidth(store.get('plume-width'));
 applyTheme();
 applyFocus();
