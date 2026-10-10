@@ -299,16 +299,16 @@ body.bar-hidden #editor > :is(h1,h2,h3)::before{opacity:0}
 #editor.focus-on.has-cur > :not(.is-cur):not(:has(.is-cur)):not(.ai-block),
 #editor.focus-on.has-cur > :is(ul,ol):has(.is-cur) > li:not(.is-cur):not(:has(.is-cur)){zoom:.78}
 /* Les autres paragraphes perdent leurs couleurs (surlignages, couleurs, formules, texte de l'IA) et s'effacent */
-#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:.24;filter:grayscale(1)}
-#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)):hover{opacity:.42}
+#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.24);filter:grayscale(1)}
+#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)):hover{opacity:calc(var(--dim,.24) + .15)}
 /* Curseur dans un titre : le plan reste lisible. Titre 1 → tous les titres 1 ; titre 2 → titres 1 et 2 ;
    titre 3 → tous les titres. Ils restent nets, en couleur et à leur taille. */
 #editor.focus-on.cur-h1 > h1,
 #editor.focus-on.cur-h2 > :is(h1,h2),
 #editor.focus-on.cur-h3 > :is(h1,h2,h3){opacity:1!important;filter:none!important;zoom:1!important}
-:root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:.3}
+:root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.3)}
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:.3}
+  :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.3)}
 }
 
 /* ---------- Suggestions IA, directement dans le texte ---------- */
@@ -626,6 +626,81 @@ body{-webkit-font-smoothing:antialiased}
 .sd-card:hover,.sd-card.on{background:var(--fill2)}
 .ai-card{gap:10px}
 .pill{border:0;background:var(--fill);color:var(--t);padding:2px 9px}
+
+/* ================= Habillage façon iA Writer =================
+   Moins de cadres, plus de typographie : menus en listes nettes, coche bleue pour le choix
+   actif, contrôles segmentés, interrupteurs et curseurs comme sur iOS, barre plus discrète. */
+.bar{padding:4px 14px;border-bottom-color:transparent;box-shadow:0 .5px 0 var(--glass-line)}
+.tb{height:34px;min-width:34px;padding:0 7px;color:var(--fg)}
+.tb svg{stroke-width:1.5}
+.tb[aria-pressed="true"]{background:var(--fill);color:var(--accent)}
+.tb.sel{color:var(--fg);font-size:13.5px}
+.tb.sel .lbl{font-weight:500}
+.tb-chev{min-width:18px!important;width:18px;padding:0!important;margin-left:-4px;border-radius:7px!important}
+.tb-chev svg{width:9px!important;height:9px!important;opacity:.55}
+.sep{height:16px;background:var(--glass-line);margin:0 5px}
+.status{font-size:12px;letter-spacing:.01em}
+.tab{font-size:12.5px;height:28px;padding:0 4px 0 11px}
+.tab[aria-selected="true"]{background:transparent;font-weight:600;box-shadow:inset 0 -2px 0 var(--accent);border-radius:0}
+.tab:hover{background:var(--fill)}
+#editor{caret-color:var(--accent)}
+
+/* Menus : presque opaques, pour que le texte derrière ne gêne pas la lecture */
+:root{--pop-bg:rgba(255,255,255,.96)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--pop-bg:rgba(30,30,32,.97)} }
+:root[data-theme="dark"]{--pop-bg:rgba(30,30,32,.97)}
+.pop,.selbar,.cpanel,.mathpanel,.ai-dock{background:var(--pop-bg)}
+.pop{min-width:232px;padding:6px;border-radius:14px}
+.mi{min-height:36px;padding:0 12px;gap:12px;border-radius:9px;font-size:14.5px;line-height:1.25}
+.mi[aria-checked="true"]{background:transparent;font-weight:500}
+.mi[aria-checked="true"]::after{content:"";margin-left:auto;flex:none;width:13px;height:13px;background:var(--accent);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 7.5l3.2 3.2L12 3.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 7.5l3.2 3.2L12 3.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+.mi .hint{font-size:12px;color:var(--ui)}
+.mh{padding:10px 12px 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--ui)}
+.hr{margin:6px 12px}
+/* Choix côte à côte : contrôle segmenté iOS */
+.chips{background:var(--fill);border-radius:10px;padding:2px;margin:2px 10px 8px;gap:0}
+.chips .mi{border:0!important;min-height:28px;border-radius:8px;font-size:13px;padding:0 10px}
+.chips .mi[aria-checked="true"]{background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px var(--glass-line)}
+.chips .mi[aria-checked="true"]::after{display:none}
+/* Pastilles de couleur */
+.grid{gap:10px;padding:6px 12px 10px}
+.sw{width:26px;height:26px;border:0;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);transition:transform .12s}
+.sw:hover{transform:scale(1.12)}
+.mi .sw{width:20px;height:20px}
+.custom{padding:4px 12px 8px;font-size:14px}
+.custom input[type=color]{border:0;border-radius:8px;background:var(--fill)}
+.sizes{grid-template-columns:repeat(4,1fr);gap:2px;padding:4px 6px}
+.sizes .mi{min-height:32px;padding:0;justify-content:center;font-size:14px}
+.hl-row{padding:2px 10px;gap:2px}
+.hl-row .name{font-size:12.5px;color:var(--ui)}
+.hl-sw{border-radius:8px;padding:5px 7px}
+.hl-sw:hover{background:var(--fill)}
+.keys{padding:4px 12px 10px;gap:5px 14px}
+.keys kbd{background:var(--fill);border-radius:5px;padding:1px 6px;font-family:var(--ui-font);font-size:11.5px}
+
+/* Interrupteur iOS */
+.switch{-webkit-appearance:none;appearance:none;flex:none;width:44px;height:26px;border-radius:999px;background:var(--fill2);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .2s}
+.switch:checked{background:#34c759}
+.switch:checked::after{transform:translateX(18px)}
+.switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Menu de la concentration : interrupteur + curseur façon Centre de contrôle */
+.dim-menu{width:290px;padding:6px 6px 8px;display:flex;flex-direction:column;gap:10px}
+.dim-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 8px;font-size:14.5px;cursor:pointer}
+.dim-slider{padding:0 8px;display:flex;flex-direction:column;gap:8px}
+.dim-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ui)}
+.dim-val{font-variant-numeric:tabular-nums;color:var(--fg);font-weight:500}
+.ios-range{position:relative;height:40px}
+.ios-range svg{position:absolute;left:12px;top:50%;width:18px;height:18px;transform:translateY(-50%);stroke:var(--bg);fill:none;stroke-width:1.6;color:var(--bg);pointer-events:none;mix-blend-mode:normal;z-index:1}
+.ios-range input{-webkit-appearance:none;appearance:none;width:100%;height:40px;margin:0;border-radius:12px;cursor:pointer;outline:none;
+  background:linear-gradient(to right,var(--fg) 0,var(--fg) var(--pct,80%),var(--fill2) var(--pct,80%),var(--fill2) 100%)}
+.ios-range input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:4px;height:40px;background:transparent;border:0}
+.ios-range input::-moz-range-thumb{width:4px;height:40px;background:transparent;border:0}
+.ios-range input:focus-visible{box-shadow:0 0 0 3px var(--ring)}
+.dim-ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ui)}
 </style>
 
 <header class="bar">
@@ -656,7 +731,7 @@ body{-webkit-font-smoothing:antialiased}
   <div class="meta">
     <span class="status" id="status" aria-live="polite"></span>
     <button class="tb" id="notes-btn" title="Notes (Ctrl+Alt+M pour commenter la sélection)" aria-label="Notes" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span class="count" id="notes-count"></span></button>
-    <button class="tb" id="focus-btn" title="Mode concentration : seul le paragraphe en cours reste net" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
+    <button class="tb" id="focus-btn" title="Mode concentration : seul le paragraphe en cours reste net" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button><button class="tb tb-chev" data-menu="dim" title="Réglages de la concentration" aria-label="Réglages de la concentration"><svg viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb" id="ai-btn" data-menu="ai" title="Suggestions de l'IA"><span class="spark">✦</span><span style="font-size:13px">IA</span></button>
     <button class="tb" id="fs-btn" title="Plein écran" hidden></button>
     <button class="tb" id="theme-btn" title="Thème"></button>
@@ -1103,7 +1178,7 @@ function renderMath(m){
   const tex = m.dataset.tex || '', disp = m.dataset.display === '1';
   m.classList.toggle('display', disp);
   m.setAttribute('contenteditable', 'false');
-  m.title = 'Cliquer pour modifier la formule';
+  m.title = 'Double-cliquer pour modifier la formule';
   if (!mathReady) { m.textContent = disp ? `$$${tex}$$` : `$${tex}$`; m.classList.add('pending'); return; }
   tex2svg(tex, disp).then(node => { m.classList.remove('pending'); m.replaceChildren(node); })
     .catch(() => { m.textContent = tex; });
@@ -1176,8 +1251,11 @@ texIn.addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); commitMath(); }
   if (e.key === 'Escape') { e.preventDefault(); closeMath(true); }
 });
-editor.addEventListener('click', e => {
+editor.addEventListener('dblclick', e => {
   const m = e.target.closest('.math'); if (m && editor.contains(m)) { e.preventDefault(); openMath(m); }
+});
+editor.addEventListener('click', e => {
+  // Un simple clic sur une formule place le curseur normalement ; il faut un double-clic pour la modifier.
 });
 
 // $…$ et $$…$$ se transforment en formule dès que le dollar fermant est tapé.
@@ -2207,6 +2285,29 @@ function markCurrent(){
   const hl = cur && cur.parentElement === editor && /^H([123])$/.exec(cur.tagName);
   for (const n of [1, 2, 3]) editor.classList.toggle('cur-h' + n, !!hl && +hl[1] === n);
 }
+// Atténuation des autres paragraphes : de 0 % (rien n'est grisé) à 100 % (presque invisibles).
+let dimLevel = Math.min(100, Math.max(0, +(store.get('plume-dim') ?? 80) || 0));
+if (store.get('plume-dim') === null) dimLevel = 80;
+function applyDim(){ document.documentElement.style.setProperty('--dim', (1 - dimLevel * 0.95 / 100).toFixed(3)); }
+MENUS.dim = btn => {
+  openPop(btn, `<div class="dim-menu">
+      <label class="dim-row"><span>Mode concentration</span><input type="checkbox" class="switch" id="dim-on" ${focusOn ? 'checked' : ''}></label>
+      <div class="dim-slider">
+        <div class="dim-head"><span>Atténuation des autres paragraphes</span><span class="dim-val" id="dim-val">${dimLevel} %</span></div>
+        <div class="ios-range">
+          <input type="range" id="dim-range" min="0" max="100" step="1" value="${dimLevel}" aria-label="Atténuation des autres paragraphes" style="--pct:${dimLevel}%">
+        </div>
+        <div class="dim-ends"><span>Léger</span><span>Fort</span></div>
+      </div>
+    </div>`, p => {
+      const r = p.querySelector('#dim-range'), v = p.querySelector('#dim-val');
+      r.addEventListener('input', () => {
+        dimLevel = +r.value; r.style.setProperty('--pct', dimLevel + '%'); v.textContent = dimLevel + ' %';
+        applyDim(); store.set('plume-dim', String(dimLevel));
+      });
+      p.querySelector('#dim-on').addEventListener('change', e => { focusOn = e.target.checked; store.set('plume-focus', focusOn ? '1' : '0'); applyFocus(); });
+    });
+};
 function applyFocus(){
   editor.classList.toggle('focus-on', focusOn);
   const b = $('#focus-btn'); b.setAttribute('aria-pressed', focusOn);
@@ -2414,7 +2515,7 @@ const SAMPLE = String.raw`
 <h2>Les formules</h2>
 <p>Tapez une formule entre deux dollars, par exemple <code>$e^{i\pi}+1=0$</code>, et elle se met en forme dès le dollar fermant : <span class="math" data-tex="e^{i\pi} + 1 = 0"></span>. Avec deux dollars de chaque côté, elle se centre sur sa propre ligne :</p>
 <p><span class="math" data-display="1" data-tex="\int_0^1 x^2\,dx = \frac{1}{3} \qquad \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}"></span></p>
-<p>Cliquez sur une formule pour la modifier, ou utilisez le bouton ∑ Formule (Ctrl+M).</p>
+<p>Double-cliquez sur une formule pour la modifier, ou utilisez le bouton ∑ Formule (Ctrl+M).</p>
 <h2>Concentration</h2>
 <p>Le mode concentration grise tout le texte sauf le paragraphe où se trouve votre curseur. Le bouton à trois lignes, en haut à droite, l'active ou le désactive. La ligne où vous écrivez reste toujours au milieu de l'écran.</p>
 <p>Sélectionnez un passage pour le copier ou le rechercher sur le web.</p>
@@ -2435,6 +2536,7 @@ refold();
 updateNotesCount();
 setWidth(store.get('plume-width'));
 applyTheme();
+applyDim();
 applyFocus();
 applyTw();
 setBarHidden(store.get('plume-bar-hidden') === '1');
