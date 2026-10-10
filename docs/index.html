@@ -275,6 +275,11 @@ body.tw .page{padding-block:56px 58vh} /* le haut reste en haut ; seul le bas a 
 /* Les autres paragraphes perdent leurs couleurs (surlignages, couleurs, formules, texte de l'IA) et s'effacent */
 #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:.24;filter:grayscale(1)}
 #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)):hover{opacity:.42}
+/* Curseur dans un titre : le plan reste lisible. Titre 1 → tous les titres 1 ; titre 2 → titres 1 et 2 ;
+   titre 3 → tous les titres. Ils restent nets, en couleur et à leur taille. */
+#editor.focus-on.cur-h1 > h1,
+#editor.focus-on.cur-h2 > :is(h1,h2),
+#editor.focus-on.cur-h3 > :is(h1,h2,h3){opacity:1!important;filter:none!important;zoom:1!important}
 :root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:.3}
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:.3}
@@ -1964,6 +1969,8 @@ function markCurrent(){
   editor.querySelectorAll('.is-cur').forEach(x => { if (x !== cur) { x.classList.remove('is-cur'); if (!x.classList.length) x.removeAttribute('class'); } });
   cur?.classList.add('is-cur');
   editor.classList.toggle('has-cur', !!cur);
+  const hl = cur && cur.parentElement === editor && /^H([123])$/.exec(cur.tagName);
+  for (const n of [1, 2, 3]) editor.classList.toggle('cur-h' + n, !!hl && +hl[1] === n);
 }
 function applyFocus(){
   editor.classList.toggle('focus-on', focusOn);
