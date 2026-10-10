@@ -689,6 +689,9 @@ body{-webkit-font-smoothing:antialiased}
 <header class="bar">
   <nav class="tabbar" id="tabbar" role="tablist" aria-label="Documents ouverts"></nav>
   <div class="tools" role="toolbar" aria-label="Mise en forme">
+    <button class="tb" id="undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button class="tb" id="redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    <span class="sep"></span>
     <button class="tb sel" id="para-btn" data-menu="para" title="Style de paragraphe"><span class="lbl">Texte</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb sel" id="font-btn" data-menu="font" title="Police"><span class="lbl">Literata</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb sel" id="size-btn" data-menu="size" title="Taille du texte"><span class="lbl">19</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
@@ -1135,6 +1138,10 @@ const MENUS = {
 document.querySelectorAll('[data-menu]').forEach(b => b.addEventListener('click', () => MENUS[b.dataset.menu](b)));
 document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => exec(b.dataset.cmd)));
 $('#clear-btn').addEventListener('click', clearAll);
+// Annuler / rétablir : l'historique du navigateur, comme Ctrl+Z et Ctrl+Y.
+function undoRedo(cmd){ editor.focus({ preventScroll: true }); document.execCommand(cmd); changed(); queueToolbar(); }
+$('#undo-btn').addEventListener('click', () => undoRedo('undo'));
+$('#redo-btn').addEventListener('click', () => undoRedo('redo'));
 $('#math-btn').addEventListener('click', () => openMath(null));
 
 // Couleur perso : on garde la teinte et on éclaircit en mode sombre pour rester lisible sur noir.
@@ -1273,6 +1280,7 @@ editor.addEventListener('keydown', e => {
   else if (mod && e.altKey && e.code === 'KeyM') { e.preventDefault(); addNote(); }
   else if (mod && k === 'm') { e.preventDefault(); openMath(null); }
   else if (mod && k === 'u') { e.preventDefault(); toggleUnderline(); }
+  else if (mod && k === 'y') { e.preventDefault(); undoRedo('redo'); }
   else if (mod && k === 's') { e.preventDefault(); save(); toast('Enregistré'); }
   else if (e.key === 'Tab' && anchorEl()?.closest('li')) { e.preventDefault(); exec(e.shiftKey ? 'outdent' : 'indent'); }
 });
