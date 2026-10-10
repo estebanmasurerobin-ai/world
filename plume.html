@@ -183,9 +183,14 @@ body.tw .page{padding-block:calc(var(--bar-h,0px) + 56px) 58vh} /* le haut reste
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M4 2l4 4-4 4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px 12px no-repeat;
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M4 2l4 4-4 4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px 12px no-repeat;
 }
-#editor > :is(h1,h2,h3):hover::before,#editor > :is(h1,h2,h3).is-cur::before{opacity:.55}
-#editor > :is(h1,h2,h3)[data-fold="1"]::before{opacity:.8;transform:none}
-@media (hover:none){ #editor > :is(h1,h2,h3)::before{opacity:.35} }
+#editor > :is(h1,h2,h3)[data-fold="1"]::before{transform:none}
+/* Barre d'outils affichée (mode écriture) : toutes les flèches sont visibles. */
+body:not(.bar-hidden) #editor > :is(h1,h2,h3)::before{opacity:.4}
+body:not(.bar-hidden) #editor > :is(h1,h2,h3)[data-fold="1"]::before{opacity:.75}
+/* Barre masquée (mode lecture) : une flèche n'apparaît que si la souris passe sur le titre
+   ou si le curseur est dans ce titre. */
+body.bar-hidden #editor > :is(h1,h2,h3)::before{opacity:0}
+#editor > :is(h1,h2,h3):hover::before,#editor > :is(h1,h2,h3).is-cur::before{opacity:.7!important}
 @media (max-width:640px){ #editor > :is(h1,h2,h3){padding-left:24px} #editor > :is(h1,h2,h3)::before{left:-2px} }
 #editor > .fold-hidden{display:none!important}
 #editor h1{font-size:2.05em;line-height:1.18;margin:1.1em 0 .45em;font-weight:700;text-wrap:balance}
