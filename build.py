@@ -27,6 +27,8 @@ HEAD = '''<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 /* Version sans IA : aucun bouton, menu ou panneau d'IA */
 html.no-ai #ai-btn, html.no-ai .selbar .needs-ai, html.no-ai #cpanel, html.no-ai #ai-dock, html.no-ai #ai-side{display:none!important}
+/* World : en mode concentration, les autres paragraphes sont grisés mais gardent leur taille normale */
+#editor.focus-on.has-cur > *, #editor.focus-on.has-cur li{zoom:1!important}
 </style>
 '''
 
