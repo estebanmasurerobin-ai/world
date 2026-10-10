@@ -74,6 +74,8 @@ html,body{background:var(--bg);color:var(--fg)}
 /* Pas d'effet d'élastique au-delà du début ou de la fin du document (iPad, iPhone, Mac) */
 html,body{overscroll-behavior:none}
 .tb .tb-label{font-size:13px;line-height:1}
+.glyph.script sub,.glyph.script sup{font-size:.62em;line-height:0}
+#editor sub,#editor sup{font-size:.7em;line-height:0}
 body{font-family:var(--ui-font);font-size:14px;transition:background-color .2s,color .2s}
 @media (prefers-reduced-motion: reduce){body,*{transition:none!important;animation:none!important}}
 
@@ -609,6 +611,8 @@ body{-webkit-font-smoothing:antialiased}
     <button class="tb" data-cmd="bold" title="Gras (Ctrl+B)" aria-pressed="false"><span class="glyph" style="font-weight:700">B</span></button>
     <button class="tb" data-cmd="italic" title="Italique (Ctrl+I)" aria-pressed="false"><span class="glyph" style="font-style:italic">I</span></button>
     <button class="tb" data-cmd="strikeThrough" title="Barré" aria-pressed="false"><span class="glyph" style="text-decoration:line-through">S</span></button>
+    <button class="tb" data-cmd="subscript" title="Indice : texte en petit, en bas (Ctrl+=)" aria-label="Indice" aria-pressed="false"><span class="glyph script">x<sub>2</sub></span></button>
+    <button class="tb" data-cmd="superscript" title="Exposant : texte en petit, en haut (Ctrl+Maj+=)" aria-label="Exposant" aria-pressed="false"><span class="glyph script">x<sup>2</sup></span></button>
     <button class="tb" id="u-btn" data-menu="under" title="Soulignement (Ctrl+U)"><span class="glyph" style="text-decoration:underline;text-underline-offset:3px">U</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
     <button class="tb swatched" id="color-btn" data-menu="color" title="Couleur du texte"><span class="glyph">A</span><span class="bar-sw"></span></button>
@@ -863,7 +867,7 @@ let tbRaf = 0;
 function queueToolbar(){ if (!tbRaf) tbRaf = requestAnimationFrame(() => { tbRaf = 0; updateToolbar(); }); }
 function updateToolbar(){
   const el = anchorEl(); if (!el) return;
-  for (const c of ['bold','italic','strikeThrough']) {
+  for (const c of ['bold','italic','strikeThrough','subscript','superscript']) {
     let on = false; try { on = document.queryCommandState(c); } catch(e){}
     document.querySelector(`[data-cmd="${c}"]`).setAttribute('aria-pressed', on);
   }
@@ -1003,6 +1007,8 @@ const MENUS = {
       <div class="keys">
         <kbd>Ctrl B / I / U</kbd><span>gras, italique, souligné</span>
         <kbd>Ctrl M</kbd><span>insérer une formule</span>
+        <kbd>Ctrl =</kbd><span>indice (x₂)</span>
+        <kbd>Ctrl ⇧ =</kbd><span>exposant (x²)</span>
         <kbd>Ctrl K</kbd><span>demander à Claude d'écrire</span>
         <kbd>Ctrl ⇧ H</kbd><span>masquer / afficher le texte de l'IA</span>
         <kbd>$x^2$</kbd><span>formule dans la ligne</span>
@@ -1162,7 +1168,8 @@ editor.addEventListener('input', e => {
 });
 editor.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
-  if (mod && k === 'k') { e.preventDefault(); openClaude('write'); }
+  if (mod && e.code === 'Equal') { e.preventDefault(); exec(e.shiftKey ? 'superscript' : 'subscript'); }
+  else if (mod && k === 'k') { e.preventDefault(); openClaude('write'); }
   else if (mod && k === 'm') { e.preventDefault(); openMath(null); }
   else if (mod && k === 'u') { e.preventDefault(); toggleUnderline(); }
   else if (mod && k === 's') { e.preventDefault(); save(); toast('Enregistré'); }
@@ -2029,7 +2036,7 @@ function copyStyle(){
     st[cat] = n && editor.contains(n) ? n.getAttribute(`data-${cat}`) : null;
     if (cat === 'c' && st.c === 'perso') st.cExtra = { light: n.style.getPropertyValue('--cl').trim(), dark: n.style.getPropertyValue('--cd').trim() };
   }
-  for (const c of ['bold','italic','strikeThrough']) { try { st.cmd[c] = document.queryCommandState(c); } catch(e) { st.cmd[c] = false; } }
+  for (const c of ['bold','italic','strikeThrough','subscript','superscript']) { try { st.cmd[c] = document.queryCommandState(c); } catch(e) { st.cmd[c] = false; } }
   painter = st;
   document.body.classList.add('painting'); paintBtn.setAttribute('aria-pressed', 'true');
   toast('Style copié. Sélectionne le texte à mettre en forme.');
@@ -2041,7 +2048,7 @@ function pasteStyle(){
   saved = s.getRangeAt(0).cloneRange();
   for (const cat of ['c','h','u','f','s']) applyProp(cat, st[cat], cat === 'c' ? st.cExtra : undefined);
   restore();
-  for (const c of ['bold','italic','strikeThrough']) {
+  for (const c of ['bold','italic','strikeThrough','subscript','superscript']) {
     let on = false; try { on = document.queryCommandState(c); } catch(e) {}
     if (on !== st.cmd[c]) document.execCommand(c);
   }
