@@ -688,6 +688,68 @@ body{-webkit-font-smoothing:antialiased}
 .switch:checked::after{transform:translateX(18px)}
 .switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+
+/* ================= Finitions Apple (iOS / iPadOS) =================
+   Barre sous la zone de l'heure, onglets en pastilles comme Safari, menus qui s'ouvrent
+   avec un léger ressort, symboles à droite des commandes, bulle de sélection comme le menu
+   d'édition d'iOS, cibles de 44 points au doigt. */
+.bar{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}
+/* Onglets : pastille grise pour l'onglet actif, comme Safari sur iPad */
+.tabbar{gap:4px;padding-bottom:5px}
+.tab{height:30px;border-radius:9px;padding:0 4px 0 12px;color:var(--ui)}
+.tab[aria-selected="true"]{background:var(--fill);color:var(--fg);font-weight:600;box-shadow:none;border-radius:9px}
+.tab .x{border-radius:50%}
+.tab .x:hover{background:var(--fill2)}
+.tab-add{width:30px;height:30px;border-radius:9px;font-size:20px;font-weight:300}
+/* Boutons : retour au toucher, comme une touche qui s'enfonce */
+.tb,.mi,.btn,.tab,.tab-add,.selbar :is(button,a),.bar-toggle{transition:background-color .15s,transform .12s,opacity .15s}
+.tb:active:not(:disabled),.btn:active,.tab-add:active,.bar-toggle:active{transform:scale(.92)}
+/* Barre d'outils : un fondu sur le bord quand d'autres outils sont cachés à côté */
+.tools.more-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
+.tools.more-l{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 36px),transparent)}
+.tools.more-l.more-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 36px),transparent)}
+@media (max-width:1180px){ #math-btn .tb-label{display:none} }
+/* Menus : ouverture avec un petit ressort, matière plus épaisse */
+@keyframes pop-in{from{opacity:0;transform:scale(.94) translateY(-4px)}to{opacity:1;transform:none}}
+.pop:not([hidden]){animation:pop-in .22s cubic-bezier(.2,.9,.25,1.15);transform-origin:top center}
+.selbar:not([hidden]){animation:pop-in .18s cubic-bezier(.2,.9,.25,1.15)}
+.cpanel:not([hidden]),.mathpanel:not([hidden]){animation:sheet-in .26s cubic-bezier(.2,.9,.25,1.05)}
+@keyframes sheet-in{from{opacity:0;transform:translateX(-50%) translateY(10px) scale(.98)}to{opacity:1;transform:translateX(-50%)}}
+.pop{border-radius:16px;-webkit-backdrop-filter:saturate(180%) blur(40px);backdrop-filter:saturate(180%) blur(40px)}
+.mi{justify-content:flex-start}
+.mi .mi-ic{margin-left:auto;flex:none;width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.mi-switch{cursor:pointer;user-select:none;box-sizing:border-box}
+.mi-switch .switch{margin-left:auto}
+.mi-switch:hover{background:transparent}
+/* Bulle de sélection : le menu d'édition d'iOS, des mots séparés par de fins traits */
+.selbar{padding:0;gap:0;border-radius:12px;overflow:hidden}
+.selbar button,.selbar a{height:38px;padding:0 14px;border-radius:0;font-size:14px;font-weight:500}
+.selbar :is(button,a):not([hidden]) ~ :is(button,a){box-shadow:inset .5px 0 0 var(--glass-line)}
+.selbar svg{display:none}
+.selbar :is(button,a):hover{background:var(--fill)}
+/* Message bref : une pastille en verre, comme les notifications d'iOS */
+.toast{background:var(--pop-bg);color:var(--fg);box-shadow:var(--pop-shadow);border:.5px solid var(--glass-line);
+  -webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);border-radius:999px;padding:11px 20px;font-size:14px;animation:toast-in .3s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(12px) scale(.96)}to{opacity:1;transform:translateX(-50%)}}
+/* Bouton rond pour masquer la barre */
+.bar-toggle{width:32px;height:32px;box-shadow:0 2px 12px rgba(0,0,0,.1);opacity:.85}
+/* Au doigt (iPad, iPhone) : lignes de menu de 44 points, texte en 17, pas de liste de raccourcis clavier */
+@media (pointer:coarse){
+  .mi{min-height:44px;font-size:16.5px;padding:0 14px}
+  .mi .mi-ic{width:21px;height:21px}
+  .pop{min-width:260px}
+  .tb{height:40px;min-width:40px}
+  .tab{height:32px;font-size:13.5px}
+  .selbar button,.selbar a{height:44px;font-size:15px;padding:0 16px}
+  .ai-item{min-height:48px}
+}
+@media (hover:none) and (pointer:coarse){ .mh-keys,.keys,.hr:has(+ .mh-keys){display:none} }
+@media (prefers-reduced-motion: reduce){ .pop,.selbar,.cpanel,.mathpanel,.toast{animation:none!important} }
+/* Contrôle segmenté : pastille blanche en clair, gris clair en sombre (comme iOS) */
+:root{--seg-on:#ffffff}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--seg-on:#636366} }
+:root[data-theme="dark"]{--seg-on:#636366}
+.chips .mi[aria-checked="true"]{background:var(--seg-on)}
 </style>
 
 <header class="bar">
@@ -1033,6 +1095,15 @@ window.addEventListener('resize', closePop);
 // Un défilement fait par le mode machine à écrire ne doit pas fermer le menu qu'on vient d'ouvrir.
 window.addEventListener('scroll', () => { if (Date.now() > twScrollUntil) closePop(); }, { passive:true });
 $('.tools').addEventListener('scroll', () => { if (Date.now() - popAt > 400) closePop(); }, { passive:true });
+// Un fondu sur le bord de la barre signale les outils cachés à côté (glisser pour les voir).
+const toolsEl = $('.tools');
+function toolsFade(){
+  const max = toolsEl.scrollWidth - toolsEl.clientWidth;
+  toolsEl.classList.toggle('more-l', toolsEl.scrollLeft > 2);
+  toolsEl.classList.toggle('more-r', toolsEl.scrollLeft < max - 2);
+}
+toolsEl.addEventListener('scroll', toolsFade, { passive:true });
+new ResizeObserver(toolsFade).observe(toolsEl);
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -1115,25 +1186,29 @@ const MENUS = {
   },
   doc(btn){
     const w = store.get('plume-width') || 'normal';
+    // Comme les menus d'iOS : le texte à gauche, le symbole à droite, des groupes séparés.
+    const ico = d => `<svg class="mi-ic" viewBox="0 0 24 24"><path d="${d}"/></svg>`;
     openPop(btn, `
-      <button class="mi" id="new-doc">Nouvel onglet</button>
-      <button class="mi" id="reopen-doc">Rouvrir le dernier onglet fermé</button>
+      <button class="mi" id="new-doc">Nouvel onglet${ico('M12 7v10M7 12h10M6 3.5h12A2.5 2.5 0 0 1 20.5 6v12a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 18V6A2.5 2.5 0 0 1 6 3.5z')}</button>
+      <button class="mi" id="reopen-doc">Rouvrir l'onglet fermé${ico('M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4')}</button>
       <div class="hr"></div>
-      <button class="mi" id="fold-all">Replier toutes les sections</button>
-      <button class="mi" id="unfold-all">Déplier toutes les sections</button>
+      <button class="mi" id="open-doc">Ouvrir un fichier…${ico('M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z')}</button>
+      <button class="mi" id="save-file">Enregistrer dans Fichiers…${ico('M12 3.5v11M8 7.5l4-4 4 4M6.5 11H5.5v8.5h13V11h-1')}</button>
+      <button class="mi" id="save-all">Enregistrer tous les onglets…${ico('M8 3.5h8.5L20 7v10.5M5.5 7h9.5l3 3v10.5H5.5z')}</button>
+      <div class="hr"></div>
+      <button class="mi" id="copy-text">Copier le texte${ico('M9 9h10.5v10.5H9zM15 9V4.5H4.5V15H9')}</button>
+      <button class="mi" id="copy-html">Copier le code HTML${ico('M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5')}</button>
+      <div class="hr"></div>
+      <button class="mi" id="fold-all">Replier les sections${ico('M7 14.5l5-5 5 5')}</button>
+      <button class="mi" id="unfold-all">Déplier les sections${ico('M7 9.5l5 5 5-5')}</button>
       ${window.plumeKey ? '<div class="hr"></div><button class="mi" id="api-key">Clé d\'API Claude…</button>' : ''}
-      <div class="hr"></div>
-      <button class="mi" id="autofs-toggle" aria-checked="${autoFs}">Plein écran automatique<span class="hint">${autoFs ? 'activé' : 'désactivé'}</span></button>
-      <button class="mi" id="open-doc">Ouvrir un fichier…<span class="hint">.html .txt .md</span></button>
-      <div class="hr"></div>
-      <button class="mi" id="copy-text">Copier le texte</button>
-      <button class="mi" id="copy-html">Copier le code HTML</button>
+      <label class="mi mi-switch">Plein écran automatique<input type="checkbox" class="switch" id="autofs-toggle"${autoFs ? ' checked' : ''}></label>
       <div class="hr"></div>
       <div class="mh">Largeur de la page</div>
       <div class="chips">${[['etroite','Étroite'],['normal','Normale'],['large','Large']].map(([k,n]) =>
         `<button class="mi" data-w="${k}" aria-checked="${k===w}">${n}</button>`).join('')}</div>
       <div class="hr"></div>
-      <div class="mh">Raccourcis</div>
+      <div class="mh mh-keys">Raccourcis clavier</div>
       <div class="keys">
         <kbd>Ctrl B / I / U</kbd><span>gras, italique, souligné</span>
         <kbd>Ctrl M</kbd><span>insérer une formule</span>
@@ -1152,11 +1227,10 @@ const MENUS = {
       p.querySelector('#fold-all').onclick = () => { closePop(); foldAll(true); };
       p.querySelector('#unfold-all').onclick = () => { closePop(); foldAll(false); };
       p.querySelector('#api-key')?.addEventListener('click', () => { closePop(); window.plumeKey.open(); });
-      p.querySelector('#autofs-toggle').onclick = e => {
-        autoFs = !autoFs; store.set('plume-autofs', autoFs ? '1' : '0');
-        e.currentTarget.setAttribute('aria-checked', autoFs); e.currentTarget.querySelector('.hint').textContent = autoFs ? 'activé' : 'désactivé';
-      };
+      p.querySelector('#autofs-toggle').onchange = e => { autoFs = e.target.checked; store.set('plume-autofs', autoFs ? '1' : '0'); };
       p.querySelector('#open-doc').onclick = () => { closePop(); $('#file').click(); };
+      p.querySelector('#save-file').onclick = () => { closePop(); saveToFiles(false); };
+      p.querySelector('#save-all').onclick = () => { closePop(); saveToFiles(true); };
       p.querySelector('#copy-text').onclick = () => { copy(plainText()); closePop(); };
       p.querySelector('#copy-html').onclick = () => { copy(exportHTML()); closePop(); };
       p.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
@@ -1197,9 +1271,11 @@ function setCaretOffsets(o){
   editor.focus({ preventScroll: true }); setRange(r);
 }
 // Les propositions de l'IA ne font pas partie de l'historique : on garde le texte d'origine.
+// Les marques passagères (paragraphe en cours, note survolée…) non plus : sinon un Annuler semblerait ne rien faire.
 function histHTML(){
-  if (!editor.querySelector('.ai-sg,.ai-block')) return editor.innerHTML;
-  const c = editor.cloneNode(true); resolveSuggestions(c); return c.innerHTML;
+  const c = editor.cloneNode(true); resolveSuggestions(c);
+  c.querySelectorAll('.is-cur,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
+  return c.innerHTML;
 }
 function histSnap(){
   clearTimeout(hist.t); hist.t = 0;
@@ -1489,7 +1565,9 @@ $('#file').addEventListener('change', e => {
   const rd = new FileReader();
   rd.onload = () => {
     const isHtml = /\.html?$/i.test(f.name);
-    const html = sanitize(isHtml ? rd.result : textToHTML(rd.result)) || '<p><br></p>';
+    let src = isHtml ? rd.result : textToHTML(rd.result);
+    if (isHtml) { const d = new DOMParser().parseFromString(src, 'text/html'), a = d.getElementById('plume-doc'); if (a) src = a.innerHTML; }
+    const html = sanitize(src) || '<p><br></p>';
     // Le fichier s'ouvre dans un nouvel onglet : le document en cours n'est jamais écrasé.
     const id = newId();
     docs.push({ id, title: 'Sans titre', updated: Date.now() });
@@ -1516,6 +1594,71 @@ function serialize(){
   return c.innerHTML.replace(/​/g, '');
 }
 function exportHTML(){ return serialize(); }
+
+/* ---------- Enregistrer dans l'app Fichiers (iCloud Drive) ----------
+   Chaque document devient un fichier .html autonome : il s'ouvre et s'affiche tel quel
+   dans Fichiers (formules comprises), et se rouvre ici avec toute sa mise en forme. */
+function fileCSS(){
+  const main = [...document.querySelectorAll('style')].map(x => x.textContent).find(t => t.includes('--c-gris:#')) || '';
+  const light = (main.match(/^:root\{[\s\S]*?\n\}/m) || [''])[0];
+  const dark = (main.match(/@media \(prefers-color-scheme: dark\)\{\s*:root:not\(\[data-theme="light"\]\)\{[\s\S]*?\n  \}/) || [''])[0];
+  const marks = (main.match(/^\[data-(c|h|u)[^\n]*$/gm) || []).join('\n');
+  return `${light}\n${dark ? dark + '}' : ''}\n${marks}\n${rules}
+body{margin:0;background:var(--bg);color:var(--fg)}
+article{max-width:70ch;margin:0 auto;padding:48px 20px 80px;font-family:var(--doc-font);font-size:19px;line-height:1.7;overflow-wrap:break-word}
+h1{font-size:2.05em;line-height:1.18;margin:1.1em 0 .45em}h2{font-size:1.5em;line-height:1.25;margin:1.2em 0 .4em}h3{font-size:1.2em;margin:1.1em 0 .35em}
+article>:first-child{margin-top:0}p{margin:0 0 .85em}blockquote{margin:0 0 .85em;padding-left:1.1em;border-left:3px solid var(--line);font-style:italic}
+[data-n]{background:rgba(255,190,0,.16);border-bottom:2px solid #e0a800}
+.math.display,.math[data-display="1"]{display:block;text-align:center;margin:.5em 0}
+mjx-container svg{vertical-align:middle}`;
+}
+function fileFor(html, title){
+  const name = (title || 'Sans titre').replace(/…$/, '').replace(/[\\/:*?"<>|#%]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Sans titre';
+  const doc = `<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="generator" content="${window.plumeStandalone ? 'World' : 'Plume'}"><title>${esc(name)}</title>
+${[...document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis"]')].map(l => `<link rel="stylesheet" href="${esc(l.href)}">`).join('')}
+<style>${fileCSS()}</style></head>
+<body><article id="plume-doc">${html}</article></body></html>`;
+  return new File([doc], name + '.html', { type: 'text/html' });
+}
+function liveHTML(){
+  const c = editor.cloneNode(true); resolveSuggestions(c);
+  c.querySelectorAll('.is-cur,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
+  c.querySelectorAll('mjx-assistive-mml').forEach(m => m.remove()); // doublon invisible, sauf sans MathJax
+  c.querySelectorAll('.math').forEach(m => { m.removeAttribute('title'); m.classList.remove('pending'); if (!m.querySelector('svg')) m.textContent = m.dataset.display === '1' ? `$$${m.dataset.tex}$$` : `$${m.dataset.tex}$`; });
+  return c.innerHTML.replace(/​/g, '');
+}
+async function saveToFiles(all){
+  save();
+  let files;
+  if (all) {
+    files = docs.map(d => {
+      const box = document.createElement('div'); box.innerHTML = d.id === activeId ? liveHTML() : (store.get('plume-doc:' + d.id) || '');
+      box.querySelectorAll('.math:empty').forEach(m => m.textContent = m.dataset.display === '1' ? `$$${m.dataset.tex}$$` : `$${m.dataset.tex}$`);
+      return fileFor(box.innerHTML, d.title);
+    });
+    // Deux onglets au même titre : des noms de fichiers distincts.
+    const seen = {};
+    files = files.map(f => { const n = seen[f.name] = (seen[f.name] || 0) + 1; return n > 1 ? new File([f], f.name.replace(/\.html$/, ` ${n}.html`), { type: f.type }) : f; });
+  } else files = [fileFor(liveHTML(), docs.find(d => d.id === activeId)?.title)];
+  // Sur iPhone et iPad : la feuille de partage propose « Enregistrer dans Fichiers » (iCloud Drive).
+  if (navigator.canShare && navigator.share) {
+    let can = false; try { can = navigator.canShare({ files }); } catch(e) {}
+    if (can) {
+      try { await navigator.share({ files }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+  }
+  // Sinon : téléchargement classique (dossier Téléchargements, dans iCloud Drive par défaut sur iPad).
+  try {
+    for (const f of files) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name;
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      if (files.length > 1) await new Promise(r => setTimeout(r, 300));
+    }
+    toast(files.length > 1 ? `${files.length} fichiers enregistrés dans Téléchargements` : `« ${files[0].name} » enregistré dans Téléchargements`);
+  } catch(e) { toast("L'enregistrement de fichiers n'est pas autorisé ici."); }
+}
 function copy(text){
   if (!navigator.clipboard) { toast('Copie impossible ici. Sélectionnez avec Ctrl+A puis Ctrl+C.'); return; }
   navigator.clipboard.writeText(text).then(() => toast('Copié dans le presse-papiers'))
