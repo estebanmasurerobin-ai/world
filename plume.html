@@ -6799,7 +6799,6 @@ function twWake(){
   try {
     if (!TW.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
-      try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch(e) {}
       TW.ctx = new AC({ latencyHint: 'interactive' });
       TW.out = TW.ctx.createGain(); TW.out.gain.value = .8; TW.out.connect(TW.ctx.destination); twBuild();
     }
@@ -6842,7 +6841,8 @@ $('#sound-btn').addEventListener('click', () => {
   setPref('sound', !prefs.sound); twSync();
   if (prefs.sound) {
     twWake(); setTimeout(() => twPlay('key'), 40);
-    setTimeout(() => { const c = TW.ctx, l = c ? Math.round(((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000) : 0; toast('Son de machine à écrire activé' + (l ? ` · délai du son : ${l} ms` : '')); }, 400);
+    setTimeout(() => { const c = TW.ctx, l = c ? Math.round(((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000) : 0;
+      toast(!c ? 'Son impossible sur cet appareil' : c.state !== 'running' ? `Son bloqué par l'appareil (${c.state})` : 'Son de machine à écrire activé' + (l ? ` · délai du son : ${l} ms` : '')); }, 400);
   } else {
     if (TW.keep) { try { TW.keep.stop(); } catch(e) {} TW.keep = null; }
     TW.ctx?.suspend?.(); toast('Son de machine à écrire coupé');
@@ -6850,7 +6850,8 @@ $('#sound-btn').addEventListener('click', () => {
   restore();
 });
 // Son activé au démarrage : la sortie s'ouvre au premier toucher ou à la première touche.
-['pointerdown', 'keydown'].forEach(t => document.addEventListener(t, () => { if (prefs.sound) twWake(); }, { capture: true, once: true }));
+// (Safari n'accepte de lancer le son que sur un toucher relâché, un clic ou une touche.)
+['touchend', 'click', 'keydown'].forEach(t => document.addEventListener(t, () => { if (prefs.sound && (!TW.ctx || TW.ctx.state !== 'running')) twWake(); }, true));
 twSync();
 
 /* ---------- Démarrage ---------- */
