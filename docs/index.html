@@ -1744,6 +1744,15 @@ html:not(.grips) .grip{display:none!important}
   .tablebar button{padding:6px 8px!important;font-size:12px!important}
   #editor table{display:block;overflow-x:auto;max-width:100%}
 }
+/* Verre plus transparent (barre, capsules, menus) */
+:root{--veil:12%;--menu-veil:8%;--pop-veil:30%;--lg-cap:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.03))}
+:root[data-glass="mi"]{--veil:38%;--menu-veil:26%;--pop-veil:55%}
+:root[data-theme="dark"]{--lg-cap:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01))}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--lg-cap:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01))} }
+@media (max-width:600px){
+  :root{--veil:34%;--menu-veil:42%;--pop-veil:55%}
+  :root[data-glass="mi"]{--veil:62%;--menu-veil:72%;--pop-veil:75%}
+}
 </style>
 
 <header class="bar">
