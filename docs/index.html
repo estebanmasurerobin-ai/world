@@ -1440,7 +1440,7 @@ button.status{font-size:14px;padding:0 8px;height:40px}
   .meta{flex:none;gap:0;order:3!important;margin-left:0!important}
   .tools{order:1!important;flex-basis:auto!important}
   .meta :is(#status,#ai-btn,#rev-btn,#notes-btn,#fs-btn){display:none!important}
-  #focus-more{min-width:16px!important;width:16px!important;padding:0!important}
+  #focus-more,#sound-more{min-width:16px!important;width:16px!important;padding:0!important}
   .tb{height:40px;min-width:38px;padding:0 5px}
   .tb .full,.tb-label{display:none!important}
   :root:not([data-glass="opaque"]) .bar::after{background:linear-gradient(to bottom,var(--barc) 0%,color-mix(in srgb,var(--barc) 94%,transparent) calc(100% - 30px),color-mix(in srgb,var(--barc) 40%,transparent) calc(100% - 14px),transparent 100%)!important}
@@ -1767,6 +1767,7 @@ html:not(.grips) .grip{display:none!important}
 #font-btn .lbl,#font-btn .full,#para-btn .lbl,#para-btn .full{text-box:normal!important}
 #para-btn .full{min-width:0!important}
 #sound-btn .sw{display:none}#sound-btn[aria-pressed="true"] .sw{display:inline}#sound-btn[aria-pressed="true"] .sx{display:none}
+.snd-ticks span{width:auto!important;min-width:0!important;white-space:nowrap;flex:none}.snd-ticks{justify-content:space-between!important}
 </style>
 
 <header class="bar">
@@ -1803,6 +1804,7 @@ html:not(.grips) .grip{display:none!important}
     <button class="tb" id="focus-btn" title="Mode concentration : un toucher pour l'activer ou le couper" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
     <button class="tb tb-chev" id="focus-more" title="Réglages de la concentration : paragraphe ou phrase, intensité" aria-label="Réglages de la concentration"><svg viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb" id="sound-btn" title="Son de machine à écrire (enregistrement : Erika 5, Work With Sounds, CC BY 4.0)" aria-label="Son de machine à écrire" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="sw" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="sx" d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+    <button class="tb tb-chev" id="sound-more" title="Volume du son de machine à écrire" aria-label="Volume du son"><svg viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb" id="ai-btn" data-menu="ai" title="Suggestions de l'IA"><span class="spark">✦</span><span style="font-size:13px">IA</span></button>
     <button class="tb" id="fs-btn" title="Plein écran" hidden></button>
     <button class="tb" data-menu="doc" title="Document"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
@@ -6524,9 +6526,9 @@ if (document.activeElement === editor) document.body.classList.add('typing');
   const fb = $('#focus-btn'), fm = $('#focus-more'), home = fb.parentNode, after = $('#find-btn');
   const mq = matchMedia('(max-width:600px)');
   const place = () => {
-    const sb = $('#sound-btn');
-    if (mq.matches) $('#more-btn').after(fb, fm, sb);
-    else after.after(fb, fm, sb);
+    const sb = $('#sound-btn'), sm = $('#sound-more');
+    if (mq.matches) $('#more-btn').after(fb, fm, sb, sm);
+    else after.after(fb, fm, sb, sm);
   };
   mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
   place();
@@ -6798,7 +6800,7 @@ function twWake(){
     if (!TW.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
       try { TW.ctx = new AC({ latencyHint: 0 }); } catch(e) { TW.ctx = new AC({ latencyHint: 'interactive' }); } // la plus petite mémoire tampon possible
-      TW.out = TW.ctx.createGain(); TW.out.gain.value = .8; TW.out.connect(TW.ctx.destination); twBuild(); ['key', 'space', 'back', 'ret'].forEach(twPrep);
+      TW.out = TW.ctx.createGain(); TW.out.gain.value = twGain(); TW.out.connect(TW.ctx.destination); twBuild(); ['key', 'space', 'back', 'ret'].forEach(twPrep);
     }
     if (TW.ctx.state !== 'running') TW.ctx.resume();
     if (!TW.keep || performance.now() - TW.kept > 5000) { TW.kept = performance.now(); twKeepAwake(); }
@@ -6840,6 +6842,29 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { try { TW.keep && TW.keep.stop(); } catch(e) {} TW.keep = null; TW.ctx.suspend?.(); }
   else if (prefs.sound) twWake();
 });
+// Volume : réglage de 0 à 100 (courbe douce, comme l'oreille), gardé dans les réglages.
+function twVol(){ const v = +prefs.soundVol; return isFinite(v) && prefs.soundVol != null ? Math.max(0, Math.min(100, v)) : 70; }
+function twGain(){ const v = twVol() / 100; return 1.3 * v * v; }
+function openSoundMenu(btn){
+  const v = twVol();
+  openPop(btn, `
+    <label class="mi mi-switch">Son de machine à écrire<input type="checkbox" class="switch" id="snd-on"${prefs.sound ? ' checked' : ''}></label>
+    <div class="mh">Volume</div>
+    <div class="dimrow">
+      <input type="range" class="dim-range" id="snd-vol" min="0" max="100" step="1" value="${v}" aria-label="Volume du son, de 0 à 100">
+      <div class="dim-ticks snd-ticks"><span>Doux</span><span id="snd-pc">${v} %</span><span>Fort</span></div>
+    </div>`, p => {
+    p.querySelector('#snd-on').onchange = () => $('#sound-btn').click();
+    const rg = p.querySelector('#snd-vol'); let tt = 0;
+    rg.oninput = () => {
+      setPref('soundVol', +rg.value); p.querySelector('#snd-pc').textContent = rg.value + ' %';
+      if (TW.out) TW.out.gain.value = twGain();
+      if (!prefs.sound) { $('#sound-btn').click(); p.querySelector('#snd-on').checked = true; }
+      clearTimeout(tt); tt = setTimeout(() => twPlay('key'), 60); // on entend tout de suite le nouveau volume
+    };
+  });
+}
+$('#sound-more').addEventListener('click', e => openSoundMenu(e.currentTarget));
 function twSync(){ $('#sound-btn').setAttribute('aria-pressed', !!prefs.sound); }
 $('#sound-btn').addEventListener('click', () => {
   setPref('sound', !prefs.sound); twSync();
