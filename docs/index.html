@@ -1765,6 +1765,8 @@ html:not(.grips) .grip{display:none!important}
   :root[data-glass="mi"]{--veil:62%;--menu-veil:72%;--pop-veil:75%}
 }
 #font-btn .lbl,#font-btn .full,#para-btn .lbl,#para-btn .full{text-box:normal!important}
+#para-btn .full{min-width:0!important}
+#sound-btn .sw{display:none}#sound-btn[aria-pressed="true"] .sw{display:inline}#sound-btn[aria-pressed="true"] .sx{display:none}
 </style>
 
 <header class="bar">
@@ -1800,6 +1802,7 @@ html:not(.grips) .grip{display:none!important}
     <button class="tb" id="notes-btn" title="Notes (Ctrl+Alt+M pour commenter la sélection)" aria-label="Notes" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span class="count" id="notes-count"></span></button>
     <button class="tb" id="focus-btn" title="Mode concentration : un toucher pour l'activer ou le couper" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
     <button class="tb tb-chev" id="focus-more" title="Réglages de la concentration : paragraphe ou phrase, intensité" aria-label="Réglages de la concentration"><svg viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <button class="tb" id="sound-btn" title="Son de machine à écrire" aria-label="Son de machine à écrire" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="sw" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="sx" d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
     <button class="tb" id="ai-btn" data-menu="ai" title="Suggestions de l'IA"><span class="spark">✦</span><span style="font-size:13px">IA</span></button>
     <button class="tb" id="fs-btn" title="Plein écran" hidden></button>
     <button class="tb" data-menu="doc" title="Document"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
@@ -6521,8 +6524,9 @@ if (document.activeElement === editor) document.body.classList.add('typing');
   const fb = $('#focus-btn'), fm = $('#focus-more'), home = fb.parentNode, after = $('#find-btn');
   const mq = matchMedia('(max-width:600px)');
   const place = () => {
-    if (mq.matches) $('#more-btn').after(fb, fm);
-    else after.after(fb, fm);
+    const sb = $('#sound-btn');
+    if (mq.matches) $('#more-btn').after(fb, fm, sb);
+    else after.after(fb, fm, sb);
   };
   mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
   place();
@@ -6760,6 +6764,69 @@ function capAlignSoon() { if (!capRaf) capRaf = requestAnimationFrame(() => { ca
 addEventListener('resize', capAlignSoon);
 document.fonts?.addEventListener?.('loadingdone', capAlignSoon);
 document.fonts?.ready?.then(capAlignSoon);
+
+/* ================= Son de machine à écrire =================
+   Fabriqué sur place (pas de fichier à charger) : chaque bruit est calculé une fois à
+   l'avance, puis rejoué dès l'appui sur la touche (keydown), avant même que la lettre
+   s'affiche. Quelques variantes et un léger changement de hauteur pour ne jamais sonner
+   deux fois pareil. Lettre, espace, effacement et retour chariot (avec la sonnette). */
+const TW = { ctx: null, out: null, b: null, lastKey: 0 };
+function twBuild(){
+  const ctx = TW.ctx, sr = ctx.sampleRate, R = Math.random;
+  const buf = (sec, fill) => { const n = Math.round(sec * sr), d = new Float32Array(n); fill(d, n); let m = 0; for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(d[i])); if (m) for (let i = 0; i < n; i++) d[i] *= .9 / m; const ab = ctx.createBuffer(1, n, sr); ab.getChannelData(0).set(d); return ab; };
+  // bruit filtré par un résonateur (le son « métallique » de la barre qui frappe)
+  const reso = (d, at, f, bw, dec, amp) => { const r = Math.exp(-Math.PI * bw / sr), a1 = 2 * r * Math.cos(2 * Math.PI * f / sr), a2 = r * r; let y1 = 0, y2 = 0; const s0 = Math.round(at * sr);
+    for (let i = s0; i < d.length; i++) { const t = (i - s0) / sr, x = (R() * 2 - 1) * Math.exp(-t / dec); const y = (1 - r) * x + a1 * y1 - a2 * y2; y2 = y1; y1 = y; d[i] += y * amp * 8; } };
+  const click = (d, at, dec, amp) => { const s0 = Math.round(at * sr); let prev = 0; for (let i = s0; i < d.length; i++) { const t = (i - s0) / sr, x = (R() * 2 - 1) * Math.exp(-t / dec); d[i] += (x - prev) * amp; prev = x; } };
+  const body = (d, at, f, dec, amp) => { const s0 = Math.round(at * sr); for (let i = s0; i < d.length; i++) { const t = (i - s0) / sr; d[i] += Math.sin(2 * Math.PI * f * t) * Math.exp(-t / dec) * amp; } };
+  const key = () => buf(.11, d => { click(d, 0, .0012, .9); reso(d, .0015, 1700 + R() * 900, 500, .010, .8); reso(d, .002, 4200 + R() * 1500, 1200, .004, .35); body(d, .001, 150 + R() * 70, .022, .5); click(d, .016 + R() * .01, .0009, .25); });
+  const space = () => buf(.14, d => { click(d, 0, .0015, .55); reso(d, .002, 800 + R() * 300, 300, .018, .9); body(d, .001, 95 + R() * 30, .035, .8); click(d, .03 + R() * .01, .001, .2); });
+  const back = () => buf(.09, d => { click(d, 0, .001, .6); reso(d, .0015, 2600 + R() * 700, 700, .007, .55); body(d, .001, 190, .015, .3); });
+  const ret = () => buf(1.1, d => {
+    for (const [f, a, dec] of [[2093, .45, .45], [4186, .14, .22], [6279, .06, .12], [2637, .05, .3]]) for (let i = 0; i < d.length; i++) { const t = i / sr; d[i] += Math.sin(2 * Math.PI * f * t) * Math.exp(-t / dec) * a; }
+    for (let k = 0; k < 11; k++) click(d, .06 + k * .021 + R() * .004, .0008, .35);
+    reso(d, .32, 600, 250, .03, 1.1); body(d, .32, 85, .05, .9); click(d, .32, .002, .5);
+  });
+  TW.b = { key: Array.from({ length: 8 }, key), space: Array.from({ length: 3 }, space), back: Array.from({ length: 3 }, back), ret: [ret()] };
+}
+function twWake(){
+  if (!prefs.sound) return false;
+  try {
+    if (!TW.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false; TW.ctx = new AC({ latencyHint: 'interactive' }); TW.out = TW.ctx.createGain(); TW.out.gain.value = .55; TW.out.connect(TW.ctx.destination); twBuild(); }
+    if (TW.ctx.state !== 'running') TW.ctx.resume();
+    return true;
+  } catch(e) { return false; }
+}
+function twPlay(kind){
+  if (!twWake() || !TW.b) return;
+  const list = TW.b[kind], src = TW.ctx.createBufferSource();
+  src.buffer = list[(Math.random() * list.length) | 0];
+  src.playbackRate.value = .95 + Math.random() * .1;
+  src.connect(TW.out); src.start();
+}
+function twKind(k){ return k === 'Enter' ? 'ret' : k === ' ' ? 'space' : (k === 'Backspace' || k === 'Delete') ? 'back' : (k && (k.length === 1 || k === 'Tab')) ? 'key' : null; }
+document.addEventListener('keydown', e => {
+  if (!prefs.sound || e.ctrlKey || e.metaKey || !(e.target === editor || editor.contains(e.target))) return;
+  const k = twKind(e.key); if (!k) return;
+  TW.lastKey = performance.now(); twPlay(k);
+}, true);
+// Clavier virtuel qui n'envoie pas de vraie touche : on suit la saisie elle-même.
+editor.addEventListener('beforeinput', e => {
+  if (!prefs.sound || performance.now() - TW.lastKey < 120) return;
+  const t = e.inputType;
+  const k = t === 'insertParagraph' || t === 'insertLineBreak' ? 'ret' : t === 'insertText' ? (e.data === ' ' ? 'space' : 'key') : t.startsWith('delete') ? 'back' : null;
+  if (k) twPlay(k);
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden && TW.ctx && prefs.sound) TW.ctx.resume?.(); });
+function twSync(){ $('#sound-btn').setAttribute('aria-pressed', !!prefs.sound); }
+$('#sound-btn').addEventListener('click', () => {
+  setPref('sound', !prefs.sound); twSync();
+  if (prefs.sound) { twWake(); setTimeout(() => twPlay('key'), 30); }
+  else if (TW.ctx) TW.ctx.suspend?.();
+  toast(prefs.sound ? 'Son de machine à écrire activé' : 'Son de machine à écrire coupé');
+  restore();
+});
+twSync();
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
