@@ -1104,6 +1104,15 @@ button.status{font-size:15px;height:44px;padding:0 12px}
 .ol-row,.ver-i,.fb-hit,.mi{transition:background-color .15s}
 
 @media (prefers-reduced-motion: reduce){ .outline-side,.notes-side,.findbar,.style-pill,.paint-pill,.tablebar,.pop-ghost{animation:none!important} }
+
+/* ================= Haut de l'écran couvert jusqu'à l'heure =================
+   Sur iPad, l'app dessine aussi sous l'heure et la batterie, au-dessus de la barre : on prolonge
+   la barre opaque vers le haut. Le dégradé transparent ne commence que sous les boutons. */
+.bar{box-shadow:0 -200px 0 0 var(--bg)!important}
+.bar::before{inset:0 0 -22px 0;
+  background:linear-gradient(to bottom,var(--bg) 0%,var(--bg) 62%,color-mix(in srgb,var(--bg) 75%,transparent) 82%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,#000 78%,transparent 100%);mask-image:linear-gradient(to bottom,#000 78%,transparent 100%)}
+:root[data-glass="opaque"] .bar{box-shadow:0 -200px 0 0 var(--bg),inset 0 -.5px 0 var(--glass-line)!important}
 </style>
 
 <header class="bar">
