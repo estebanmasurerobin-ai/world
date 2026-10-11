@@ -966,11 +966,35 @@ body.painting .paint-pill{display:flex}
 .pop,.selbar,.findbar,.tablebar,.style-pill,.paint-pill,.toast{text-shadow:0 0 12px var(--bg)}
 /* Application installée (écran d'accueil) : la barre descend sous la zone floutée par iOS en haut de l'écran */
 @media (display-mode: standalone){ .bar{padding-top:calc(env(safe-area-inset-top,0px) + 22px)} }
+
+/* ================= Plan : barre latérale gauche ================= */
+.outline-side{position:fixed;left:0;bottom:0;top:calc(var(--bar-h,0px) + var(--vv-top,0px));z-index:31;width:290px;max-width:88vw;box-sizing:border-box;display:flex;flex-direction:column;
+  background:var(--lg-sheen),var(--lg-tint-strong);-webkit-backdrop-filter:blur(28px) saturate(190%);backdrop-filter:blur(28px) saturate(190%);box-shadow:inset -.5px 0 0 var(--glass-line),var(--lg-shadow)}
+@media (min-width:1100px){ .outline-side{box-shadow:inset -.5px 0 0 var(--glass-line)} body.outline-open .page{padding-left:calc(290px + 16px)} body.outline-open .bar-toggle{left:calc(290px + 10px)} }
+.ol-head{display:flex;align-items:center;gap:8px;padding:14px 10px 8px 20px}
+.ol-head h2{margin:0;flex:1;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.ol-body{flex:1;overflow-y:auto;padding:4px 10px 60px;display:flex;flex-direction:column;gap:1px}
+.ol-row{display:flex;align-items:center;gap:2px;padding-left:calc(var(--d) * 16px);border-radius:12px;position:relative}
+.ol-row:hover{background:var(--fill)}
+.ol-row.on{background:var(--fill2)}
+.ol-row.on .ol-i{color:var(--accent)}
+.ol-tw{flex:none;width:26px;height:26px;border:0;background:transparent;color:var(--ui);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.ol-tw svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s}
+.ol-tw.closed svg{transform:rotate(-90deg)}
+button.ol-tw:hover{background:var(--fill)}
+.ol-i{flex:1;min-width:0;text-align:left;border:0;background:transparent;color:var(--fg);font:inherit;padding:9px 8px 9px 2px;cursor:pointer;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ol-row.l1 .ol-i{font-size:16px;font-weight:650}
+.ol-row.l2 .ol-i{font-size:15px;font-weight:500}
+.ol-row.l3 .ol-i{font-size:14.5px;color:var(--ui)}
+.ol-row.l1:not(:first-child){margin-top:6px}
+@media (pointer:coarse){ .ol-i{padding:12px 8px 12px 2px} .ol-tw{width:32px;height:32px} }
 </style>
 
 <header class="bar">
   <nav class="tabbar" id="tabbar" role="tablist" aria-label="Documents ouverts"></nav>
   <div class="tools" role="toolbar" aria-label="Mise en forme">
+    <button class="tb" id="outline-btn" title="Plan : tous les titres du document" aria-label="Plan du document" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.5h1.6M5.8 11.5h1.6M5.8 14.5h1.6"/></svg></button>
+    <span class="sep"></span>
     <button class="tb" id="undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button class="tb" id="redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
@@ -1036,6 +1060,11 @@ body.painting .paint-pill{display:flex}
 </div>
 
 <div class="style-pill" id="style-pill" hidden><span class="sp-txt"></span><button class="sp-x" title="Arrêter la vérification du style" aria-label="Arrêter la vérification du style"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+
+<aside class="outline-side" id="outline-side" hidden aria-label="Plan du document">
+  <div class="ol-head"><h2>Plan</h2><button class="tb" id="ol-close" title="Fermer le plan" aria-label="Fermer le plan"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <nav class="ol-body" id="ol-body"></nav>
+</aside>
 
 <aside class="notes-side side-panel" id="side-panel" hidden aria-label="Panneau">
   <div class="nt-head"><h2 id="sp-title">Plan</h2><button class="tb" id="sp-close" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
@@ -2912,6 +2941,7 @@ function openDoc(id){
   window.scrollTo(0, 0); renderTabs(); restoreToStart(); markCurrent();
   tabbar.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   if (sideKind) renderSidePanel();
+  olClosed = new Set(); renderOutline();
   if (!findbar.hidden) runFind();
   styleCheck(); tablebar.hidden = true;
   centerSoon();
@@ -3128,7 +3158,7 @@ function docRoot(p){
     if (sub) { ({ file: docFile, layout: docLayout, keys: docKeys })[sub.dataset.p](); return; }
     const a = e.target.closest('[data-a]')?.dataset.a; if (!a) return;
     closePop();
-    ({ new: newDoc, reopen: reopenClosed, find: () => openFind(), outline: () => openSide('outline'),
+    ({ new: newDoc, reopen: reopenClosed, find: () => openFind(), outline: () => setOutline(!olOpen),
        stats: () => openStats(btn), history: () => openSide('history'),
        fold: () => foldAll(true), unfold: () => foldAll(false) })[a]();
   };
@@ -3533,20 +3563,54 @@ function closeSide(){ sideKind = null; sidePanel.hidden = true; document.body.cl
 $('#sp-close').addEventListener('click', closeSide);
 notesBtn.addEventListener('click', () => { if (sideKind) closeSide(); }, true);
 function renderSidePanel(){
-  if (sideKind === 'outline') renderOutline();
-  else if (sideKind === 'history') renderHistory();
+  if (sideKind === 'history') renderHistory();
 }
-// Plan : tous les titres, cliquables. Le titre de la partie où se trouve le curseur est mis en avant.
+/* ---------- Plan : barre latérale à gauche, comme dans Notes ou Pages ----------
+   Tous les titres, rangés (titre 1 > titre 2 > titre 3). Un toucher y emmène ; la flèche replie
+   une partie du plan (sans toucher au document). La partie où se trouve le curseur est en bleu. */
+const olSide = $('#outline-side'), olBody = $('#ol-body'), olBtn = $('#outline-btn');
+let olOpen = false, olClosed = new Set();
+const wideScreen = () => innerWidth >= 1100;
+function setOutline(open, remember = true){
+  olOpen = open; olSide.hidden = !open;
+  document.body.classList.toggle('outline-open', open);
+  olBtn.setAttribute('aria-pressed', open);
+  if (remember) store.set('plume-outline', open ? '1' : '0');
+  if (open) renderOutline();
+}
+olBtn.addEventListener('click', () => setOutline(!olOpen));
+$('#ol-close').addEventListener('click', () => setOutline(false));
 function renderOutline(){
-  spTitle.textContent = 'Plan';
+  if (!olOpen) return;
   const hs = [...editor.querySelectorAll(':scope > :is(h1,h2,h3)')];
-  if (!hs.length) { spBody.innerHTML = '<p class="nt-empty">Aucun titre pour l\'instant. Utilise Titre 1, 2 ou 3 (menu « Texte » de la barre) : ils apparaîtront ici.</p>'; return; }
+  if (!hs.length) { olBody.innerHTML = '<p class="nt-empty">Aucun titre pour l\'instant. Choisis Titre 1, 2 ou 3 dans le menu « Texte » de la barre : ils apparaîtront ici, rangés.</p>'; return; }
   const cur = anchorEl()?.closest('#editor > *');
   let curH = null;
   if (cur) for (const h of hs) { if (h === cur || (h.compareDocumentPosition(cur) & Node.DOCUMENT_POSITION_FOLLOWING)) curH = h; else break; }
-  spBody.innerHTML = `<nav class="outline">${hs.map((h, i) => `<button class="ol-i l${h.tagName[1]}${h === curH ? ' on' : ''}" data-i="${i}">${esc(h.textContent.replace(/​/g, '').trim() || 'Sans titre')}${h.dataset.fold === '1' ? ' <span class="ol-fold">▸</span>' : ''}</button>`).join('')}</nav>`;
-  spBody.querySelectorAll('.ol-i').forEach(b => b.onclick = () => goToBlock(hs[+b.dataset.i]));
+  // Pour chaque titre : a-t-il des sous-titres, et l'un de ses parents est-il replié dans le plan ?
+  const lv = hs.map(h => +h.tagName[1]), rows = [], stack = [];
+  hs.forEach((h, i) => {
+    while (stack.length && lv[stack[stack.length - 1]] >= lv[i]) stack.pop();
+    const hidden = stack.some(j => olClosed.has(j));
+    const kids = i + 1 < hs.length && lv[i + 1] > lv[i];
+    const txt = h.textContent.replace(/​/g, '').trim() || 'Sans titre';
+    if (!hidden) rows.push(`<div class="ol-row l${lv[i]}${h === curH ? ' on' : ''}" style="--d:${stack.length}">`
+      + (kids ? `<button class="ol-tw${olClosed.has(i) ? ' closed' : ''}" data-t="${i}" aria-label="${olClosed.has(i) ? 'Déplier' : 'Replier'}"><svg viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3"/></svg></button>` : '<span class="ol-tw"></span>')
+      + `<button class="ol-i" data-i="${i}" title="${esc(txt)}">${esc(txt)}</button></div>`);
+    stack.push(i);
+  });
+  olBody.innerHTML = rows.join('');
+  olBody.querySelector('.ol-row.on')?.scrollIntoView({ block: 'nearest' });
 }
+olBody.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+olBody.addEventListener('click', e => {
+  const t = e.target.closest('[data-t]');
+  if (t) { const k = +t.dataset.t; olClosed.has(k) ? olClosed.delete(k) : olClosed.add(k); renderOutline(); return; }
+  const b = e.target.closest('[data-i]'); if (!b) return;
+  const hs = [...editor.querySelectorAll(':scope > :is(h1,h2,h3)')];
+  if (hs[+b.dataset.i]) goToBlock(hs[+b.dataset.i]);
+  if (!wideScreen()) setOutline(false, false); // sur petit écran, le plan se range pour laisser voir le texte
+});
 function revealBlock(el){
   // Les sections repliées qui cachent ce bloc s'ouvrent.
   let lvl = /^H([123])$/.exec(el.tagName) ? +el.tagName[1] : 4;
@@ -3570,8 +3634,8 @@ function goToBlock(el){
   markCurrent(); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 900);
 }
 let sideT = 0;
-editor.addEventListener('input', () => { clearTimeout(sideT); sideT = setTimeout(() => { if (sideKind === 'outline') renderOutline(); }, 350); });
-document.addEventListener('selectionchange', () => { if (sideKind === 'outline') { clearTimeout(sideT); sideT = setTimeout(renderOutline, 200); } });
+editor.addEventListener('input', () => { clearTimeout(sideT); sideT = setTimeout(renderOutline, 350); });
+document.addEventListener('selectionchange', () => { if (olOpen) { clearTimeout(sideT); sideT = setTimeout(renderOutline, 200); } });
 
 /* ---------- Historique des versions ----------
    Une version est gardée automatiquement toutes les 10 minutes d'écriture (25 au plus par document),
@@ -4080,6 +4144,8 @@ statusEl.textContent = countLabel();
 { const d = docs.find(x => x.id === activeId); if (d) { d.title = docTitle(); saveDocs(); } }
 renderTabs();
 if (prefs.style) setTimeout(styleCheck, 300);
+// Le plan reste ouvert d'une fois sur l'autre sur grand écran.
+if (store.get('plume-outline') === '1' && wideScreen()) setOutline(true);
 if (window.MathJax && MathJax.startup && MathJax.startup.promise && MathJax.tex2svgPromise) window.plumeMathReady();
 })();
 </script>
