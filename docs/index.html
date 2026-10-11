@@ -1327,14 +1327,31 @@ const st = document.createElement('style'); st.textContent = rules; document.hea
 
 /* ---------- Sélection ---------- */
 let saved = null;
+// Sur iPad, toucher la barre ou un menu peut réduire la sélection à un simple curseur : pendant
+// ce toucher, la sélection mémorisée est gelée, pour que la mise en forme s'applique bien à tout
+// ce qui était sélectionné (même « Tout sélectionner »).
+let freezeSel = 0;
+const freezeNow = e => { if (e.target instanceof Element && e.target.closest('.bar, #pop, .selbar, .tablebar')) freezeSel = Date.now() + 900; };
+document.addEventListener('touchstart', freezeNow, { capture: true, passive: true });
+document.addEventListener('pointerdown', freezeNow, true);
 document.addEventListener('selectionchange', () => {
   const s = getSelection();
-  if (s.rangeCount && editor.contains(s.anchorNode)) { saved = s.getRangeAt(0).cloneRange(); queueToolbar(); markCurrent(); }
+  if (s.rangeCount && editor.contains(s.anchorNode)) {
+    const r = s.getRangeAt(0);
+    if (!(Date.now() < freezeSel && r.collapsed && saved && !saved.collapsed)) saved = r.cloneRange();
+    queueToolbar(); markCurrent();
+  }
 });
 function restore(){
   const s = getSelection();
   // Le curseur est déjà dans le texte (raccourci clavier, bouton qui ne prend pas le focus) : on le garde tel quel.
-  if (document.activeElement === editor && s.rangeCount && editor.contains(s.anchorNode)) { saved = s.getRangeAt(0).cloneRange(); return s; }
+  const savedOk = saved && editor.contains(saved.startContainer) && editor.contains(saved.endContainer);
+  if (document.activeElement === editor && s.rangeCount && editor.contains(s.anchorNode)) {
+    const live = s.getRangeAt(0);
+    // Le curseur s'est refermé mais une vraie sélection était mémorisée : on la reprend.
+    if (live.collapsed && savedOk && !saved.collapsed) { s.removeAllRanges(); s.addRange(saved); return s; }
+    saved = live.cloneRange(); return s;
+  }
   editor.focus({ preventScroll: true });
   if (saved && editor.contains(saved.startContainer) && editor.contains(saved.endContainer)) {
     s.removeAllRanges(); s.addRange(saved);
