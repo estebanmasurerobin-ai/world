@@ -1431,6 +1431,15 @@ button.status{font-size:14px;padding:0 8px;height:40px}
   :root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.ai-dock,.style-pill,.paint-pill,.toast){-webkit-backdrop-filter:blur(24px) saturate(170%)!important;backdrop-filter:blur(24px) saturate(170%)!important}
   body.outline-open .bar-toggle{left:auto!important}
 }
+
+/* ================= Zone de l'heure : toujours blanche et opaque (noire en mode sombre) =================
+   Un bandeau fixe, posé au-dessus de tout, de la couleur du fond : il ne dépend plus de la
+   barre, de sa transparence ni de sa couleur, et ne bouge pas quand on masque la barre. */
+.bar{box-shadow:0 -200px 0 0 var(--bg)!important;
+  background:linear-gradient(to bottom,var(--bg) 0,var(--bg) env(safe-area-inset-top,0px),transparent env(safe-area-inset-top,0px))!important}
+:root[data-glass="opaque"] .bar{box-shadow:0 -200px 0 0 var(--bg)!important}
+body::before{content:"";position:fixed;left:0;right:0;top:-300px;height:calc(env(safe-area-inset-top,0px) + 300px);background:var(--bg);z-index:2147483000;pointer-events:none}
+@media print{ body::before{display:none} }
 </style>
 
 <header class="bar">
@@ -3679,11 +3688,11 @@ function applyPrefs(){
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
 function syncStatusColor(){
   requestAnimationFrame(() => {
-    // La zone de l'heure prend la couleur de la barre (celle du fond quand la barre est masquée).
+    // La zone de l'heure reste toujours de la couleur du fond : blanc opaque (noir en sombre).
     // Lue dans le thème lui-même : pendant une transition, le fond peut valoir « transparent »,
     // qu'iOS affiche en noir (en haut comme en bas de l'écran).
     const cs = getComputedStyle(document.documentElement), bg = cs.getPropertyValue('--bg').trim() || '#ffffff';
-    const c = document.body.classList.contains('bar-hidden') ? bg : (cs.getPropertyValue('--barc').trim() || bg);
+    const c = bg;
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; document.head.append(m);
     document.documentElement.style.backgroundColor = bg;
