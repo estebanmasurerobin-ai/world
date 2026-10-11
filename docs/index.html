@@ -1531,6 +1531,9 @@ html:not(.grips) .grip{display:none!important}
    iOS prend la couleur juste sous l'heure : le bandeau descend de 3 px sur le haut de la barre
    (invisible, il se fond dans la zone de l'heure) pour que ce soit toujours lui qu'il lise. */
 :root:not(#z) .bar::before,:root:not(#z) .bar::after{top:calc(env(safe-area-inset-top,0px) + 3px)!important}
+
+/* Surligneur aligné sur le « A » de la couleur : même hauteur d'icône, même trait en dessous */
+#hl-btn svg{transform:translateY(2.5px) scale(1.08)}
 </style>
 
 <header class="bar">
@@ -1551,7 +1554,7 @@ html:not(.grips) .grip{display:none!important}
     <button class="tb" id="u-btn" data-menu="under" title="Soulignement (Ctrl+U)"><span class="glyph" style="text-decoration:underline;text-underline-offset:3px">U</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
     <button class="tb swatched" id="color-btn" data-menu="color" title="Couleur du texte"><span class="glyph">A</span><span class="bar-sw"></span></button>
-    <button class="tb swatched" id="hl-btn" data-menu="hl" title="Surlignage"><svg viewBox="0 0 24 24"><path d="M15 4l5 5-8.5 8.5H7v-4.5z"/><path d="M12.5 6.5l5 5"/></svg><span class="bar-sw" style="--swatch:transparent"></span></button>
+    <button class="tb swatched" id="hl-btn" data-menu="hl" title="Surlignage"><svg viewBox="0 0 24 24"><path d="M15 4l5 5-8.5 8.5H7v-4.5z"/><path d="M12.5 6.5l5 5"/></svg><span class="bar-sw" style="--swatch:color-mix(in srgb, var(--fg) 16%, transparent)"></span></button>
     <span class="sep"></span>
     
     <button class="tb" id="math-btn" title="Formule LaTeX (Ctrl+M)" aria-label="Formule"><svg viewBox="0 0 24 24"><path d="M17 5H7l5.5 7L7 19h10"/></svg><span class="tb-label">Formule</span></button>
@@ -1926,7 +1929,7 @@ function updateToolbar(){
   $('#para-btn').title = 'Style : ' + pname; const pf = $('#para-btn .full'); pf.textContent = pname; pf.dataset.lv = pk;
   $('#color-btn').style.setProperty('--swatch', getComputedStyle(el).color);
   const h = el.closest('[data-h]');
-  $('#hl-btn .bar-sw').style.setProperty('--swatch', h ? getComputedStyle(h).getPropertyValue('--hl-strong') : 'transparent');
+  $('#hl-btn .bar-sw').style.setProperty('--swatch', h ? getComputedStyle(h).getPropertyValue('--hl-strong') : 'color-mix(in srgb, var(--fg) 16%, transparent)');
   $('#u-btn').setAttribute('aria-pressed', !!el.closest('[data-u],u'));
 }
 
