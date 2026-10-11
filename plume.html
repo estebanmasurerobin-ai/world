@@ -973,6 +973,35 @@ button.ol-tw:hover{background:var(--fill)}
 .ol-row.l3 .ol-i{font-size:14.5px;color:var(--ui)}
 .ol-row.l1:not(:first-child){margin-top:6px}
 @media (pointer:coarse){ .ol-i{padding:12px 8px 12px 2px} .ol-tw{width:32px;height:32px} }
+
+/* ================= Barre d'outils : grande et transparente =================
+   Boutons de 48 points, symboles de 24, onglets plus hauts ; la barre n'est presque plus qu'un
+   voile de verre : on voit le texte défiler dessous, flouté. */
+.bar{padding:8px 18px;padding-top:calc(env(safe-area-inset-top,0px) + 8px);gap:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.06));
+  -webkit-backdrop-filter:blur(22px) saturate(210%);backdrop-filter:blur(22px) saturate(210%);
+  box-shadow:inset 0 -.5px 0 rgba(120,120,128,.25)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .bar{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))} }
+:root[data-theme="dark"] .bar{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))}
+@media (display-mode: standalone){ .bar{padding-top:calc(env(safe-area-inset-top,0px) + 22px)} }
+.tools,.meta{gap:4px}
+.tb{height:48px;min-width:48px;padding:0 10px;border-radius:15px;font-size:17px;gap:6px}
+.tb svg{width:24px;height:24px;stroke-width:1.6}
+.tb .chev{width:12px;height:12px}
+.tb .glyph,.glyph{font-size:22px}
+.tb.sel{font-size:17px}.tb.sel .lbl{max-width:9em}
+#size-btn .lbl{min-width:1.8em}
+.swatched .bar-sw{width:22px;height:4px}
+.sep{height:28px;margin:0 6px}
+button.status{font-size:15px;height:44px;padding:0 12px}
+#ai-btn .spark{font-size:20px}#ai-btn span:last-child{font-size:16px!important}
+#notes-btn .count{font-size:14px}
+#more-btn .glyph{font-size:19px!important}
+.tabbar{gap:6px;padding-bottom:6px}
+.tab{height:38px;max-width:280px;padding:0 6px 0 16px;font-size:15px;border-radius:13px}
+.tab .x{width:26px;height:26px;font-size:19px}
+.tab-add{width:38px;height:38px;font-size:26px;border-radius:13px}
+.bar-toggle{width:42px;height:42px}.bar-toggle svg{width:18px;height:18px}
 </style>
 
 <header class="bar">
