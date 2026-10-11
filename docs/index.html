@@ -1384,6 +1384,21 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 #para-btn .full{font-size:16.5px}
 
 @media (min-width:1340px){ #font-btn .full{max-width:10.5em} }
+
+/* Liens vers d'autres documents */
+#editor a[href^="#doc:"]{color:var(--accent);text-decoration:none;background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:5px;padding:0 .2em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+#editor a[href^="#doc:"]::before{content:"↗ ";font-size:.75em;opacity:.7}
+.wl-pop{position:fixed;z-index:46;min-width:240px;max-width:min(380px,calc(100vw - 16px));padding:6px;border-radius:16px;display:flex;flex-direction:column;gap:1px;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:var(--lg-edge),var(--lg-shadow);animation:pop-in .16s ease}
+.wl-i{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:15.5px;text-align:left;padding:9px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wl-i svg{flex:none;width:18px;height:18px;stroke:var(--ui);fill:none;stroke-width:1.6;stroke-linejoin:round}
+.wl-i.on,.wl-i:hover{background:var(--fill2)}
+.wl-plus{flex:none;width:18px;text-align:center;color:var(--accent);font-weight:700}
+.wl-none{padding:9px 12px;color:var(--ui);font-size:14px}
+/* Flèche pour rouvrir la barre : discrète */
+.bar-toggle{opacity:.28!important;width:30px!important;height:30px!important;background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;color:var(--ui)}
+.bar-toggle:hover,.bar-toggle:focus-visible{opacity:.8!important;background:var(--fill)!important}
+.bar-toggle svg{width:15px!important;height:15px!important}
 </style>
 
 <header class="bar">
@@ -2262,7 +2277,7 @@ function clean(node){
     const check = tag === 'UL' && el.hasAttribute('data-check'), done = tag === 'LI' && el.getAttribute('data-done') === '1';
     const rv = (tag === 'INS' || tag === 'DEL') && /^r[a-z0-9]{4,30}$/.test(el.getAttribute('data-rv') || '') ? { rv: el.getAttribute('data-rv'), a: (el.getAttribute('data-a') || '').slice(0, 60), t: /^\d{1,15}$/.test(el.getAttribute('data-t') || '') ? el.getAttribute('data-t') : '', ac: /^\d$/.test(el.getAttribute('data-ac') || '') ? el.getAttribute('data-ac') : '0' } : null;
     for (const a of [...el.attributes]) el.removeAttribute(a.name);
-    if (tag === 'A') { if (/^(https?:|mailto:)/i.test(href)) el.setAttribute('href', href); else { el.replaceWith(...el.childNodes); continue; } }
+    if (tag === 'A') { if (/^(https?:|mailto:)/i.test(href) || /^#doc:[a-z0-9]{4,40}$/i.test(href)) el.setAttribute('href', href); else { el.replaceWith(...el.childNodes); continue; } }
     if (tag === 'IMG') {
       if (!/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+\/=]+$/i.test(src) && !/^https:\/\//i.test(src)) { el.remove(); continue; }
       el.setAttribute('src', src); el.setAttribute('alt', ''); if (imgW) el.setAttribute('data-w', imgW);
@@ -3633,10 +3648,12 @@ function applyPrefs(){
 function syncStatusColor(){
   requestAnimationFrame(() => {
     // La zone de l'heure reste de la couleur du fond (blanc opaque en clair, noir en sombre).
-    const c = getComputedStyle(document.body).backgroundColor;
+    // Lue dans le thème lui-même : pendant une transition, le fond peut valoir « transparent »,
+    // qu'iOS affiche en noir (en haut comme en bas de l'écran).
+    const c = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; document.head.append(m);
-    document.documentElement.style.backgroundColor = c; // derrière l'heure si l'app dessine sous la barre d'état
+    document.documentElement.style.backgroundColor = c;
   });
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
@@ -4492,6 +4509,7 @@ editor.addEventListener('click', e => {
   const a = e.target instanceof Element && e.target.closest('a[href]');
   if (!a || !editor.contains(a) || !getSelection().isCollapsed) return;
   e.preventDefault();
+  if (/^#doc:/.test(a.getAttribute('href'))) { openDocLink(a.getAttribute('href').slice(5), a.textContent); return; }
   openPop(linkHost(a), `<div class="linkcard"><span class="lc-url">${esc(a.getAttribute('href').replace(/^mailto:/, ''))}</span>
     <div class="lf-acts"><button class="btn sm" data-a="edit">Modifier</button><a class="btn primary sm" href="${esc(a.getAttribute('href'))}" target="_blank" rel="noopener noreferrer">Ouvrir</a></div></div>`,
     p => { p.querySelector('[data-a="edit"]').onclick = () => { closePop(); openLinkEditor(a); }; p.querySelector('a').onclick = () => closePop(); });
@@ -5352,6 +5370,97 @@ function toggleList(kind){
   }
   if (keep) setCaretOffsets(keep);
   changed(); markCurrent(); queueToolbar();
+}
+
+
+/* ---------- Liens entre documents : [[ ----------
+   Taper « [[ » propose tes documents ; en continuant à écrire, la liste se réduit (« [[W » →
+   les documents qui contiennent W). Entrée, Tab ou un toucher choisit ; « Créer » fait un nouveau
+   document de ce nom. Toucher ensuite le lien ouvre le document. « [[Nom]] » tapé en entier marche aussi. */
+const wlPop = document.createElement('div'); wlPop.className = 'wl-pop'; wlPop.hidden = true; wlPop.setAttribute('role', 'listbox'); document.body.append(wlPop);
+let wl = null; // { node, start, q, items, i }
+const fold2 = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function wlMatches(q){
+  const f = fold2(q.trim());
+  const list = docs.filter(d => d.id !== activeId).map(d => ({ d, t: fold2(d.title) }))
+    .filter(x => !f || x.t.includes(f))
+    .sort((a, b) => (a.t.startsWith(f) ? 0 : 1) - (b.t.startsWith(f) ? 0 : 1) || (b.d.updated || 0) - (a.d.updated || 0))
+    .slice(0, 8).map(x => ({ id: x.d.id, title: x.d.title }));
+  if (q.trim() && !docs.some(d => fold2(d.title) === f)) list.push({ create: true, title: q.trim() });
+  return list;
+}
+function wlRender(){
+  if (!wl) { wlPop.hidden = true; return; }
+  wl.items = wlMatches(wl.q);
+  if (!wl.items.length) { wlPop.innerHTML = '<div class="wl-none">Aucun autre document</div>'; }
+  else wlPop.innerHTML = wl.items.map((it, i) => `<button class="wl-i${i === wl.i ? ' on' : ''}" data-i="${i}" role="option">${it.create ? `<span class="wl-plus">+</span>Créer « ${esc(it.title)} »` : `<svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4"/></svg>${esc(it.title)}`}</button>`).join('');
+  wlPop.hidden = false;
+  const r = document.createRange(); r.setStart(wl.node, Math.min(wl.node.data.length, wl.start)); r.collapse(true);
+  const rc = r.getClientRects()[0] || r.getBoundingClientRect();
+  const w = wlPop.offsetWidth, h = wlPop.offsetHeight;
+  let top = rc.bottom + 6; if (top + h > innerHeight - 10) top = rc.top - h - 6;
+  wlPop.style.left = Math.max(8, Math.min(rc.left, innerWidth - w - 8)) + 'px';
+  wlPop.style.top = Math.max(8, top) + 'px';
+}
+function wlClose(){ wl = null; wlPop.hidden = true; }
+function wlCheck(){
+  const s = getSelection(); if (!s.rangeCount || !s.isCollapsed) return wlClose();
+  const n = s.anchorNode, off = s.anchorOffset;
+  if (n.nodeType !== 3 || n.parentElement.closest('a,pre,code,.math')) return wlClose();
+  const m = /\[\[([^\[\]\n]{0,60})$/.exec(n.data.slice(0, off));
+  if (!m) return wlClose();
+  wl = { node: n, start: off - m[0].length, q: m[1], i: wl && wl.node === n ? Math.min(wl.i, 8) : 0, items: [] };
+  wlRender();
+}
+function wlPick(it){
+  if (!wl || !it) return;
+  const { node, start } = wl, s = getSelection(), end = s.anchorNode === node ? s.anchorOffset : node.data.length;
+  let id = it.id;
+  if (it.create) {
+    id = newId();
+    docs.push({ id, title: it.title.slice(0, 60), updated: Date.now() });
+    store.set('plume-doc:' + id, `<h1>${esc(it.title)}</h1><p><br></p>`); saveDocs();
+  }
+  const title = it.create ? it.title : (docs.find(d => d.id === id)?.title || it.title);
+  const r = document.createRange(); r.setStart(node, start); r.setEnd(node, end);
+  // Les « ]] » éventuellement déjà tapés après le curseur partent aussi.
+  if (node.data.slice(end, end + 2) === ']]') r.setEnd(node, end + 2);
+  r.deleteContents();
+  const a = document.createElement('a'); a.href = '#doc:' + id; a.textContent = title.replace(/…$/, '');
+  r.insertNode(a);
+  const sp = document.createTextNode('\u200b'); a.after(sp); // point d'appui invisible : la suite s'écrit hors du lien
+  const c = document.createRange(); c.setStart(sp, 1); c.collapse(true); setRange(c);
+  wlClose(); changed();
+  if (it.create) toast(`Document « ${title} » créé`);
+}
+editor.addEventListener('input', e => {
+  // « [[Nom]] » tapé en entier
+  if (e.inputType === 'insertText' && e.data === ']') {
+    const s = getSelection(), n = s.anchorNode;
+    if (n && n.nodeType === 3 && !n.parentElement.closest('a,pre,code')) {
+      const m = /\[\[([^\[\]\n]{1,60})\]\]$/.exec(n.data.slice(0, s.anchorOffset));
+      if (m) {
+        const f = fold2(m[1].trim()), d = docs.find(x => fold2(x.title) === f);
+        wl = { node: n, start: s.anchorOffset - m[0].length, q: m[1], i: 0, items: [] };
+        wlPick(d ? { id: d.id, title: d.title } : { create: true, title: m[1].trim() }); return;
+      }
+    }
+  }
+  wlCheck();
+});
+document.addEventListener('selectionchange', () => { if (wl) { const s = getSelection(); if (!s.rangeCount || s.anchorNode !== wl.node) wlClose(); } });
+editor.addEventListener('keydown', e => {
+  if (!wl || wlPop.hidden || !wl.items.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); wl.i = (wl.i + (e.key === 'ArrowDown' ? 1 : -1) + wl.items.length) % wl.items.length; wlRender(); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); wlPick(wl.items[wl.i]); }
+  else if (e.key === 'Escape') { e.preventDefault(); wlClose(); }
+}, true);
+wlPop.addEventListener('mousedown', e => e.preventDefault());
+wlPop.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b && wl) wlPick(wl.items[+b.dataset.i]); });
+window.addEventListener('scroll', () => { if (wl) wlRender(); }, { passive: true });
+function openDocLink(id, label){
+  if (docs.find(d => d.id === id)) { openDoc(id); return; }
+  toast(`« ${label} » n'existe plus (supprimé ?). Regarde dans Documents › Supprimés récemment.`);
 }
 
 /* ---------- Démarrage ---------- */
