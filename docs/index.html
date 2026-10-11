@@ -1252,6 +1252,19 @@ body.lib-open .pop{z-index:80}
 .barcol[data-bc="aucune"]{background:linear-gradient(135deg,var(--bg) 46%,#ff3b30 46%,#ff3b30 54%,var(--bg) 54%)}
 .barcol[data-bc="gris"]{background:#c7c7cc}.barcol[data-bc="bleu"]{background:#8fb4ff}.barcol[data-bc="violet"]{background:#b9a2ff}.barcol[data-bc="rose"]{background:#ff9cc6}
 .barcol[data-bc="rouge"]{background:#ff9c93}.barcol[data-bc="orange"]{background:#ffbd7a}.barcol[data-bc="jaune"]{background:#ffdf6e}.barcol[data-bc="vert"]{background:#8fdca3}
+
+/* ================= Bas de la barre et des menus : vraiment transparent =================
+   Le flou blanchit le texte et donne une impression d'opacité : il s'arrête plus tôt, et la
+   teinte tombe à zéro bien avant le bas. */
+:root[data-glass="verre"] .bar::before,:root:not([data-glass]) .bar::before{
+  background:linear-gradient(to bottom,var(--barc) 0%,color-mix(in srgb,var(--barc) 80%,transparent) 20%,color-mix(in srgb,var(--barc) 42%,transparent) 42%,color-mix(in srgb,var(--barc) 12%,transparent) 62%,transparent 80%);
+  -webkit-backdrop-filter:blur(6px) saturate(160%);backdrop-filter:blur(6px) saturate(160%);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 22%,rgba(0,0,0,.35) 50%,transparent 72%);mask-image:linear-gradient(to bottom,#000 0%,#000 22%,rgba(0,0,0,.35) 50%,transparent 72%)}
+:root:not([data-glass="opaque"]){--menu-top:color-mix(in srgb,var(--bg) 30%,transparent);--menu-bot:transparent}
+:root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.ai-dock,.style-pill,.paint-pill,.toast){-webkit-backdrop-filter:blur(3px) saturate(150%);backdrop-filter:blur(3px) saturate(150%)}
+
+:root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.outline-side,.notes-side,.side-panel,.bar) :is(.mi,.mh,.ai-item,button,a,b,span,dt,dd,label,h2,h3,p){text-shadow:0 0 2px var(--bg),0 0 6px var(--bg)}
+.btn.primary,.btn.primary *,.chips .mi,.seg-b,.spark{text-shadow:none!important}
 </style>
 
 <header class="bar">
