@@ -2020,8 +2020,17 @@ function exec(cmd, arg){
   // Enlever le gras d'un titre (ou l'italique d'une citation) ajoutait un style « normal » que
   // l'enregistrement ne garde pas : à l'écran et après réouverture, ce n'était pas pareil.
   if (cmd === 'bold' || cmd === 'italic') {
-    const prop = cmd === 'bold' ? 'font-weight' : 'font-style';
-    editor.querySelectorAll('span[style]').forEach(sp => { sp.style.removeProperty(prop); if (!sp.style.length) sp.removeAttribute('style'); if (!sp.attributes.length) sp.replaceWith(...sp.childNodes); });
+    // Safari (surtout sur iPad) écrit parfois le gras ou l'italique en style plutôt qu'en balise :
+    // un style « gras » devient un vrai <b> (un <i> pour l'italique) ; seul un style « normal »
+    // (gras retiré d'un titre) est simplement enlevé.
+    const prop = cmd === 'bold' ? 'font-weight' : 'font-style', tag = cmd === 'bold' ? 'b' : 'i';
+    editor.querySelectorAll('[style]').forEach(el => {
+      const v = el.style.getPropertyValue(prop); if (!v) return;
+      el.style.removeProperty(prop);
+      if (cmd === 'bold' ? /^(bold|bolder|[6-9]00)$/.test(v) : /italic|oblique/.test(v)) { const w = document.createElement(tag); w.append(...el.childNodes); el.append(w); }
+      if (!el.style.length) el.removeAttribute('style');
+      if (el.tagName === 'SPAN' && !el.attributes.length) el.replaceWith(...el.childNodes);
+    });
   }
   changed(); queueToolbar();
 }
