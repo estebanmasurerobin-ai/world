@@ -1296,6 +1296,13 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 /* Les outils ne défilent jamais : ils passent à la ligne s'il le faut */
 .tools{overflow:visible!important;flex-wrap:wrap!important;touch-action:manipulation}
 .bar{overflow:visible;touch-action:manipulation}
+
+/* Notes et Révision sont dans le menu ⋯ (place gagnée dans la barre) */
+#notes-btn,#rev-btn{display:none!important}
+.rv-hint{color:#d0312d!important;font-weight:600}
+
+/* Écran moyen : le nombre de mots passe dans le menu ⋯ (Statistiques), pour garder une seule ligne */
+@media (max-width:1100px){ button.status{display:none!important} }
 </style>
 
 <header class="bar">
@@ -3539,6 +3546,8 @@ function docRoot(p){
     <button class="mi" data-a="new">Nouveau document${ICO(IC.newtab)}</button>
     <div class="hr"></div>
     ${statusEl.offsetParent ? '' : `<button class="mi" data-a="stats">Statistiques et objectif${ICO(IC.stats)}</button>`}
+    <button class="mi" data-a="notes">Notes${noteIds().length ? `<span class="hint">${noteIds().length}</span>` : ''}${ICO('M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM8 9.5h8M8 12.5h5')}</button>
+    <button class="mi" data-a="review">Révision${rvOn ? '<span class="hint rv-hint">activée</span>' : ''}${ICO('M4 19.5h7M14.5 5.5l4 4L9 19H5v-4zM12.5 7.5l4 4')}</button>
     <button class="mi" data-a="history">Historique des versions${ICO(IC.history)}</button>
     <label class="mi mi-switch">Vérifier le style<input type="checkbox" class="switch" id="style-toggle"${prefs.style ? ' checked' : ''}></label>
     <div class="hr"></div>
@@ -3554,6 +3563,7 @@ function docRoot(p){
     closePop();
     ({ new: newDoc, reopen: reopenClosed, library: openLibrary, find: () => openFind(), outline: () => setOutline(!olOpen),
        stats: () => openStats(btn), history: () => openSide('history'),
+       notes: () => notesSide.hidden ? openNotes() : closeNotes(), review: () => sideKind === 'review' ? closeSide() : openSide('review'),
        fold: () => foldAll(true), unfold: () => foldAll(false) })[a]();
   };
   p.querySelector('#style-toggle').onchange = e => { setPref('style', e.target.checked); styleCheck(); };
