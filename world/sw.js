@@ -21,7 +21,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
-    e.respondWith(fetch(req).then(res => {
+    // « no-store » : on ne reprend jamais une vieille copie gardée par le navigateur.
+    e.respondWith(fetch(req.url, { cache: 'no-store', credentials: 'same-origin' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));

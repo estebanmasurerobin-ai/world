@@ -1303,6 +1303,23 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 
 /* Écran moyen : le nombre de mots passe dans le menu ⋯ (Statistiques), pour garder une seule ligne */
 @media (max-width:1100px){ button.status{display:none!important} }
+
+/* ================= Boutons Texte, Police, Taille : étroits =================
+   Un T qui grossit avec le niveau de titre, « Ag » dans la police choisie, la taille en chiffres. */
+#para-btn .lbl,#font-btn .lbl,#size-btn .lbl{min-width:0!important;max-width:none!important;text-align:center}
+#para-btn .lbl{font-family:var(--doc-font);width:1.2em;line-height:1}
+#para-btn .lbl[data-lv="p"]{font-size:18px;font-weight:400}
+#para-btn .lbl[data-lv="h1"]{font-size:25px;font-weight:900}
+#para-btn .lbl[data-lv="h2"]{font-size:22px;font-weight:700}
+#para-btn .lbl[data-lv="h3"]{font-size:19px;font-weight:600}
+#para-btn .lbl[data-lv="blockquote"]{font-size:22px}
+#para-btn .lbl[data-lv="pre"]{font-family:var(--mono);font-size:13px;width:auto}
+#font-btn .lbl{font-size:19px}
+#size-btn .lbl{font-size:16px;font-variant-numeric:tabular-nums}
+#para-btn,#font-btn,#size-btn{padding:0 4px;gap:1px}
+
+/* iPad à la verticale : boutons un peu plus serrés pour rester sur une seule ligne */
+@media (max-width:900px) and (min-width:701px){ .tb{min-width:35px;padding:0 3px} .sep{margin:0 1px} .bar{padding-left:8px;padding-right:8px;gap:2px} .tb svg{width:21px;height:21px} }
 </style>
 
 <header class="bar">
@@ -1314,8 +1331,8 @@ button.status{font-size:14px;padding:0 8px;height:40px}
     <button class="tb" id="undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button class="tb" id="redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
-    <button class="tb sel" id="para-btn" data-menu="para" title="Style de paragraphe"><span class="lbl">Texte</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
-    <button class="tb sel" id="font-btn" data-menu="font" title="Police"><span class="lbl">Literata</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <button class="tb sel" id="para-btn" data-menu="para" title="Style de paragraphe"><span class="lbl" data-lv="p">T</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <button class="tb sel" id="font-btn" data-menu="font" title="Police"><span class="lbl">Ag</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb sel" id="size-btn" data-menu="size" title="Taille du texte"><span class="lbl">19</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
     <button class="tb" data-cmd="bold" title="Gras (Ctrl+B)" aria-pressed="false"><span class="glyph" style="font-weight:700">B</span></button>
@@ -1682,10 +1699,14 @@ function updateToolbar(){
     document.querySelector(`[data-cmd="${c}"]`)?.setAttribute('aria-pressed', on);
   }
   const f = el.closest('[data-f]'), font = f && FONT_BY[f.dataset.f];
-  const fl = $('#font-btn .lbl'); fl.textContent = font ? font[1] : 'Literata'; fl.style.fontFamily = font ? font[2] : '';
+  // Police : un simple « Ag » écrit dans la police en cours (le nom complet est dans l'info-bulle et le menu).
+  const fl = $('#font-btn .lbl'); fl.textContent = 'Ag'; fl.style.fontFamily = font ? font[2] : 'var(--doc-font)'; $('#font-btn').title = 'Police : ' + (font ? font[1] : 'Literata');
   $('#size-btn .lbl').textContent = Math.round(parseFloat(getComputedStyle(el).fontSize));
   const blk = el.closest('h1,h2,h3,blockquote');
-  $('#para-btn .lbl').textContent = blk ? PARAS.find(p => p[0] === blk.tagName.toLowerCase())[1] : 'Texte';
+  // Style de paragraphe : un « T » plus ou moins gros et épais (Titre 1 le plus marqué), ❝ pour une citation.
+  const pk = blk ? blk.tagName.toLowerCase() : (el.closest('pre') ? 'pre' : 'p'), pl = $('#para-btn .lbl');
+  pl.textContent = pk === 'blockquote' ? '❝' : pk === 'pre' ? '{ }' : 'T'; pl.dataset.lv = pk;
+  $('#para-btn').title = 'Style : ' + (pk === 'pre' ? 'Code' : (PARAS.find(p => p[0] === pk) || PARAS[0])[1]);
   $('#color-btn').style.setProperty('--swatch', getComputedStyle(el).color);
   const h = el.closest('[data-h]');
   $('#hl-btn .bar-sw').style.setProperty('--swatch', h ? getComputedStyle(h).getPropertyValue('--hl-strong') : 'transparent');

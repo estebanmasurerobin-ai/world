@@ -1,7 +1,7 @@
 // Garde World utilisable sans réseau. Les fichiers du site sont pris sur le réseau en priorité
 // (pour recevoir les mises à jour), et dans le cache quand il n'y a pas de connexion.
 // Polices et moteur de formules : cache d'abord.
-const CACHE = 'world-b7cc17dc94';
+const CACHE = 'world-776c350a73';
 const SHELL = ['./', './index.html', './standalone.js', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
@@ -21,7 +21,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
-    e.respondWith(fetch(req).then(res => {
+    // « no-store » : on ne reprend jamais une vieille copie gardée par le navigateur.
+    e.respondWith(fetch(req.url, { cache: 'no-store', credentials: 'same-origin' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));
