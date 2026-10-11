@@ -3630,6 +3630,7 @@ function docKeys(){
     <kbd>Ctrl ⇧ H</kbd><span>masquer / afficher le texte de l'IA</span>`}
     <kbd>$x^2$</kbd><span>formule dans la ligne</span>
     <kbd>$$x^2$$</kbd><span>formule centrée</span>
+    <kbd>### espace</kbd><span>titre 1 (## titre 2, # titre 3)</span>
     <kbd>Ctrl S</kbd><span>enregistrer maintenant</span>
   </div>`, null, () => docRoot(pop));
 }
@@ -4792,7 +4793,11 @@ function setBlock(tag){
   const r = s.getRangeAt(0), keep = caretOffsets();
   const tops = [...editor.children].filter(el => r.intersectsNode(el));
   if (!tops.length) { const t = topBlock(); if (t) tops.push(t); }
-  let done = false;
+  let done = false, lastNew = null;
+  // Curseur dans un seul paragraphe : on le remettra au même endroit dans le nouveau bloc
+  // (sinon, dans un paragraphe vide, il pouvait sauter à la fin du bloc précédent).
+  const single = r.collapsed && tops.length === 1 && !/^(UL|OL)$/.test(tops[0].tagName);
+  let inOff = 0; if (single) { const pre = document.createRange(); pre.setStart(tops[0], 0); pre.setEnd(r.startContainer, r.startOffset); inOff = pre.toString().length; }
   for (const el of tops) {
     if (/^(UL|OL)$/.test(el.tagName)) {
       // Dans une liste : chaque élément sélectionné devient un paragraphe du style demandé, hors de la liste.
@@ -4821,9 +4826,13 @@ function setBlock(tag){
     if (el.dataset.fold === '1' && /^H[123]$/.test(want)) nb.dataset.fold = '1';
     if (want === 'PRE') nb.textContent = el.innerText.replace(/\n$/, ''); else nb.append(...el.childNodes);
     if (!nb.firstChild) nb.append(document.createElement('br'));
-    el.replaceWith(nb); done = true;
+    el.replaceWith(nb); done = true; lastNew = nb;
   }
-  if (keep) setCaretOffsets(keep);
+  if (single && lastNew) {
+    const w = document.createTreeWalker(lastNew, NodeFilter.SHOW_TEXT); let n, pos = 0, c = document.createRange(); c.setStart(lastNew, 0);
+    while ((n = w.nextNode())) { if (inOff <= pos + n.data.length) { c.setStart(n, inOff - pos); break; } pos += n.data.length; }
+    c.collapse(true); editor.focus({ preventScroll: true }); setRange(c);
+  } else if (keep) setCaretOffsets(keep);
   if (done) { refold(); changed(); }
   markCurrent(); queueToolbar();
 }
@@ -5147,6 +5156,21 @@ function renderReview(){
 }
 $('#rev-btn').addEventListener('click', () => sideKind === 'review' ? closeSide() : openSide('review'));
 editor.addEventListener('input', () => { if (sideKind === 'review') queueReview(); });
+
+
+/* ---------- Titres rapides avec des # en début de paragraphe ----------
+   « ### » puis espace : titre 1 (le plus gros) ; « ## » : titre 2 ; « # » : titre 3. */
+editor.addEventListener('input', e => {
+  if (e.inputType !== 'insertText' || !/^[\s ]$/.test(e.data || '')) return;
+  const s = getSelection(); if (!s.rangeCount || !s.isCollapsed) return;
+  const blk = blockOf(s.anchorNode); if (!blk || !editor.contains(blk) || blk.closest('pre,li,td,th,blockquote')) return;
+  const r = document.createRange(); r.setStart(blk, 0); r.setEnd(s.anchorNode, s.anchorOffset);
+  const m = /^(#{1,3})[\s ]$/.exec(r.toString().replace(/​/g, '')); if (!m) return;
+  r.deleteContents();
+  if (!blk.textContent && !blk.querySelector('br,img,.math')) blk.append(document.createElement('br'));
+  const c = document.createRange(); c.setStart(blk, 0); c.collapse(true); setRange(c);
+  setBlock({ 3: 'h1', 2: 'h2', 1: 'h3' }[m[1].length]);
+});
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
