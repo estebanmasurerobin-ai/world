@@ -1495,6 +1495,9 @@ html.grips .grip{width:28px}
 html.grips .grip::before{opacity:1!important;background:color-mix(in srgb,var(--fg) 20%,transparent)!important;width:3px}
 html.grips .grip:hover::before,html.grips .grip.drag::before{opacity:1!important;background:var(--accent)!important}
 html.grips .grip.l{left:-60px}html.grips .grip.r{right:-60px}
+
+/* Barres de largeur : seulement si on les a demandées (menu ⋯ › Barres de largeur) */
+html:not(.grips) .grip{display:none!important}
 </style>
 
 <header class="bar">
@@ -1740,6 +1743,7 @@ document.addEventListener('selectionchange', () => {
   }
 });
 function restore(){
+  if (editor.contentEditable === 'false') editor.contentEditable = 'true'; // après un passage de l'Apple Pencil
   const s = getSelection();
   // Le curseur est déjà dans le texte (raccourci clavier, bouton qui ne prend pas le focus) : on le garde tel quel.
   const savedOk = saved && editor.contains(saved.startContainer) && editor.contains(saved.endContainer);
@@ -5625,6 +5629,60 @@ function applyChecks(refresh){
   styleCheck();
 }
 
+
+
+/* ---------- iPad : l'Apple Pencil fait défiler, il n'écrit pas à la main ----------
+   iPadOS transforme l'écriture au crayon en texte (Griffonner) dès qu'il trouve une zone
+   modifiable sous la pointe. Dès que le crayon approche (ou touche) l'écran, le texte cesse
+   d'être modifiable : le crayon fait alors défiler comme le doigt. Un toucher du crayon sur le
+   texte, un toucher du doigt ou une touche du clavier le rendent de nouveau modifiable, avec
+   le curseur au bon endroit. */
+{
+  const IPAD = navigator.maxTouchPoints > 1 && /Macintosh|iPad/.test(navigator.userAgent);
+  if (IPAD) {
+    let lastRange = null, penDown = null;
+    const editable = () => editor.contentEditable !== 'false';
+    const penMode = () => {
+      if (!editable()) return;
+      const sel = getSelection();
+      if (sel.rangeCount && editor.contains(sel.anchorNode)) lastRange = sel.getRangeAt(0).cloneRange();
+      editor.contentEditable = 'false';
+    };
+    const writeMode = range => {
+      if (editable()) return;
+      editor.contentEditable = 'true';
+      editor.focus({ preventScroll: true });
+      const r = range || lastRange;
+      if (r) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    };
+    // Crayon qui survole l'écran (Apple Pencil Pro, Apple Pencil 2 sur les iPad récents)
+    document.addEventListener('pointermove', e => { if (e.pointerType === 'pen' && !e.buttons && document.activeElement !== editor) penMode(); }, { passive: true });
+    document.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0]; if (!t) return;
+      if (t.touchType === 'stylus') {
+        if (!e.target.closest || !e.target.closest('.page')) return;
+        penMode(); penDown = { x: t.clientX, y: t.clientY, at: Date.now(), y0: scrollY };
+      } else if (e.target.closest && e.target.closest('#editor')) {
+        // Toucher du doigt : on écrit de nouveau, là où on touche (le navigateur place le curseur).
+        if (!editable()) { editor.contentEditable = 'true'; }
+      }
+    }, { capture: true, passive: true });
+    document.addEventListener('touchend', e => {
+      const t = e.changedTouches[0], d = penDown; if (!t || t.touchType !== 'stylus' || !d) return;
+      penDown = null;
+      const moved = Math.hypot(t.clientX - d.x, t.clientY - d.y) > 8 || Math.abs(scrollY - d.y0) > 8;
+      if (moved || Date.now() - d.at > 600) return;
+      // Toucher du crayon sur le texte : le curseur s'y place, pour écrire au clavier.
+      const r = document.caretRangeFromPoint && document.caretRangeFromPoint(t.clientX, t.clientY);
+      if (r && editor.contains(r.startContainer)) setTimeout(() => writeMode(r), 0);
+    }, { capture: true, passive: true });
+    document.addEventListener('keydown', e => {
+      if (editable() || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.activeElement && document.activeElement !== document.body && document.activeElement !== editor) return;
+      if (e.key.length === 1 || /^(Enter|Backspace|Delete|Arrow)/.test(e.key)) writeMode();
+    }, true);
+  }
+}
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
