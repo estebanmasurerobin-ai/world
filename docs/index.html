@@ -3394,7 +3394,7 @@ function applyTheme(){
   const b = $('#theme-btn'); if (b) { b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label); }
   queueToolbar();
 }
-function setTheme(t){ theme = t; store.set('plume-theme', theme); applyTheme(); }
+function setTheme(t){ theme = t; store.set('plume-theme', theme); applyTheme(); syncStatusColor(); }
 /* Largeur de la page et taille du texte : deux réglages séparés.
    - La largeur (Étroite, Normale, Large, Pleine, ou à la souris) ne change que la place prise.
    - La taille du texte (curseur de 60 à 200 %) agrandit tout le texte comme un zoom, sans
@@ -3484,7 +3484,19 @@ function applyPrefs(){
   editor.spellcheck = !!prefs.spell;
   document.documentElement.dataset.glass = prefs.glass === 'opaque' ? 'opaque' : 'verre';
   document.documentElement.dataset.barc = prefs.barColor || 'aucune';
+  syncStatusColor();
 }
+// La zone de l'heure et de la batterie (iPhone, iPad, Mac) prend la couleur de la barre :
+// iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
+function syncStatusColor(){
+  requestAnimationFrame(() => {
+    const c = getComputedStyle(document.documentElement).getPropertyValue('--barc').trim() || getComputedStyle(document.body).backgroundColor;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+    const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; document.head.append(m);
+    document.documentElement.style.backgroundColor = c; // derrière l'heure si l'app dessine sous la barre d'état
+  });
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
 function setPref(k, v){ prefs[k] = v; store.set('plume-prefs', JSON.stringify(prefs)); applyPrefs(); }
 
 /* ---------- Menu ⋯ ----------
