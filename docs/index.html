@@ -1302,6 +1302,15 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 .tb .chev{width:9px;height:9px}
 .tb.sel{padding:0 5px}
 .sep{margin:0 2px}
+
+/* ================= Zone de l'heure : blanc opaque (noir en sombre), la couleur ne commence qu'à la barre ================= */
+.bar{box-shadow:0 -200px 0 0 var(--bg)!important;
+  background:linear-gradient(to bottom,var(--bg) 0,var(--bg) env(safe-area-inset-top,0px),transparent env(safe-area-inset-top,0px))!important}
+.bar::before,.bar::after{top:env(safe-area-inset-top,0px)!important}
+:root[data-glass="opaque"] .bar{box-shadow:0 -200px 0 0 var(--bg)!important}
+/* Les outils ne défilent jamais : ils passent à la ligne s'il le faut */
+.tools{overflow:visible!important;flex-wrap:wrap!important;touch-action:manipulation}
+.bar{overflow:visible;touch-action:manipulation}
 </style>
 
 <header class="bar">
@@ -3527,7 +3536,8 @@ function applyPrefs(){
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
 function syncStatusColor(){
   requestAnimationFrame(() => {
-    const c = getComputedStyle(document.documentElement).getPropertyValue('--barc').trim() || getComputedStyle(document.body).backgroundColor;
+    // La zone de l'heure reste de la couleur du fond (blanc opaque en clair, noir en sombre).
+    const c = getComputedStyle(document.body).backgroundColor;
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; document.head.append(m);
     document.documentElement.style.backgroundColor = c; // derrière l'heure si l'app dessine sous la barre d'état
