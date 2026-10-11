@@ -1520,6 +1520,13 @@ html.grips .grip.l{left:-60px}html.grips .grip.r{right:-60px}
 
 /* Barres de largeur : seulement si on les a demandées (menu ⋯ › Barres de largeur) */
 html:not(.grips) .grip{display:none!important}
+/* Sans les barres : à la souris ou au trackpad, approcher le bord du texte fait apparaître la poignée */
+@media screen and (any-hover:hover) and (any-pointer:fine) and (min-width:761px){
+  html:not(.grips) .grip{display:flex!important;width:48px;touch-action:auto}
+  html:not(.grips) .grip.l{left:-73px}html:not(.grips) .grip.r{right:-73px}
+  html:not(.grips) .grip::before{width:3px;opacity:0!important;background:var(--accent)!important;transition:opacity .18s}
+  html:not(.grips) .grip:hover::before,html:not(.grips) .grip.drag::before{opacity:.9!important}
+}
 
 /* Menus ⋯ et + : un peu plus couvrants que la barre, pour rester bien lisibles */
 :root:not([data-glass="opaque"]) .pop{background:color-mix(in srgb,var(--bg) var(--pop-veil),transparent)!important}
@@ -4302,6 +4309,7 @@ function setZoom(z){
 // Poignées de chaque côté du texte : glisser pour choisir la largeur, double-clic pour revenir à la normale.
 document.querySelectorAll('.grip').forEach(g => {
   g.addEventListener('pointerdown', e => {
+    if (!prefs.grips && e.pointerType !== 'mouse') return; // poignée au survol : souris seulement
     e.preventDefault(); g.setPointerCapture(e.pointerId); g.classList.add('drag');
     const sheet = $('.sheet');
     const move = ev => {
