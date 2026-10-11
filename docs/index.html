@@ -1476,7 +1476,7 @@ body:not(.typing) .page{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72
    pseudo-élément, transparent aux touchers, était ignoré, et Safari laissait voir le texte
    défiler dessous. Ce bandeau est un vrai élément, plein, de la couleur du fond. */
 body::before{content:none!important}
-#status-band{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 3px);background-color:var(--bg);
+#status-band{position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background-color:var(--bg);
   box-shadow:0 -300px 0 300px var(--bg);z-index:2147483000}
 @media print{ #status-band{display:none} }
 
@@ -1530,7 +1530,11 @@ html:not(.grips) .grip{display:none!important}
 /* Zone de l'heure : toujours de la couleur du fond, jamais de celle de la barre.
    iOS prend la couleur juste sous l'heure : le bandeau descend de 3 px sur le haut de la barre
    (invisible, il se fond dans la zone de l'heure) pour que ce soit toujours lui qu'il lise. */
-:root:not(#z) .bar::before,:root:not(#z) .bar::after{top:calc(env(safe-area-inset-top,0px) + 3px)!important}
+:root:not(#z) .bar::before,:root:not(#z) .bar::after{top:calc(env(safe-area-inset-top,0px) + 12px)!important}
+/* Le haut de la barre (12 px sous l'heure) reste de la couleur du fond : c'est là qu'iOS lit la
+   couleur de la zone de l'heure. La couleur choisie commence juste en dessous, sous les boutons. */
+:root:not(#z) .bar{padding-top:calc(env(safe-area-inset-top,0px) + 18px)!important;
+  background:linear-gradient(to bottom,var(--bg) 0,var(--bg) calc(env(safe-area-inset-top,0px) + 12px),transparent calc(env(safe-area-inset-top,0px) + 12px))!important}
 
 /* Surligneur aligné sur le « A » de la couleur : même hauteur d'icône, même trait en dessous */
 #hl-btn svg{transform:translateY(2.5px) scale(1.08)}
