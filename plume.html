@@ -4190,6 +4190,24 @@ function syncStatusColor(){
   const forced = root.getAttribute('data-theme');
   if (theme === 'auto' && !hostTheme) { add('#ffffff', '(prefers-color-scheme: light)'); add('#000000', '(prefers-color-scheme: dark)'); }
   else add(forced === 'dark' ? '#000000' : '#ffffff');
+  let cs = document.querySelector('meta[name="color-scheme"]');
+  if (!cs) { cs = document.createElement('meta'); cs.name = 'color-scheme'; document.head.append(cs); }
+  cs.content = theme === 'auto' && !hostTheme ? 'light dark' : (forced === 'dark' ? 'dark' : 'light');
+  // iOS ne relit la couleur du haut de l'écran que lorsque l'écran change de format (en tournant
+  // l'iPad). Quand le thème change, on provoque la même relecture : la zone d'affichage est
+  // redéclarée un instant, et la page bouge d'un pixel puis revient (rien ne se voit).
+  const dark = getComputedStyle(root).getPropertyValue('--bg').trim().toLowerCase() === '#000000';
+  if (syncStatusColor.last !== undefined && syncStatusColor.last !== dark) {
+    const vp = document.querySelector('meta[name="viewport"]');
+    if (vp) {
+      const c = vp.getAttribute('content');
+      vp.setAttribute('content', c.replace(/,?\s*maximum-scale=[\d.]+/, '') + ', maximum-scale=1');
+      setTimeout(() => vp.setAttribute('content', c), 120);
+    }
+    const y = scrollY; window.scrollTo(0, y + 1);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)));
+  }
+  syncStatusColor.last = dark;
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
 // Retour dans l'app (après avoir changé le mode dans le Centre de contrôle, par exemple)
