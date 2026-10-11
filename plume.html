@@ -1263,6 +1263,30 @@ body.lib-open .pop{z-index:80}
 :root:not([data-glass="opaque"]):not([data-barc="aucune"]) .bar::after{background:linear-gradient(to bottom,var(--barc) 0%,color-mix(in srgb,var(--barc) 85%,transparent) 25%,color-mix(in srgb,var(--barc) 62%,transparent) 50%,var(--barc-end) 80%,color-mix(in srgb,var(--barc) 18%,transparent) 92%,transparent 100%)}
 /* Application installée : la barre descend un peu, sous la zone que iOS floute en haut de l'écran */
 @media (display-mode: standalone){ .bar{padding-top:calc(env(safe-area-inset-top,0px) + 16px)} }
+
+/* ================= Barre : tout tient d'un coup, sans défiler =================
+   Boutons un peu plus compacts, libellés raccourcis ; si l'écran est trop étroit, les outils
+   passent sur une deuxième ligne au lieu de se cacher. */
+.tools,.meta{gap:1px}
+.tb{height:42px;min-width:40px;padding:0 7px;border-radius:12px}
+.tb svg{width:22px;height:22px}
+.tb .glyph,.glyph{font-size:20px}
+.tb.sel{font-size:16px;padding:0 7px;gap:3px}
+#para-btn .lbl{min-width:0}
+.tb.sel .lbl{max-width:6.2em}
+#size-btn .lbl{min-width:1.4em}
+.sep{margin:0 3px;height:24px}
+button.status{font-size:14px;padding:0 8px;height:40px}
+.tb-chev{width:16px!important;min-width:16px!important}
+.tools{flex-wrap:wrap;overflow:visible;row-gap:2px;-webkit-mask-image:none!important;mask-image:none!important}
+.bar{gap:6px;padding-left:12px;padding-right:12px}
+@media (pointer:coarse){ .tb{height:42px;min-width:40px} }
+@media (max-width:700px){ .tb{height:42px;min-width:40px;padding:0 6px} }
+
+.tb{padding:0 5px;min-width:38px}
+.tb .chev{width:9px;height:9px}
+.tb.sel{padding:0 5px}
+.sep{margin:0 2px}
 </style>
 
 <header class="bar">
