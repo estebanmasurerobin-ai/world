@@ -1448,6 +1448,15 @@ body::before{content:"";position:fixed;left:0;right:0;top:-300px;height:calc(env
 body:not(.typing) .page{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72px)!important}
 /* Rechercher : seulement l'essentiel (le champ, tous les documents, précédent/suivant, fermer) */
 .findbar .fb-rep-row,.findbar .fb-case-opt{display:none!important}
+
+/* ================= Bandeau de l'heure : un vrai élément opaque =================
+   Safari (iOS 26) colore le haut de l'écran d'après l'élément fixe qui touche le bord : le
+   pseudo-élément, transparent aux touchers, était ignoré, et Safari laissait voir le texte
+   défiler dessous. Ce bandeau est un vrai élément, plein, de la couleur du fond. */
+body::before{content:none!important}
+#status-band{position:fixed;left:0;right:0;top:0;height:max(env(safe-area-inset-top,0px),1px);background-color:var(--bg);
+  box-shadow:0 -300px 0 300px var(--bg);z-index:2147483000}
+@media print{ #status-band{display:none} }
 </style>
 
 <header class="bar">
@@ -1490,6 +1499,7 @@ body:not(.typing) .page{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72
 </header>
 
 <button class="paint-pill" id="paint-btn" title="Arrêter de copier le style (Échap)"><svg viewBox="0 0 24 24"><path d="M5 4h11a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M17 6.5h2.5V12H11v3"/><path d="M10 15h2v5a1 1 0 0 1-1 1h0a1 1 0 0 1-1-1z"/></svg>Sélectionne le texte à mettre en forme<span class="pp-x">Annuler</span></button>
+<div id="status-band" aria-hidden="true"></div>
 <button class="bar-toggle" id="bar-toggle" title="Masquer la barre d'outils" aria-label="Masquer la barre d'outils"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
 
 <main class="page">
@@ -3611,13 +3621,25 @@ function setWidth(w){
   // grandit avec l'écran, moins vite que lui ; sur un très grand écran, « Étroite » reste
   // vraiment étroite et « Pleine » ne va pas d'un bord à l'autre.
   // iPad 13" : 534 · 650 · 860 · 1220 px — écran 2560 px : 760 · 1010 · 1315 · 1670 px.
-  const fit = (a, b) => `min(calc(100% - 32px), calc(${a}px + ${b}%))`;
+  // La largeur se calcule toujours sur la largeur de l'écran en paysage : en tournant l'iPad, les
+  // lignes restent exactement les mêmes ; si elles ne tiennent pas en portrait, la page va bord à bord.
+  const fit = (a, b) => `min(100%, calc(${a}px + var(--ref-w, 100vw) * ${b / 100}))`;
   let v = { etroite: fit(266, 20), normal: fit(247, 30), large: fit(352, 38), plein: fit(697, 39) }[w];
-  if (!v && /^\d{2,3}%$/.test(w || '')) v = w;
+  if (!v && /^\d{2,3}%$/.test(w || '')) v = `min(100%, calc(var(--ref-w, 100vw) * ${parseInt(w) / 100}))`;
   if (!v && /^\d{3,4}px$/.test(w || '')) v = w;
   if (!v && /^\d{2,3}ch$/.test(w || '')) v = Math.round(parseInt(w) / 70 * PAGE_W) + 'px';
   document.documentElement.style.setProperty('--page-w', v || 'min(calc(100% - 32px), calc(247px + 30%))');
 }
+// Largeur de référence : sur iPad et iPhone, celle de l'écran tenu à l'horizontale (la même dans
+// les deux sens) ; sur Mac, celle de la fenêtre.
+function refWidth(){
+  const touch = matchMedia('(pointer:coarse)').matches && screen.width && screen.height;
+  return touch ? Math.max(screen.width, screen.height) : innerWidth;
+}
+function syncRefWidth(){ document.documentElement.style.setProperty('--ref-w', refWidth() + 'px'); }
+syncRefWidth();
+addEventListener('resize', syncRefWidth);
+addEventListener('orientationchange', () => setTimeout(syncRefWidth, 200));
 function setZoom(z){
   docZoom = Math.min(2, Math.max(.6, +z || 1));
   document.documentElement.style.setProperty('--doc-zoom', docZoom.toFixed(2));
@@ -3629,10 +3651,10 @@ document.querySelectorAll('.grip').forEach(g => {
     const sheet = $('.sheet');
     const move = ev => {
       const r = sheet.getBoundingClientRect(), cx = r.left + r.width / 2;
-      const pg = $('.page'), cs = getComputedStyle(pg), inner = pg.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const pg = $('.page'), inner = refWidth();
       const w = Math.max(360, Math.min(pg.clientWidth - 2 * 56, 2 * Math.abs(ev.clientX - cx)));
       const pc = Math.max(25, Math.min(100, Math.round(w / inner * 100)));
-      setWidth(pc + '%'); toast(`Largeur de la page : ${pc} % de la fenêtre`);
+      setWidth(pc + '%'); toast(`Largeur de la page : ${pc} %`);
     };
     const up = () => {
       g.classList.remove('drag');
