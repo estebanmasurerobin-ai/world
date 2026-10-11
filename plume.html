@@ -1346,6 +1346,27 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 .hl-dot[aria-checked="true"]{box-shadow:inset 0 0 0 1.5px var(--hl-strong),0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 .hl-dot.none{background:linear-gradient(135deg,transparent 45%,#ff3b30 45%,#ff3b30 55%,transparent 55%),var(--bg);box-shadow:inset 0 0 0 1.5px var(--line)}
 .hl-styles .mi span{font-family:var(--doc-font);font-size:15px}
+
+/* ================= Barre selon la largeur de l'écran =================
+   Grand écran (iPad 13 pouces, Mac) : noms complets du style et de la police, et « Formule »
+   écrit en toutes lettres. Plus étroit : T, Ag et ∑ seuls, pour garder une seule ligne. */
+.tb .full{display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#para-btn .full{font-family:var(--doc-font);font-size:17px;min-width:4.6em;text-align:left}
+#para-btn .full[data-lv="h1"]{font-weight:800}#para-btn .full[data-lv="h2"]{font-weight:700}#para-btn .full[data-lv="h3"]{font-weight:600}
+#font-btn .full{font-size:16px;max-width:8.5em;min-width:5.5em;text-align:left}
+#math-btn .tb-label{display:none;font-size:15px}
+@media (min-width:1340px){
+  #para-btn .lbl,#font-btn .lbl{display:none}
+  .tb .full{display:inline-block}
+  #para-btn,#font-btn{padding:0 10px;gap:6px}
+  #math-btn .tb-label{display:inline}
+}
+
+/* Écrans moyens (iPad mini et 10,9 pouces à l'horizontale) : boutons un peu plus serrés */
+@media (max-width:1179px) and (min-width:901px){ .tb{min-width:40px;padding:0 5px} .sep{margin:0 1px} .bar{padding-left:8px;padding-right:8px;gap:3px} }
+
+.tb .full{line-height:26px;height:26px}
+#para-btn .full{font-size:16.5px}
 </style>
 
 <header class="bar">
@@ -1357,8 +1378,8 @@ button.status{font-size:14px;padding:0 8px;height:40px}
     <button class="tb" id="undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
     <button class="tb" id="redo-btn" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
     <span class="sep"></span>
-    <button class="tb sel" id="para-btn" data-menu="para" title="Style de paragraphe"><span class="lbl" data-lv="p">T</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
-    <button class="tb sel" id="font-btn" data-menu="font" title="Police"><span class="lbl">Ag</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <button class="tb sel" id="para-btn" data-menu="para" title="Style de paragraphe"><span class="lbl" data-lv="p">T</span><span class="full">Texte</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <button class="tb sel" id="font-btn" data-menu="font" title="Police"><span class="lbl">Ag</span><span class="full">Literata</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb sel" id="size-btn" data-menu="size" title="Taille du texte"><span class="lbl">19</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
     <button class="tb" data-cmd="bold" title="Gras (Ctrl+B)" aria-pressed="false"><span class="glyph" style="font-weight:700">B</span></button>
@@ -1369,7 +1390,9 @@ button.status{font-size:14px;padding:0 8px;height:40px}
     <button class="tb swatched" id="hl-btn" data-menu="hl" title="Surlignage"><svg viewBox="0 0 24 24"><path d="M15 4l5 5-8.5 8.5H7v-4.5z"/><path d="M12.5 6.5l5 5"/></svg><span class="bar-sw" style="--swatch:transparent"></span></button>
     <span class="sep"></span>
     
-    <button class="tb" id="insert-btn" data-menu="insert" title="Insérer : formule, lien, image, tableau, liste de tâches…" aria-label="Insérer"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
+    <button class="tb" id="math-btn" title="Formule LaTeX (Ctrl+M)" aria-label="Formule"><svg viewBox="0 0 24 24"><path d="M17 5H7l5.5 7L7 19h10"/></svg><span class="tb-label">Formule</span></button>
+    <button class="tb" id="code-btn" title="Bloc de code" aria-label="Bloc de code"><svg viewBox="0 0 24 24"><path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5"/></svg></button>
+    <button class="tb" id="insert-btn" data-menu="insert" title="Insérer : lien, image, tableau, listes, séparateur…" aria-label="Insérer"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb" id="more-btn" data-menu="more" title="Plus de mise en forme : barré, indice, exposant, alignement, pinceau…" aria-label="Plus de mise en forme"><span class="glyph" style="font-size:15px">Aa</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
   </div>
   <div class="meta">
@@ -1727,12 +1750,14 @@ function updateToolbar(){
   const f = el.closest('[data-f]'), font = f && FONT_BY[f.dataset.f];
   // Police : un simple « Ag » écrit dans la police en cours (le nom complet est dans l'info-bulle et le menu).
   const fl = $('#font-btn .lbl'); fl.textContent = 'Ag'; fl.style.fontFamily = font ? font[2] : 'var(--doc-font)'; $('#font-btn').title = 'Police : ' + (font ? font[1] : 'Literata');
+  const ff = $('#font-btn .full'); ff.textContent = font ? font[1] : 'Literata'; ff.style.fontFamily = font ? font[2] : 'var(--doc-font)';
   $('#size-btn .lbl').textContent = Math.round(parseFloat(getComputedStyle(el).fontSize));
   const blk = el.closest('h1,h2,h3,blockquote');
   // Style de paragraphe : un « T » plus ou moins gros et épais (Titre 1 le plus marqué), ❝ pour une citation.
   const pk = blk ? blk.tagName.toLowerCase() : (el.closest('pre') ? 'pre' : 'p'), pl = $('#para-btn .lbl');
   pl.textContent = pk === 'blockquote' ? '❝' : pk === 'pre' ? '{ }' : 'T'; pl.dataset.lv = pk;
-  $('#para-btn').title = 'Style : ' + (pk === 'pre' ? 'Code' : (PARAS.find(p => p[0] === pk) || PARAS[0])[1]);
+  const pname = pk === 'pre' ? 'Code' : (PARAS.find(p => p[0] === pk) || PARAS[0])[1];
+  $('#para-btn').title = 'Style : ' + pname; const pf = $('#para-btn .full'); pf.textContent = pname; pf.dataset.lv = pk;
   $('#color-btn').style.setProperty('--swatch', getComputedStyle(el).color);
   const h = el.closest('[data-h]');
   $('#hl-btn .bar-sw').style.setProperty('--swatch', h ? getComputedStyle(h).getPropertyValue('--hl-strong') : 'transparent');
@@ -1892,7 +1917,6 @@ const MENUS = {
   doc(btn){ openPop(btn, '', docRoot); },
   insert(btn){
     openPop(btn, `
-      <button class="mi" data-i="math">Formule<span class="hint">Ctrl M</span>${ICO(IC.math)}</button>
       <button class="mi" data-i="link">Lien<span class="hint">Ctrl ⇧ K</span>${ICO(IC.link)}</button>
       <button class="mi" data-i="image">Image…${ICO(IC.image)}</button>
       <button class="mi" data-i="table">Tableau${ICO(IC.table)}</button>
@@ -1900,7 +1924,6 @@ const MENUS = {
       <button class="mi" data-i="ul">Liste à puces${ICO('M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01')}</button>
       <button class="mi" data-i="check">Liste de tâches${ICO(IC.check)}</button>
       <button class="mi" data-i="ol">Liste numérotée${ICO(IC.ol)}</button>
-      <button class="mi" data-i="code">Bloc de code${ICO(IC.code)}</button>
       <button class="mi" data-i="hr">Ligne de séparation${ICO(IC.hr)}</button>`,
     p => p.onclick = e => {
       const b = e.target.closest('[data-i]'); if (!b) return;
@@ -1937,6 +1960,8 @@ const MENUS = {
   }
 };
 document.querySelectorAll('[data-menu]').forEach(b => b.addEventListener('click', () => MENUS[b.dataset.menu](b)));
+$('#math-btn').addEventListener('click', () => openMath(null));
+$('#code-btn').addEventListener('click', () => insertCodeBlock());
 document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => b.dataset.cmd === 'insertUnorderedList' ? toggleList('ul') : b.dataset.cmd === 'insertOrderedList' ? toggleList('ol') : exec(b.dataset.cmd)));
 /* Annuler / rétablir : un historique propre à Plume. Celui du navigateur ignorait les couleurs,
    les notes, les sections repliées ou les propositions de l'IA, et laissait des morceaux derrière lui.
