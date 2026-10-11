@@ -3390,7 +3390,8 @@ const PAGE_W = 618;
 let widthMode = 'normal', docZoom = 1;
 function setWidth(w){
   widthMode = w || 'normal';
-  let v = { etroite: '520px', normal: PAGE_W + 'px', large: '820px', plein: 'none' }[w];
+  // Pleine : comme le maximum qu'on atteignait en glissant les bords, avec une petite marge de chaque côté.
+  let v = { etroite: '520px', normal: PAGE_W + 'px', large: '820px', plein: 'calc(100% - 80px)' }[w];
   if (!v && /^\d{3,4}px$/.test(w || '')) v = w;
   if (!v && /^\d{2,3}ch$/.test(w || '')) v = Math.round(parseInt(w) / 70 * PAGE_W) + 'px';
   document.documentElement.style.setProperty('--page-w', v || PAGE_W + 'px');
