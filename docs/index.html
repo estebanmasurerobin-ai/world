@@ -1546,6 +1546,26 @@ html:not(.grips) .grip{display:none!important}
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") repeat,
     color-mix(in srgb,var(--barc) var(--veil),transparent)!important;background-blend-mode:normal}
 :root:not(#z)[data-glass="opaque"] .bar::before{background:var(--barc)!important}
+
+/* ================= Choix segmentés en verre liquide =================
+   Comme dans les apps d'Apple : une bulle de verre glisse sous l'option choisie ; on peut la
+   faire glisser du doigt, elle grossit un peu pendant qu'on la tient, puis se pose sur l'option
+   la plus proche avec un petit rebond. */
+.chips.lg-seg{position:relative;isolation:isolate;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.chips.lg-seg .mi{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;transition:color .2s}
+.chips.lg-seg .mi[aria-checked="true"]{font-weight:600}
+.lg-thumb{position:absolute;z-index:0;top:3px;bottom:3px;left:0;width:0;border-radius:9px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.18)),color-mix(in srgb,var(--bg) 62%,transparent);
+  -webkit-backdrop-filter:blur(6px) saturate(180%);backdrop-filter:blur(6px) saturate(180%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 1px rgba(0,0,0,.06),0 0 0 .5px var(--glass-line,rgba(0,0,0,.1)),0 2px 7px rgba(0,0,0,.13);
+  transition:left .42s cubic-bezier(.3,1.35,.45,1),width .42s cubic-bezier(.3,1.35,.45,1),transform .25s cubic-bezier(.3,1.4,.5,1),box-shadow .25s,background .25s}
+:root[data-theme="dark"] .lg-thumb{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),color-mix(in srgb,#3a3a3f 70%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 0 .5px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .lg-thumb{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),color-mix(in srgb,#3a3a3f 70%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 0 .5px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4)} }
+.chips.lg-seg.lg-drag .lg-thumb{transition:transform .25s cubic-bezier(.3,1.4,.5,1),box-shadow .25s,background .25s;transform:scale(1.14,1.22);
+  background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.06)),color-mix(in srgb,var(--bg) 25%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1px rgba(255,255,255,.35),0 0 0 .5px var(--glass-line,rgba(0,0,0,.12)),0 8px 22px rgba(0,0,0,.18)}
+.chips.lg-seg.lg-drag .mi{transition:none}
+@media (prefers-reduced-motion: reduce){ .lg-thumb{transition:none!important} }
 </style>
 
 <header class="bar">
@@ -5745,6 +5765,58 @@ function applyChecks(refresh){
       if (e.key.length === 1 || /^(Enter|Backspace|Delete|Arrow)/.test(e.key)) writeMode();
     }, true);
   }
+}
+
+
+/* ---------- Choix segmentés en verre liquide (voir le CSS du même nom) ---------- */
+{
+  const opts = ch => [...ch.querySelectorAll(':scope > .mi')];
+  const place = (ch, instant) => {
+    const th = ch.querySelector(':scope > .lg-thumb'), on = opts(ch).find(b => b.getAttribute('aria-checked') === 'true');
+    if (!th) return;
+    if (!on) { th.style.opacity = '0'; return; }
+    if (instant) th.style.transition = 'none';
+    th.style.opacity = '1'; th.style.left = on.offsetLeft + 'px'; th.style.width = on.offsetWidth + 'px';
+    if (instant) { void th.offsetWidth; th.style.transition = ''; }
+  };
+  const setup = ch => {
+    if (ch.classList.contains('lg-seg') || opts(ch).length < 2) return;
+    ch.classList.add('lg-seg');
+    const th = document.createElement('span'); th.className = 'lg-thumb'; ch.prepend(th);
+    requestAnimationFrame(() => place(ch, true));
+    new MutationObserver(() => place(ch)).observe(ch, { subtree: true, attributes: true, attributeFilter: ['aria-checked'] });
+    let drag = null;
+    ch.addEventListener('pointerdown', e => {
+      if (e.button) return;
+      drag = { id: e.pointerId, x: e.clientX, moving: false };
+    });
+    ch.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (!drag.moving) {
+        if (Math.abs(e.clientX - drag.x) < 6) return;
+        drag.moving = true; ch.classList.add('lg-drag'); ch.setPointerCapture(e.pointerId);
+        th.style.opacity = '1';
+      }
+      const r = ch.getBoundingClientRect(), w = th.offsetWidth || opts(ch)[0].offsetWidth;
+      if (!th.offsetWidth) th.style.width = opts(ch)[0].offsetWidth + 'px';
+      th.style.left = Math.max(2, Math.min(r.width - w - 2, e.clientX - r.left - w / 2)) + 'px';
+    });
+    const end = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const d = drag; drag = null;
+      if (!d.moving) return;
+      ch.classList.remove('lg-drag');
+      const c = th.offsetLeft + th.offsetWidth / 2;
+      const best = opts(ch).reduce((a, b) => Math.abs(b.offsetLeft + b.offsetWidth / 2 - c) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - c) ? b : a);
+      if (best.getAttribute('aria-checked') === 'true') place(ch); else best.click();
+      requestAnimationFrame(() => place(ch));
+    };
+    ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
+  };
+  const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
+  new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.classList.contains('chips')) setup(n); scan(n); } })
+    .observe(document.body, { childList: true, subtree: true });
+  scan(document);
 }
 
 /* ---------- Démarrage ---------- */
