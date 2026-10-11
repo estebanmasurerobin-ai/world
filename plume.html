@@ -1713,9 +1713,14 @@ html:not(.grips) .grip{display:none!important}
 }
 
 /* Style, police et taille : le texte (« Texte », « Literata », « 19 ») est centré dans son
-   bouton ; la petite flèche est posée sur le bord droit sans décaler le texte. */
-.tb.sel{position:relative;padding-left:15px!important;padding-right:15px!important}
-.tb.sel > .chev{position:absolute;right:4px;top:50%;margin-top:-4.5px}
+   bouton. */
+/* Boutons à menu (petite flèche) : le contenu est centré entre le bord gauche et la flèche,
+   avec autant d'espace à gauche du contenu qu'entre le contenu et la flèche. */
+#para-btn,#font-btn,#u-btn,#insert-btn,#more-btn{justify-content:flex-start!important;min-width:0!important;gap:var(--chev-gap)!important;padding-left:calc(var(--chev-gap) + 2px)!important;padding-right:var(--chev-r)!important}
+:root{--chev-gap:5px;--chev-r:6px}
+:is(#para-btn,#font-btn,#u-btn,#insert-btn,#more-btn) > .chev{position:static!important;margin:0!important;flex:none}
+#u-btn,#more-btn{padding-left:var(--chev-gap)!important}#insert-btn{padding-left:calc(var(--chev-gap) + .5px)!important}
+#para-btn,#font-btn{padding-left:calc(var(--chev-gap) + 1px)!important}
 #size-btn{padding-left:9px!important;padding-right:9px!important}
 
 /* Panneaux Formule et Claude : sous la barre (même sur deux lignes) et dans l'écran */
