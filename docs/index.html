@@ -1480,8 +1480,8 @@ body::before{content:none!important}
    Le texte qui passe sous la barre et sous les menus est voilé de façon égale sur toute leur
    hauteur (plus de dégradé). Trois niveaux : Transparente (on le devine bien), Intermédiaire
    (on l'aperçoit à peine), Opaque (on ne le voit pas du tout). */
-:root{--veil:55%;--veil-blur:3px;--menu-veil:40%}
-:root[data-glass="mi"]{--veil:82%;--veil-blur:10px;--menu-veil:80%}
+:root{--veil:22%;--veil-blur:1.5px;--menu-veil:16%}
+:root[data-glass="mi"]{--veil:55%;--veil-blur:3px;--menu-veil:40%}
 :root:not([data-glass="opaque"]) .bar::after{inset:0!important;top:env(safe-area-inset-top,0px)!important;
   background:color-mix(in srgb,var(--barc) var(--veil),transparent)!important}
 :root:not([data-glass="opaque"]) .bar::before{inset:0!important;top:env(safe-area-inset-top,0px)!important;background:none!important;
@@ -1491,9 +1491,28 @@ body::before{content:none!important}
 :root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.ai-dock,.style-pill,.paint-pill,.toast){-webkit-backdrop-filter:blur(var(--veil-blur)) saturate(150%)!important;backdrop-filter:blur(var(--veil-blur)) saturate(150%)!important}
 /* iPhone : même principe, un cran plus couvrant (petit écran, texte dense) */
 @media (max-width:600px){
-  :root{--veil:78%;--veil-blur:8px;--menu-veil:86%}
-  :root[data-glass="mi"]{--veil:92%;--veil-blur:14px;--menu-veil:94%}
+  :root{--veil:50%;--veil-blur:4px;--menu-veil:60%}
+  :root[data-glass="mi"]{--veil:78%;--veil-blur:8px;--menu-veil:86%}
 }
+
+/* ================= Bulle de verre : des bords bien dessinés, même très transparente =================
+   Un liseré fin autour, un reflet clair sur le bord haut et une ombre douce : on voit où
+   s'arrête la barre ou le menu, même quand on lit le texte à travers. */
+:root{--glass-rim:color-mix(in srgb,var(--fg) 16%,transparent);--glass-shine:rgba(255,255,255,.75)}
+:root[data-theme="dark"]{--glass-shine:rgba(255,255,255,.18)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--glass-shine:rgba(255,255,255,.18)} }
+:root:not([data-glass="opaque"]) .bar::after{box-shadow:inset 0 -1px 0 var(--glass-rim),0 6px 18px -10px rgba(0,0,0,.18)!important}
+:root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.ai-dock,.style-pill,.paint-pill,.toast){
+  border:1px solid var(--glass-rim)!important;box-shadow:inset 0 1px 0 var(--glass-shine),0 10px 30px -8px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.06)!important}
+:root:not([data-glass="opaque"]) :is(.notes-side,.outline-side,.side-panel){box-shadow:0 0 0 1px var(--glass-rim),0 10px 30px -8px rgba(0,0,0,.18)!important}
+
+/* ================= Poignées de largeur toujours visibles =================
+   Deux fines barres grises de chaque côté du texte : on voit qu'on peut les attraper pour
+   régler la largeur (au doigt comme à la souris). Bleues pendant qu'on les tire. */
+.grip{width:28px}
+.grip::before{opacity:1!important;background:color-mix(in srgb,var(--fg) 20%,transparent)!important;width:3px}
+.grip:hover::before,.grip.drag::before{opacity:1!important;background:var(--accent)!important}
+.grip.l{left:-60px}.grip.r{right:-60px}
 </style>
 
 <header class="bar">
