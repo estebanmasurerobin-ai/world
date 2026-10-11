@@ -4179,6 +4179,16 @@ function applyPrefs(){
 }
 // La zone de l'heure et de la batterie (iPhone, iPad, Mac) prend la couleur de la barre :
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
+// iPhone / iPad, dans l'app World ou dans Safari (pas dans Plume, qui vit dans claude.ai)
+const IOS_APP = (navigator.maxTouchPoints > 1 && /Macintosh|iPad|iPhone/.test(navigator.userAgent) || /iPhone|iPad/.test(navigator.userAgent)) && window.top === window;
+function relaunchKeepingPlace(){
+  try { const r = JSON.parse(sessionStorage.getItem('plume-relaunch-at') || '0'); if (Date.now() - r < 8000) return; sessionStorage.setItem('plume-relaunch-at', String(Date.now())); } catch(e) {}
+  try {
+    if (activeId) save();
+    sessionStorage.setItem('plume-relaunch', JSON.stringify({ y: scrollY, caret: document.activeElement === editor ? caretOffsets() : null, at: Date.now() }));
+  } catch(e) {}
+  location.reload();
+}
 function syncStatusColor(){
   // La zone de l'heure est toujours de la couleur du fond (blanc en clair, noir en sombre) et suit
   // EN DIRECT le thème : en « Auto », iOS reçoit les deux couleurs (une pour le mode clair, une pour
@@ -4193,20 +4203,11 @@ function syncStatusColor(){
   let cs = document.querySelector('meta[name="color-scheme"]');
   if (!cs) { cs = document.createElement('meta'); cs.name = 'color-scheme'; document.head.append(cs); }
   cs.content = theme === 'auto' && !hostTheme ? 'light dark' : (forced === 'dark' ? 'dark' : 'light');
-  // iOS ne relit la couleur du haut de l'écran que lorsque l'écran change de format (en tournant
-  // l'iPad). Quand le thème change, on provoque la même relecture : la zone d'affichage est
-  // redéclarée un instant, et la page bouge d'un pixel puis revient (rien ne se voit).
+  // iOS ne relit la couleur du haut de l'écran qu'au lancement (ou en tournant l'appareil).
+  // Sur iPhone et iPad, quand le mode clair/sombre change, l'app se relance donc en un éclair,
+  // au même endroit du texte, avec le curseur au même endroit (voir « Relance »).
   const dark = getComputedStyle(root).getPropertyValue('--bg').trim().toLowerCase() === '#000000';
-  if (syncStatusColor.last !== undefined && syncStatusColor.last !== dark) {
-    const vp = document.querySelector('meta[name="viewport"]');
-    if (vp) {
-      const c = vp.getAttribute('content');
-      vp.setAttribute('content', c.replace(/,?\s*maximum-scale=[\d.]+/, '') + ', maximum-scale=1');
-      setTimeout(() => vp.setAttribute('content', c), 120);
-    }
-    const y = scrollY; window.scrollTo(0, y + 1);
-    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)));
-  }
+  if (syncStatusColor.last !== undefined && syncStatusColor.last !== dark && IOS_APP && performance.now() > 2500) relaunchKeepingPlace();
   syncStatusColor.last = dark;
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
@@ -6385,6 +6386,13 @@ if (prefs.style) setTimeout(styleCheck, 300);
 // Le plan reste ouvert d'une fois sur l'autre sur grand écran.
 if (store.get('plume-outline') === '1' && wideScreen()) setOutline(true);
 if (window.MathJax && MathJax.startup && MathJax.startup.promise && MathJax.tex2svgPromise) window.plumeMathReady();
+// Relance après un changement de mode clair/sombre : on revient au même endroit.
+try {
+  const r = JSON.parse(sessionStorage.getItem('plume-relaunch') || 'null'); sessionStorage.removeItem('plume-relaunch');
+  if (r && Date.now() - r.at < 15000) {
+    requestAnimationFrame(() => { window.scrollTo(0, r.y || 0); if (r.caret) { editor.focus({ preventScroll: true }); setCaretOffsets(r.caret); window.scrollTo(0, r.y || 0); } });
+  }
+} catch(e) {}
 })();
 </script>
 
