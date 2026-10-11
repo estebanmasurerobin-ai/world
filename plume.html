@@ -1458,7 +1458,7 @@ body:not(.typing) .page{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72
    pseudo-élément, transparent aux touchers, était ignoré, et Safari laissait voir le texte
    défiler dessous. Ce bandeau est un vrai élément, plein, de la couleur du fond. */
 body::before{content:none!important}
-#status-band{position:fixed;left:0;right:0;top:0;height:max(env(safe-area-inset-top,0px),1px);background-color:var(--bg);
+#status-band{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 3px);background-color:var(--bg);
   box-shadow:0 -300px 0 300px var(--bg);z-index:2147483000}
 @media print{ #status-band{display:none} }
 
@@ -1508,6 +1508,11 @@ html:not(.grips) .grip{display:none!important}
 :root{--pop-veil:48%}
 :root[data-glass="mi"]{--pop-veil:72%}
 @media (max-width:600px){ :root{--pop-veil:72%} :root[data-glass="mi"]{--pop-veil:88%} }
+
+/* Zone de l'heure : toujours de la couleur du fond, jamais de celle de la barre.
+   iOS prend la couleur juste sous l'heure : le bandeau descend de 3 px sur le haut de la barre
+   (invisible, il se fond dans la zone de l'heure) pour que ce soit toujours lui qu'il lise. */
+:root:not(#z) .bar::before,:root:not(#z) .bar::after{top:calc(env(safe-area-inset-top,0px) + 3px)!important}
 </style>
 
 <header class="bar">
