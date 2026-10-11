@@ -150,7 +150,11 @@ body{font-family:var(--ui-font);font-size:14px;transition:background-color .2s,c
 /* ---------- Page ---------- */
 .page{padding-inline:16px;padding-block:calc(var(--bar-h,0px) + 56px) 40vh}
 /* Barre masquée : il ne reste que le petit bouton pour la rouvrir */
-body.bar-hidden .bar{display:none}
+/* La barre masquée reste en place (glissée hors de l'écran) au lieu de disparaître : Safari
+   gardait sinon un haut d'écran transparent, et le flou de la barre ne revenait pas toujours. */
+body.bar-hidden .bar{transform:translateY(-110%)!important;visibility:hidden;pointer-events:none}
+.bar{transition:transform .25s cubic-bezier(.2,.9,.25,1),visibility 0s linear}
+body.bar-hidden .bar{transition:transform .25s cubic-bezier(.2,.9,.25,1),visibility 0s linear .25s}
 .bar-toggle{
   position:fixed;z-index:21;left:10px;top:calc(var(--bar-h,0px) + 10px + var(--vv-top,0px));
   width:30px;height:30px;border-radius:50%;border:.5px solid var(--glass-line,var(--line));padding:0;cursor:pointer;
@@ -1498,6 +1502,12 @@ html.grips .grip.l{left:-60px}html.grips .grip.r{right:-60px}
 
 /* Barres de largeur : seulement si on les a demandées (menu ⋯ › Barres de largeur) */
 html:not(.grips) .grip{display:none!important}
+
+/* Menus ⋯ et + : un peu plus couvrants que la barre, pour rester bien lisibles */
+:root:not([data-glass="opaque"]) .pop{background:color-mix(in srgb,var(--bg) var(--pop-veil),transparent)!important}
+:root{--pop-veil:48%}
+:root[data-glass="mi"]{--pop-veil:72%}
+@media (max-width:600px){ :root{--pop-veil:72%} :root[data-glass="mi"]{--pop-veil:88%} }
 </style>
 
 <header class="bar">
@@ -3307,7 +3317,7 @@ editor.addEventListener('mousedown', e => {
    Sur iPad, quand le clavier est ouvert, Safari fait glisser la page sous l'écran : on recale
    la barre sur la partie visible pour qu'elle ne disparaisse jamais en défilant. */
 const barEl = $('.bar'), barToggle = $('#bar-toggle');
-function syncBarHeight(){ document.documentElement.style.setProperty('--bar-h', barEl.offsetHeight + 'px'); }
+function syncBarHeight(){ document.documentElement.style.setProperty('--bar-h', (document.body.classList.contains('bar-hidden') ? 0 : barEl.offsetHeight) + 'px'); }
 new ResizeObserver(syncBarHeight).observe(barEl);
 function placeBar(){
   // On ne recale la barre que lorsque le clavier occupe vraiment l'écran : pendant l'effet
@@ -3327,6 +3337,9 @@ function setBarHidden(h){
   barToggle.title = label; barToggle.setAttribute('aria-label', label);
   if (h) closePop();
   syncBarHeight(); syncStatusColor();
+  // Safari relit le haut de l'écran (couleur de la zone de l'heure) quand la page bouge :
+  // un défilement d'un pixel, aller-retour, invisible, juste après le changement.
+  setTimeout(() => { const y = scrollY; window.scrollTo(0, y + 1); requestAnimationFrame(() => window.scrollTo(0, y)); }, 300);
 }
 barToggle.addEventListener('mousedown', e => e.preventDefault()); // garder le curseur dans le texte
 barToggle.addEventListener('click', () => setBarHidden(!document.body.classList.contains('bar-hidden')));
