@@ -5108,7 +5108,7 @@ function setBlock(tag){
   const r = s.getRangeAt(0), keep = caretOffsets();
   const tops = [...editor.children].filter(el => r.intersectsNode(el));
   if (!tops.length) { const t = topBlock(); if (t) tops.push(t); }
-  let done = false, lastNew = null;
+  let done = false, lastNew = null; const heads = [];
   // Curseur dans un seul paragraphe : on le remettra au même endroit dans le nouveau bloc
   // (sinon, dans un paragraphe vide, il pouvait sauter à la fin du bloc précédent).
   const single = r.collapsed && tops.length === 1 && !/^(UL|OL)$/.test(tops[0].tagName);
@@ -5120,6 +5120,7 @@ function setBlock(tag){
       for (const li of lis) {
         const nb = document.createElement(tag === 'text' ? 'p' : tag); nb.append(...[...li.childNodes].filter(n => !(n.nodeType === 1 && /^(UL|OL)$/.test(n.tagName))));
         if (!nb.firstChild) nb.append(document.createElement('br'));
+        heads.push(nb);
         // découpe la liste autour de l'élément
         const after = document.createElement(el.tagName); if (el.hasAttribute('data-check')) after.setAttribute('data-check', '');
         let n = li.nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
@@ -5135,13 +5136,25 @@ function setBlock(tag){
     }
     if (!/^(P|H1|H2|H3|BLOCKQUOTE|PRE|DIV)$/.test(el.tagName)) continue;
     const want = tag === 'text' ? 'P' : tag.toUpperCase();
-    if (el.tagName === want) continue;
+    if (el.tagName === want) { heads.push(el); continue; }
     const nb = document.createElement(want);
     const align = el.style.textAlign; if (align) nb.style.textAlign = align;
     if (el.dataset.fold === '1' && /^H[123]$/.test(want)) nb.dataset.fold = '1';
     if (want === 'PRE') nb.textContent = el.innerText.replace(/\n$/, ''); else nb.append(...el.childNodes);
     if (!nb.firstChild) nb.append(document.createElement('br'));
-    el.replaceWith(nb); done = true; lastNew = nb;
+    el.replaceWith(nb); done = true; lastNew = nb; heads.push(nb);
+  }
+  // Un titre prend sa propre taille : une taille choisie à la main sur ce texte (par exemple
+  // après « tout sélectionner » puis une taille) l'empêchait de grossir.
+  if (/^h[123]$/.test(tag)) for (const h of heads) {
+    if (!h.isConnected) continue;
+    for (const sp of [...h.querySelectorAll('[data-s]')]) {
+      sp.removeAttribute('data-s'); sp.style.fontSize = '';
+      if (!sp.getAttribute('style')) sp.removeAttribute('style');
+      if (sp.tagName === 'SPAN' && !sp.attributes.length) sp.replaceWith(...sp.childNodes);
+      done = true;
+    }
+    h.normalize();
   }
   if (single && lastNew) {
     const w = document.createTreeWalker(lastNew, NodeFilter.SHOW_TEXT); let n, pos = 0, c = document.createRange(); c.setStart(lastNew, 0);
