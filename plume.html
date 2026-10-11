@@ -1457,6 +1457,25 @@ body::before{content:none!important}
 #status-band{position:fixed;left:0;right:0;top:0;height:max(env(safe-area-inset-top,0px),1px);background-color:var(--bg);
   box-shadow:0 -300px 0 300px var(--bg);z-index:2147483000}
 @media print{ #status-band{display:none} }
+
+/* ================= Transparence uniforme =================
+   Le texte qui passe sous la barre et sous les menus est voilé de façon égale sur toute leur
+   hauteur (plus de dégradé). Trois niveaux : Transparente (on le devine bien), Intermédiaire
+   (on l'aperçoit à peine), Opaque (on ne le voit pas du tout). */
+:root{--veil:55%;--veil-blur:3px;--menu-veil:40%}
+:root[data-glass="mi"]{--veil:82%;--veil-blur:10px;--menu-veil:80%}
+:root:not([data-glass="opaque"]) .bar::after{inset:0!important;top:env(safe-area-inset-top,0px)!important;
+  background:color-mix(in srgb,var(--barc) var(--veil),transparent)!important}
+:root:not([data-glass="opaque"]) .bar::before{inset:0!important;top:env(safe-area-inset-top,0px)!important;background:none!important;
+  -webkit-mask-image:none!important;mask-image:none!important;
+  -webkit-backdrop-filter:blur(var(--veil-blur)) saturate(150%)!important;backdrop-filter:blur(var(--veil-blur)) saturate(150%)!important}
+:root:not([data-glass="opaque"]){--menu-top:color-mix(in srgb,var(--bg) var(--menu-veil),transparent)!important;--menu-bot:var(--menu-top)!important}
+:root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.ai-dock,.style-pill,.paint-pill,.toast){-webkit-backdrop-filter:blur(var(--veil-blur)) saturate(150%)!important;backdrop-filter:blur(var(--veil-blur)) saturate(150%)!important}
+/* iPhone : même principe, un cran plus couvrant (petit écran, texte dense) */
+@media (max-width:600px){
+  :root{--veil:78%;--veil-blur:8px;--menu-veil:86%}
+  :root[data-glass="mi"]{--veil:92%;--veil-blur:14px;--menu-veil:94%}
+}
 </style>
 
 <header class="bar">
