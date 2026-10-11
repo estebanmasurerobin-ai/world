@@ -1734,12 +1734,11 @@ html:not(.grips) .grip{display:none!important}
    bouton. */
 /* Boutons à menu (petite flèche) : le contenu est centré entre le bord gauche et la flèche,
    avec autant d'espace à gauche du contenu qu'entre le contenu et la flèche. */
-#para-btn,#font-btn,#u-btn,#insert-btn,#more-btn{justify-content:flex-start!important;min-width:0!important;gap:var(--chev-gap)!important;padding-left:calc(var(--chev-gap) + 2px)!important;padding-right:var(--chev-r)!important}
+#para-btn,#font-btn,#size-btn,#u-btn,#insert-btn,#more-btn{justify-content:flex-start!important;min-width:0!important;gap:var(--chev-gap)!important;padding-left:calc(var(--chev-gap) + 2px)!important;padding-right:var(--chev-r)!important}
 :root{--chev-gap:5px;--chev-r:6px}
-:is(#para-btn,#font-btn,#u-btn,#insert-btn,#more-btn) > .chev{position:static!important;margin:0!important;flex:none}
+:is(#para-btn,#font-btn,#size-btn,#u-btn,#insert-btn,#more-btn) > .chev{position:static!important;margin:0!important;flex:none}
 #u-btn,#more-btn{padding-left:var(--chev-gap)!important}#insert-btn{padding-left:calc(var(--chev-gap) + .5px)!important}
-#para-btn,#font-btn{padding-left:calc(var(--chev-gap) + 1px)!important}
-#size-btn{padding-left:9px!important;padding-right:9px!important}
+#para-btn,#font-btn,#size-btn{padding-left:calc(var(--chev-gap) + 1px)!important}
 
 /* Panneaux Formule et Claude : sous la barre (même sur deux lignes) et dans l'écran */
 .mathpanel,.cpanel{top:calc(var(--bar-h,56px) + var(--vv-top,0px) + 8px)!important}
@@ -1765,6 +1764,7 @@ html:not(.grips) .grip{display:none!important}
   :root{--veil:34%;--menu-veil:42%;--pop-veil:55%}
   :root[data-glass="mi"]{--veil:62%;--menu-veil:72%;--pop-veil:75%}
 }
+#font-btn .lbl,#font-btn .full,#para-btn .lbl,#para-btn .full{text-box:normal!important}
 </style>
 
 <header class="bar">
@@ -1778,7 +1778,7 @@ html:not(.grips) .grip{display:none!important}
     <span class="sep"></span>
     <button class="tb sel" id="para-btn" data-menu="para" title="Style de paragraphe"><span class="lbl" data-lv="p">T</span><span class="full">Texte</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb sel" id="font-btn" data-menu="font" title="Police"><span class="lbl">Ag</span><span class="full">Literata</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
-    <button class="tb sel" id="size-btn" data-menu="size" title="Taille du texte"><span class="lbl">19</span></button>
+    <button class="tb sel" id="size-btn" data-menu="size" title="Taille du texte"><span class="lbl">19</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <span class="sep"></span>
     <button class="tb" data-cmd="bold" title="Gras (Ctrl+B)" aria-pressed="false"><span class="glyph" style="font-weight:700">B</span></button>
     <button class="tb" data-cmd="italic" title="Italique (Ctrl+I)" aria-pressed="false"><span class="glyph" style="font-style:italic">I</span></button>
@@ -2242,6 +2242,8 @@ function updateToolbar(){
   // Police : un simple « Ag » écrit dans la police en cours (le nom complet est dans l'info-bulle et le menu).
   const fl = $('#font-btn .lbl'); fl.textContent = 'Ag'; fl.style.fontFamily = font ? font[2] : 'var(--doc-font)'; $('#font-btn').title = 'Police : ' + (font ? font[1] : 'Literata');
   const ff = $('#font-btn .full'); ff.textContent = font ? font[1] : 'Literata'; ff.style.fontFamily = font ? font[2] : 'var(--doc-font)';
+  fl.dataset.f = ff.dataset.f = font ? font[0] : '';
+  capAlignSoon();
   $('#size-btn .lbl').textContent = Math.round(parseFloat(getComputedStyle(el).fontSize));
   const blk = el.closest('h1,h2,h3,blockquote');
   // Style de paragraphe : un « T » plus ou moins gros et épais (Titre 1 le plus marqué), ❝ pour une citation.
@@ -6735,6 +6737,29 @@ editor.addEventListener('keydown', e => {
   }
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && el?.closest('pre') && editor.contains(el)) { e.preventDefault(); e.stopImmediatePropagation(); document.execCommand('insertText', false, e.shiftKey ? '' : '\t'); }
 }, true);
+
+/* Police et style dans la barre : chaque police place ses lettres à sa façon (Courier Prime
+   écrit plus haut, par exemple). On mesure les vraies majuscules de la police chargée et on
+   les centre dans le bouton, à la même hauteur que « 19 ». */
+var capCtx = document.createElement('canvas').getContext('2d');
+function capAlign() {
+  document.querySelectorAll('#font-btn .lbl,#font-btn .full,#para-btn .lbl,#para-btn .full').forEach(el => {
+    if (!el.offsetWidth) return;
+    el.style.transform = 'none';
+    const cs = getComputedStyle(el);
+    capCtx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const m = capCtx.measureText('H'), A = m.fontBoundingBoxAscent, D = m.fontBoundingBoxDescent;
+    if (!(A > 0) || !(m.actualBoundingBoxAscent > 0)) { el.style.transform = ''; return; }
+    const r = el.getBoundingClientRect(), b = el.closest('.tb').getBoundingClientRect();
+    const capMid = r.top + r.height / 2 + (A - D) / 2 - m.actualBoundingBoxAscent / 2;
+    el.style.transform = `translateY(${(b.top + b.height / 2 - capMid).toFixed(2)}px)`;
+  });
+}
+var capRaf = 0;
+function capAlignSoon() { if (!capRaf) capRaf = requestAnimationFrame(() => { capRaf = 0; capAlign(); }); }
+addEventListener('resize', capAlignSoon);
+document.fonts?.addEventListener?.('loadingdone', capAlignSoon);
+document.fonts?.ready?.then(capAlignSoon);
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
