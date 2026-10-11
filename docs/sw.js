@@ -1,9 +1,9 @@
 // Garde World utilisable sans réseau. Les fichiers du site sont pris sur le réseau en priorité
 // (pour recevoir les mises à jour), et dans le cache quand il n'y a pas de connexion.
 // Polices et moteur de formules : cache d'abord.
-const CACHE = 'world-13c42f1175';
+const CACHE = 'world-17d1d8099c';
 const SHELL = ['./', './index.html', './standalone.js', './manifest.webmanifest',
-               './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+               './icon-192.png', './icon-512.png', './apple-touch-icon.png', './apple-touch-icon-dark.png', './favicon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
