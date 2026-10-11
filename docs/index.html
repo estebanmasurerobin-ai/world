@@ -893,35 +893,35 @@ body.painting .paint-pill{display:flex}
    très floutées, légèrement teintées, avec un liseré de lumière sur le bord haut et un reflet
    en dégradé, comme dans iOS 26. Le même verre fonctionne sur fond blanc et sur fond noir. */
 :root{
-  --lg-tint:rgba(255,255,255,.62);
-  --lg-tint-strong:rgba(255,255,255,.8);
+  --lg-tint:rgba(255,255,255,.34);
+  --lg-tint-strong:rgba(255,255,255,.5);
   --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,.08) 38%,rgba(255,255,255,0) 60%,rgba(255,255,255,.12) 100%);
   --lg-edge:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -.5px 0 rgba(255,255,255,.4),inset 0 0 0 .5px rgba(255,255,255,.55),0 0 0 .5px rgba(0,0,0,.07);
   --lg-shadow:0 10px 34px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.05);
   --lg-blur:blur(26px) saturate(200%) brightness(1.04);
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --lg-tint:rgba(38,38,42,.5);
-  --lg-tint-strong:rgba(34,34,38,.74);
+  --lg-tint:rgba(30,30,34,.34);
+  --lg-tint-strong:rgba(30,30,34,.52);
   --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.03) 38%,rgba(255,255,255,0) 60%,rgba(255,255,255,.05) 100%);
   --lg-edge:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -.5px 0 rgba(255,255,255,.06),inset 0 0 0 .5px rgba(255,255,255,.14),0 0 0 .5px rgba(0,0,0,.6);
   --lg-shadow:0 12px 40px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
   --lg-blur:blur(26px) saturate(180%) brightness(.92);
 } }
 :root[data-theme="dark"]{
-  --lg-tint:rgba(38,38,42,.5);
-  --lg-tint-strong:rgba(34,34,38,.74);
+  --lg-tint:rgba(30,30,34,.34);
+  --lg-tint-strong:rgba(30,30,34,.52);
   --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.03) 38%,rgba(255,255,255,0) 60%,rgba(255,255,255,.05) 100%);
   --lg-edge:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -.5px 0 rgba(255,255,255,.06),inset 0 0 0 .5px rgba(255,255,255,.14),0 0 0 .5px rgba(0,0,0,.6);
   --lg-shadow:0 12px 40px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
   --lg-blur:blur(26px) saturate(180%) brightness(.92);
 }
 /* Verre léger : la barre du haut laisse deviner le texte qui défile dessous */
-.bar{background:var(--lg-sheen),var(--lg-tint);-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);box-shadow:inset 0 -.5px 0 var(--glass-line),0 1px 12px rgba(0,0,0,.04);border-bottom:0}
+.bar{background:var(--lg-sheen),var(--lg-tint);-webkit-backdrop-filter:blur(28px) saturate(190%);backdrop-filter:blur(28px) saturate(190%);box-shadow:inset 0 -.5px 0 var(--glass-line),0 1px 12px rgba(0,0,0,.04);border-bottom:0}
 /* Verre épais : menus, panneaux, bulles — assez opaque pour lire sans effort */
 .pop,.selbar,.cpanel,.mathpanel,.ai-dock,.findbar,.tablebar,.style-pill,.paint-pill,.toast,.notes-side{
   background:var(--lg-sheen),var(--lg-tint-strong);
-  -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+  -webkit-backdrop-filter:blur(28px) saturate(190%);backdrop-filter:blur(28px) saturate(190%);
   box-shadow:var(--lg-edge),var(--lg-shadow);border:0;
 }
 .notes-side{box-shadow:inset .5px 0 0 var(--glass-line),var(--lg-shadow)}
@@ -931,7 +931,7 @@ body.painting .paint-pill{display:flex}
 .cpanel,.mathpanel{border-radius:28px}
 .toast,.style-pill,.paint-pill,.ai-dock{border-radius:999px}
 /* Boutons ronds flottants : des bulles de verre */
-.bar-toggle{background:var(--lg-sheen),var(--lg-tint);-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);box-shadow:var(--lg-edge),0 4px 14px rgba(0,0,0,.1);border:0;width:34px;height:34px}
+.bar-toggle{background:var(--lg-sheen),var(--lg-tint);-webkit-backdrop-filter:blur(28px) saturate(190%);backdrop-filter:blur(28px) saturate(190%);box-shadow:var(--lg-edge),0 4px 14px rgba(0,0,0,.1);border:0;width:34px;height:34px}
 /* Bouton enfoncé ou menu ouvert : une goutte de verre plus claire */
 .tb[aria-pressed="true"],.tb[aria-expanded="true"]{background:var(--lg-sheen),var(--fill);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 0 0 .5px var(--glass-line)}
 .tab[aria-selected="true"]{background:var(--lg-sheen),var(--fill);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 .5px var(--glass-line)}
@@ -943,6 +943,29 @@ body.painting .paint-pill{display:flex}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .bar,.pop,.selbar,.cpanel,.mathpanel,.ai-dock,.findbar,.tablebar,.style-pill,.paint-pill,.toast,.notes-side,.bar-toggle{background:var(--panel)}
 }
+
+/* ================= Menus plus grands et plus lisibles =================
+   Lignes hautes, texte en 17, symboles plus gros, comme les menus d'iPadOS. */
+.pop{min-width:min(300px,calc(100vw - 16px));box-sizing:border-box;padding:8px;border-radius:24px;max-height:min(78vh,680px)}
+.mi{min-height:48px;padding:0 16px;font-size:17px;gap:14px;border-radius:14px}
+.mi .mi-ic{width:22px;height:22px}
+.mi .hint{font-size:13px}
+.mh{font-size:12px;padding:12px 16px 6px}
+.hr{margin:6px 14px}
+.chips{margin:4px 12px 10px;border-radius:12px;padding:3px}
+.chips .mi{min-height:38px;font-size:15px;border-radius:10px}
+.seg-row{margin:6px 8px 8px;border-radius:14px}
+.seg-b{height:44px;font-size:19px}.seg-b svg{width:21px;height:21px}
+.sw{width:34px;height:34px}.grid{gap:12px;padding:8px 16px 12px}
+.sizes .mi{min-height:44px;font-size:16px}
+.hl-sw{font-size:18px;padding:6px 9px}.hl-row .name{font-size:14px;width:6em}
+.ai-item{font-size:17px;min-height:50px}
+.keys{font-size:14px;gap:8px 16px;padding:6px 16px 12px}.keys kbd{font-size:13px}
+.stats dl{font-size:15.5px}.stats .st-big{font-size:16px}
+/* Le texte des menus reste net sur le verre transparent */
+.pop,.selbar,.findbar,.tablebar,.style-pill,.paint-pill,.toast{text-shadow:0 0 12px var(--bg)}
+/* Application installée (écran d'accueil) : la barre descend sous la zone floutée par iOS en haut de l'écran */
+@media (display-mode: standalone){ .bar{padding-top:calc(env(safe-area-inset-top,0px) + 22px)} }
 </style>
 
 <header class="bar">
@@ -1319,16 +1342,21 @@ function popPage(title, html, bind, back){
   pop.classList.remove('page-in'); void pop.offsetWidth; pop.classList.add('page-in');
   placePop();
 }
+// Un menu de la barre du haut reste ouvert pendant qu'on fait défiler ou qu'on touche le texte :
+// il se ferme en touchant à nouveau son bouton, en choisissant une commande ou avec Échap.
+// Une bulle posée sur le texte (lien, image, proposition de l'IA) se ferme en touchant ailleurs.
+const barMenuOpen = () => !!(popOwner instanceof Element && popOwner.closest('.bar'));
 document.addEventListener('mousedown', e => {
-  if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('[data-menu]')) closePop();
+  if (pop.hidden || pop.contains(e.target) || e.target.closest('[data-menu]')) return;
+  if (!barMenuOpen()) closePop();
 });
 pop.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 $('.bar').addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
-window.addEventListener('resize', closePop);
+window.addEventListener('resize', () => { if (!pop.hidden) placePop(); });
 // Un défilement fait par le mode machine à écrire ne doit pas fermer le menu qu'on vient d'ouvrir.
 // Juste après l'ouverture (le curseur vient d'être placé et la page se recentre), le menu suit au lieu de se fermer.
-window.addEventListener('scroll', () => { if (pop.hidden) return; if (Date.now() - popAt < 700) placePop(); else if (Date.now() > twScrollUntil) closePop(); }, { passive:true });
-$('.tools').addEventListener('scroll', () => { if (Date.now() - popAt > 400) closePop(); }, { passive:true });
+window.addEventListener('scroll', () => { if (!pop.hidden) placePop(); }, { passive:true });
+$('.tools').addEventListener('scroll', () => { if (!pop.hidden) placePop(); }, { passive:true });
 // Un fondu sur le bord de la barre signale les outils cachés à côté (glisser pour les voir).
 const toolsEl = $('.tools');
 function toolsFade(){
