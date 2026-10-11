@@ -49,7 +49,8 @@ assert n == 1, 'section IA du texte d\'exemple introuvable'
 # Le nom affiché : World
 for old, new in [('<title>Plume</title>', '<title>World</title>'),
                  ('<h1>Bienvenue dans Plume</h1>', '<h1>Bienvenue dans World</h1>'),
-                 ("'Plein écran : Plume seule, sans la barre de Claude'", "'Plein écran'")]:
+                 ("'Plein écran : Plume seule, sans la barre de Claude'", "'Plein écran'"),
+                 ('avec mode concentration, Claude intégré (relecture, écriture, questions) et formules LaTeX.', 'avec mode concentration et formules LaTeX.')]:
     assert html.count(old) == 1, old
     html = html.replace(old, new)
 

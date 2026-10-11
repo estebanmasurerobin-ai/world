@@ -18,7 +18,7 @@ html.no-ai #ai-btn, html.no-ai .selbar .needs-ai, html.no-ai #cpanel, html.no-ai
 </style>
 <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>World</title>
-<meta name="description" content="Éditeur de texte simple, clair ou sombre, avec mode concentration, Claude intégré (relecture, écriture, questions) et formules LaTeX.">
+<meta name="description" content="Éditeur de texte simple, clair ou sombre, avec mode concentration et formules LaTeX.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,700;1,400;1,700&family=EB+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Source+Sans+3:ital,wght@0,400;0,700;1,400;1,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Caveat:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -171,8 +171,8 @@ body{font-family:var(--ui-font);font-size:14px;transition:background-color .2s,c
 /* La barre masquée reste en place (glissée hors de l'écran) au lieu de disparaître : Safari
    gardait sinon un haut d'écran transparent, et le flou de la barre ne revenait pas toujours. */
 body.bar-hidden .bar{transform:translateY(-110%)!important;visibility:hidden;pointer-events:none}
-.bar{transition:transform .25s cubic-bezier(.2,.9,.25,1),visibility 0s linear}
-body.bar-hidden .bar{transition:transform .25s cubic-bezier(.2,.9,.25,1),visibility 0s linear .25s}
+.bar.bar-anim{transition:transform .25s cubic-bezier(.2,.9,.25,1),visibility 0s linear}
+body.bar-hidden .bar.bar-anim{transition:transform .25s cubic-bezier(.2,.9,.25,1),visibility 0s linear .25s}
 .bar-toggle{
   position:fixed;z-index:21;left:10px;top:calc(var(--bar-h,0px) + 10px + var(--vv-top,0px));
   width:30px;height:30px;border-radius:50%;border:.5px solid var(--glass-line,var(--line));padding:0;cursor:pointer;
@@ -1566,6 +1566,66 @@ html:not(.grips) .grip{display:none!important}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1px rgba(255,255,255,.35),0 0 0 .5px var(--glass-line,rgba(0,0,0,.12)),0 8px 22px rgba(0,0,0,.18)}
 .chips.lg-seg.lg-drag .mi{transition:none}
 @media (prefers-reduced-motion: reduce){ .lg-thumb{transition:none!important} }
+
+/* ================= Verre liquide (inspiré d'iOS 26) : capsules, menus arrondis, lumière =================
+   - Les boutons de la barre sont regroupés dans des capsules de verre (comme les barres d'outils
+     de Notes ou de Pages) : un liseré clair sur le haut, une ombre fine, un léger reflet.
+   - Les menus sont plus arrondis et ont des reflets : un liseré lumineux sur leur bord haut et
+     gauche, un voile clair qui descend du haut, et un éclat qui suit le doigt ou la souris.
+   - Appuyer sur un bouton fait apparaître une petite « bulle » de lumière. */
+:root{--lg-cap:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,.22));
+  --lg-cap-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 1px rgba(0,0,0,.035),0 0 0 .5px rgba(0,0,0,.09),0 3px 10px rgba(0,0,0,.07);
+  --lg-rim-shadow:inset 1.5px 1.5px 0 -.5px rgba(255,255,255,.95),inset -1px -1px 0 -.5px rgba(255,255,255,.35),inset 0 0 22px rgba(255,255,255,.22);
+  --lg-spec:rgba(255,255,255,.55);--lg-sheen-top:rgba(255,255,255,.42)}
+:root[data-theme="dark"]{--lg-cap:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));
+  --lg-cap-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 0 .5px rgba(255,255,255,.1),0 3px 10px rgba(0,0,0,.35);
+  --lg-rim-shadow:inset 1.5px 1.5px 0 -.5px rgba(255,255,255,.28),inset -1px -1px 0 -.5px rgba(255,255,255,.08),inset 0 0 22px rgba(255,255,255,.04);
+  --lg-spec:rgba(255,255,255,.14);--lg-sheen-top:rgba(255,255,255,.08)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--lg-cap:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));
+  --lg-cap-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 0 .5px rgba(255,255,255,.1),0 3px 10px rgba(0,0,0,.35);
+  --lg-rim-shadow:inset 1.5px 1.5px 0 -.5px rgba(255,255,255,.28),inset -1px -1px 0 -.5px rgba(255,255,255,.08),inset 0 0 22px rgba(255,255,255,.04);
+  --lg-spec:rgba(255,255,255,.14);--lg-sheen-top:rgba(255,255,255,.08)} }
+
+/* Capsules de la barre */
+.tb-group{display:inline-flex;align-items:center;flex:none;gap:0;padding:2px;margin:0 3px;border-radius:999px;position:relative;
+  background:radial-gradient(120px circle at var(--mx,50%) var(--my,-40%),var(--lg-spec),transparent 70%),var(--lg-cap);
+  box-shadow:var(--lg-cap-shadow);-webkit-backdrop-filter:blur(10px) saturate(180%);backdrop-filter:blur(10px) saturate(180%)}
+.tools .sep,.meta .sep{display:none!important}
+.tb-group .tb{border-radius:999px}
+.tb-group .tb.sel{border-radius:999px}
+.tb-group .tb-chev{border-radius:999px}
+.tb:active:not(:disabled){background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.9),rgba(255,255,255,.25) 55%,transparent 75%),var(--fill)!important}
+:root[data-theme="dark"] .tb:active:not(:disabled){background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.28),transparent 70%),var(--fill)!important}
+.bar-hidden .tb-group{box-shadow:none}
+
+/* Menus : plus arrondis, avec des reflets */
+.pop{border-radius:30px!important;padding:8px!important}
+.pop .mi{border-radius:16px}
+.pop .chips{border-radius:16px!important}
+.pop .chips .mi{border-radius:13px!important}
+.pop .lg-thumb{border-radius:13px}
+.pop,.selbar,.findbar{box-shadow:var(--lg-rim-shadow),0 18px 50px -12px rgba(0,0,0,.28),0 3px 10px rgba(0,0,0,.08)!important}
+:root:not([data-glass="opaque"]) .pop{background:
+  radial-gradient(260px circle at var(--mx,18%) var(--my,-10%),var(--lg-spec),transparent 70%),
+  linear-gradient(180deg,var(--lg-sheen-top),transparent 90px),
+  linear-gradient(color-mix(in srgb,var(--bg) var(--pop-veil),transparent),color-mix(in srgb,var(--bg) var(--pop-veil),transparent))!important}
+:root[data-glass="opaque"] .pop{background:
+  radial-gradient(260px circle at var(--mx,18%) var(--my,-10%),var(--lg-spec),transparent 70%),
+  linear-gradient(180deg,var(--lg-sheen-top),transparent 90px),var(--panel,var(--bg))!important}
+.selbar{border-radius:999px!important}
+.findbar{border-radius:26px!important}
+
+/* Capsules : la barre doit tenir sur une ligne sur un iPad 13" */
+.tb-group{margin:0 2px;padding:1px}
+@media (max-width:1599px){ #math-btn .tb-label{display:none!important} }
+@media (max-width:1499px){ .meta #status{display:none!important} }
+.bar{column-gap:4px}
+
+/* Retrait des paragraphes (Aa › Augmenter le retrait) */
+#editor [data-ind="1"]{margin-left:2em}#editor [data-ind="2"]{margin-left:4em}#editor [data-ind="3"]{margin-left:6em}#editor [data-ind="4"]{margin-left:8em}
+
+/* Paragraphes en arabe, hébreu… : écrits de droite à gauche automatiquement */
+#editor :is(p,h1,h2,h3,li,blockquote,td,th){unicode-bidi:plaintext}
 </style>
 
 <header class="bar">
@@ -1843,6 +1903,7 @@ function wrap(){
   const s = restore(); if (!s.rangeCount) return null;
   const r = s.getRangeAt(0);
   if (r.collapsed) {
+    intoBlock(r);
     const span = document.createElement('span'), t = document.createTextNode('​');
     span.append(t); r.insertNode(span);
     return { spans:[span], collapsed:true, text:t };
@@ -1853,6 +1914,16 @@ function wrap(){
     const sp = document.createElement('span'); sp.append(...f.childNodes); f.replaceWith(sp); return sp;
   });
   return { spans, collapsed:false, first:spans[0]?.firstChild, last:spans.at(-1)?.lastChild };
+}
+// Un curseur posé « entre » deux paragraphes (directement dans l'éditeur) va dans le paragraphe
+// le plus proche : rien ne doit jamais s'insérer hors d'un paragraphe.
+function intoBlock(r){
+  if (r.startContainer !== editor) return;
+  let b = editor.children[r.startOffset] || editor.lastElementChild;
+  if (!b) { b = document.createElement('p'); editor.append(b); }
+  if (/^(UL|OL)$/.test(b.tagName)) b = b.querySelector('li') || b;
+  if (/^(TABLE|HR)$/.test(b.tagName)) { const p = document.createElement('p'); b.before(p); b = p; }
+  r.selectNodeContents(b); r.collapse(true);
 }
 function clearProp(el, cat){
   el.removeAttribute('data-' + cat);
@@ -1895,10 +1966,41 @@ function applyProp(cat, val, extra){
 }
 function exec(cmd, arg){
   restore();
+  if ((cmd === 'indent' || cmd === 'outdent') && indentBlocks(cmd === 'indent')) return;
   document.execCommand('styleWithCSS', false, false);
   document.execCommand(cmd, false, arg);
   if (/List$|^(indent|outdent)$/.test(cmd)) fixLists();
+  // Enlever le gras d'un titre (ou l'italique d'une citation) ajoutait un style « normal » que
+  // l'enregistrement ne garde pas : à l'écran et après réouverture, ce n'était pas pareil.
+  if (cmd === 'bold' || cmd === 'italic') {
+    const prop = cmd === 'bold' ? 'font-weight' : 'font-style';
+    editor.querySelectorAll('span[style]').forEach(sp => { sp.style.removeProperty(prop); if (!sp.style.length) sp.removeAttribute('style'); if (!sp.attributes.length) sp.replaceWith(...sp.childNodes); });
+  }
   changed(); queueToolbar();
+}
+// Retrait hors des listes : un décalage (data-ind 1 à 4), et non une citation déguisée.
+// Dans une liste, le retrait habituel (sous-liste), sauf pour le premier élément qui ne peut pas
+// devenir le sous-élément de rien. Renvoie true si c'est réglé ici.
+function indentBlocks(more){
+  const s = getSelection(); if (!s.rangeCount) return false;
+  const r = s.getRangeAt(0);
+  let tops = [...editor.children].filter(el => r.intersectsNode(el));
+  if (!tops.length) { const t = topBlock(); if (t) tops = [t]; }
+  const inList = tops.length && tops.every(el => /^(UL|OL)$/.test(el.tagName));
+  if (inList) {
+    const li = anchorEl()?.closest('li');
+    if (more && li && !li.previousElementSibling) { toast('Le premier élément d’une liste ne peut pas être décalé.'); return true; }
+    return false;
+  }
+  let done = false;
+  for (const el of tops) {
+    if (!/^(P|H1|H2|H3|BLOCKQUOTE|DIV)$/.test(el.tagName)) continue;
+    const n = Math.max(0, Math.min(4, (+el.dataset.ind || 0) + (more ? 1 : -1)));
+    if (n) el.dataset.ind = n; else el.removeAttribute('data-ind');
+    done = true;
+  }
+  if (done) { changed(); queueToolbar(); }
+  return true;
 }
 // Chrome et Safari créent parfois une liste DANS un paragraphe (<p><ul>…</ul></p>), ce qui n'est pas
 // du HTML valide : au rechargement, le navigateur ajoute des lignes vides autour. On remet la liste
@@ -1930,11 +2032,34 @@ function anchorEl(){
   if (!s.rangeCount || !editor.contains(s.anchorNode)) return null;
   const n = s.anchorNode; return n.nodeType === 1 ? n : n.parentElement;
 }
+// Le surlignage sous le curseur (ou touché par la sélection) : si le curseur est simplement posé
+// dedans, tout le passage surligné est sélectionné, pour que le changement porte sur lui entier.
+function hlSelectWhole(){
+  const r = saved && editor.contains(saved.startContainer) ? saved : (getSelection().rangeCount ? getSelection().getRangeAt(0) : null);
+  if (!r) return null;
+  const el = (r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement);
+  let h = el && el.closest('[data-h]');
+  if (!h) h = [...editor.querySelectorAll('[data-h]')].find(x => r.intersectsNode(x) && x.textContent.trim());
+  if (!h || !editor.contains(h)) return null;
+  if (r.collapsed) { const w = document.createRange(); w.selectNodeContents(h); setRange(w); }
+  return h;
+}
 function toggleUnderline(){
   const el = anchorEl();
   applyProp('u', el && el.closest('[data-u]') ? null : 'simple');
 }
 function clearAll(){
+  restore();
+  const s = getSelection();
+  if (s.rangeCount && s.isCollapsed) {
+    // Curseur seul : on efface la mise en forme du passage où il se trouve (ou du mot).
+    const el = anchorEl(), blk = el && blockOf(el);
+    let f = el && el.closest('[data-c],[data-h],[data-u],[data-f],[data-s],b,i,s,u,sub,sup,strong,em');
+    while (f && blk && f.parentElement && f.parentElement !== blk && f.parentElement.closest('[data-c],[data-h],[data-u],[data-f],[data-s],b,i,s,u,sub,sup,strong,em') && blk.contains(f.parentElement)) f = f.parentElement.closest('[data-c],[data-h],[data-u],[data-f],[data-s],b,i,s,u,sub,sup,strong,em');
+    if (f && blk && blk.contains(f) && f !== blk) { const r = document.createRange(); r.selectNodeContents(f); setRange(r); }
+    else if (s.modify) { s.modify('move', 'backward', 'word'); s.modify('extend', 'forward', 'word'); saved = s.getRangeAt(0).cloneRange(); }
+    if (getSelection().isCollapsed) return;
+  }
   for (const c of ['c','h','u','f','s']) applyProp(c, null);
   exec('removeFormat');
 }
@@ -2087,11 +2212,11 @@ const MENUS = {
       <div class="chips hl-styles">${HSTYLES.map(([k, n]) => `<button class="mi" data-s="${k}" aria-checked="${k === st}"><span data-h="${cur || 'jaune'} ${k}">${n}</span></button>`).join('')}</div>`,
     p => p.onclick = e => {
       const dot = e.target.closest('[data-c]');
-      if (dot) { applyProp('h', dot.dataset.c === 'none' ? null : `${dot.dataset.c} ${prefs.hlStyle || 'marqueur'}`); closePop(); return; }
+      if (dot) { hlSelectWhole(); applyProp('h', dot.dataset.c === 'none' ? null : `${dot.dataset.c} ${prefs.hlStyle || 'marqueur'}`); closePop(); return; }
       const sb = e.target.closest('[data-s]'); if (!sb) return;
       setPref('hlStyle', sb.dataset.s); p.querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-checked', x === sb));
       // Un passage déjà surligné prend tout de suite le nouveau style.
-      const h = anchorEl()?.closest('[data-h]'); if (h || (saved && !saved.collapsed && cur)) applyProp('h', `${(h ? h.dataset.h.split(' ')[0] : cur) || 'jaune'} ${sb.dataset.s}`);
+      const h = hlSelectWhole(); if (h) applyProp('h', `${h.dataset.h.split(' ')[0] || 'jaune'} ${sb.dataset.s}`);
     });
   },
   under(btn){
@@ -2249,6 +2374,20 @@ function undoRedo(cmd){
 // Le curseur juste avant une modification, pour y revenir en annulant.
 editor.addEventListener('beforeinput', e => {
   if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') { e.preventDefault(); undoRedo(e.inputType === 'historyUndo' ? 'undo' : 'redo'); return; }
+  // Tout le document est sélectionné : on le remplace nous-mêmes par un paragraphe propre
+  // (Safari et Chrome laissaient du texte hors paragraphe, un tableau vide ou le style d'un titre).
+  const sa = getSelection();
+  if (sa.rangeCount && !sa.isCollapsed && /^(insertText|insertReplacementText|insertParagraph|insertLineBreak|deleteContent|deleteWord|deleteSoft|deleteHard|deleteByCut)/.test(e.inputType)) {
+    const r = sa.getRangeAt(0), all = document.createRange(); all.selectNodeContents(editor);
+    if (r.compareBoundaryPoints(Range.START_TO_START, all) <= 0 && r.compareBoundaryPoints(Range.END_TO_END, all) >= 0 || r.toString().replace(/\s/g, '') === editor.textContent.replace(/[\s\u200b]/g, '') && !editor.querySelector('img,.math')) {
+      e.preventDefault(); if (!hist.before) hist.before = caretOffsets();
+      const p = document.createElement('p'), txt = e.inputType.startsWith('insertText') || e.inputType === 'insertReplacementText' ? (e.data ?? e.dataTransfer?.getData('text/plain') ?? '') : '';
+      if (txt) p.textContent = prefs.caps && /^\p{Ll}/u.test(txt) ? txt[0].toUpperCase() + txt.slice(1) : txt; else p.append(document.createElement('br'));
+      editor.replaceChildren(p);
+      const c = document.createRange(); c.selectNodeContents(p); c.collapse(!txt); setRange(c);
+      changed(!!txt); return;
+    }
+  }
   if (!hist.t && !hist.before) hist.before = caretOffsets();
 });
 // Un clic ou un raccourci termine la rafale de frappe en cours.
@@ -2341,7 +2480,9 @@ function commitMath(){
   }
   closeMath(false);
   const s = restore(); const r = s.getRangeAt(0);
-  r.deleteContents();
+  // Une sélection sur plusieurs paragraphes n'est pas remplacée : la formule va à la fin.
+  if (blockOf(r.startContainer) !== blockOf(r.endContainer)) r.collapse(false);
+  r.deleteContents(); intoBlock(r);
   const m = makeMath(tex, texDisp.checked), t = document.createTextNode('​');
   r.insertNode(m); m.after(t);
   const c = document.createRange(); c.setStart(t, 1); c.collapse(true); setRange(c);
@@ -2382,7 +2523,23 @@ function tryAutoMath(){
 
 /* ---------- Saisie ---------- */
 document.execCommand('defaultParagraphSeparator', false, 'p');
+const BLOCK_TAGS = /^(P|H1|H2|H3|UL|OL|BLOCKQUOTE|PRE|TABLE|HR|DIV|FIGURE)$/;
+function ensureBlocks(){
+  const stray = [...editor.childNodes].some(n => n.nodeType === 3 ? n.data.replace(/\s/g, '') : n.nodeType === 1 && !BLOCK_TAGS.test(n.tagName));
+  if (!stray) return;
+  const keep = caretOffsets(); let p = null;
+  for (const n of [...editor.childNodes]) {
+    if (n.nodeType === 1 && BLOCK_TAGS.test(n.tagName)) { p = null; continue; }
+    if (n.nodeType === 3 && !n.data.replace(/\s/g, '') && !p) { n.remove(); continue; }
+    if (!p) { p = document.createElement('p'); n.before(p); }
+    p.append(n);
+  }
+  // Safari : un style de titre « figé » (taille, gras) sur du texte qui n'est plus un titre.
+  editor.querySelectorAll(':scope > p > span[style]').forEach(sp => { sp.style.removeProperty('font-size'); sp.style.removeProperty('font-family'); if (!sp.style.length) sp.removeAttribute('style'); if (!sp.attributes.length) sp.replaceWith(...sp.childNodes); });
+  if (keep) setCaretOffsets(keep);
+}
 editor.addEventListener('input', e => {
+  ensureBlocks();
   if (e.inputType === 'insertText' && e.data && e.data.endsWith('$')) tryAutoMath();
   changed(/^(insert(Text|ReplacementText|CompositionText|Paragraph|LineBreak)|delete(Content|Word|Soft|Hard))/.test(e.inputType || '')); markCurrent();
 });
@@ -2397,7 +2554,7 @@ editor.addEventListener('keydown', e => {
   else if (mod && k === 'u') { e.preventDefault(); toggleUnderline(); }
   else if (mod && k === 'y') { e.preventDefault(); undoRedo('redo'); }
   else if (mod && k === 's') { e.preventDefault(); save(); toast('Enregistré'); }
-  else if (e.key === 'Tab' && anchorEl()?.closest('li')) { e.preventDefault(); exec(e.shiftKey ? 'outdent' : 'indent'); }
+  else if (e.key === 'Tab' && anchorEl()?.closest('li')) { e.preventDefault(); const sl = getSelection(), r0 = sl.rangeCount && sl.getRangeAt(0); if (!r0 || [...editor.children].filter(el => r0.intersectsNode(el)).every(el => /^(UL|OL)$/.test(el.tagName))) exec(e.shiftKey ? 'outdent' : 'indent'); }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closePop(); hideSelbar(); if (!cp.hidden) closeClaude(); }
@@ -2419,7 +2576,34 @@ const DROP = new Set('SCRIPT STYLE IFRAME OBJECT EMBED SVG HEAD META LINK TITLE 
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 function sanitize(html){
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
-  resolveSuggestions(doc.body); clean(doc.body); return doc.body.innerHTML;
+  resolveSuggestions(doc.body); clean(doc.body); normalizeTopLevel(doc.body);
+  // Les espaces insécables qu'ajoute le navigateur au copier-coller deviennent de vraies espaces.
+  const tw = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT); let tn;
+  while ((tn = tw.nextNode())) if (tn.data.includes('\u00a0') && !tn.parentElement.closest('pre')) tn.data = tn.data.replace(/(\S)\u00a0(?=\S)/g, '$1 ');
+  return doc.body.innerHTML;
+}
+// Une page web ou un fichier HTML arrive souvent enveloppé dans des <div> : on les retire pour
+// que titres, paragraphes et listes soient de vrais blocs (plan, titre, exports), et tout texte
+// isolé au premier niveau est mis dans un paragraphe.
+function normalizeTopLevel(root){
+  const doc = root.ownerDocument;
+  const BLK = /^(P|H1|H2|H3|UL|OL|BLOCKQUOTE|PRE|TABLE|HR|DIV)$/;
+  let guard = 0;
+  while (guard++ < 50) {
+    const div = [...root.children].find(el => el.tagName === 'DIV');
+    if (!div) break;
+    if ([...div.children].some(c => BLK.test(c.tagName))) div.replaceWith(...div.childNodes);
+    else { const p = doc.createElement('p'); for (const a of ['style']) if (div.getAttribute(a)) p.setAttribute(a, div.getAttribute(a)); p.append(...div.childNodes); div.replaceWith(p); }
+  }
+  let p = null;
+  for (const n of [...root.childNodes]) {
+    if (n.nodeType === 1 && BLK.test(n.tagName)) { p = null; continue; }
+    if (n.nodeType === 3 && !n.data.trim()) { if (!p) n.remove(); else p.append(n); continue; }
+    if (n.nodeType !== 1 && n.nodeType !== 3) { n.remove(); continue; }
+    if (n.nodeType === 1 && n.tagName === 'BR' && !p) { n.remove(); continue; }
+    if (!p) { p = doc.createElement('p'); n.before(p); }
+    p.append(n);
+  }
 }
 function clean(node){
   for (const el of [...node.children]) {
@@ -2431,6 +2615,18 @@ function clean(node){
       el.replaceWith(m); continue;
     }
     if (DROP.has(tag)) { el.remove(); continue; }
+    // Collage depuis Google Docs, Word, une page web : le gras, l'italique, le barré, le
+    // soulignement et les indices écrits en style deviennent de vraies mises en forme.
+    const st = el.style, fw = st.fontWeight, fst = st.fontStyle, td = (st.textDecorationLine || st.textDecoration || ''), va = st.verticalAlign;
+    if (/^(B|STRONG)$/.test(tag) && (/^(normal|[1-5]00)$/.test(fw) || el.querySelector('p,div,h1,h2,h3,h4,h5,h6,ul,ol,table,blockquote'))) { clean(el); el.replaceWith(...el.childNodes); continue; }
+    if (/^(SPAN|FONT)$/.test(tag)) {
+      const doc = el.ownerDocument, wrapIn = t => { const w = doc.createElement(t); w.append(...el.childNodes); el.append(w); };
+      if (/^(bold|bolder|[6-9]00)$/.test(fw)) wrapIn('b');
+      if (/italic|oblique/.test(fst)) wrapIn('i');
+      if (/line-through/.test(td)) wrapIn('s');
+      if (va === 'super') wrapIn('sup'); else if (va === 'sub') wrapIn('sub');
+      if (/underline/.test(td) && !el.getAttribute('data-u')) el.setAttribute('data-u', 'simple');
+    }
     clean(el);
     if (tag === 'H4' || tag === 'H5' || tag === 'H6') { const h = el.ownerDocument.createElement('h3'); h.append(...el.childNodes); el.replaceWith(h); continue; }
     if (!KEEP.has(tag)) { el.replaceWith(...el.childNodes); continue; }
@@ -2439,11 +2635,13 @@ function clean(node){
     const noteText = keep.n ? (el.getAttribute('data-nt') || '').slice(0, 4000) : '';
     const fs = el.style.fontSize, cl = el.style.getPropertyValue('--cl').trim(), cdk = el.style.getPropertyValue('--cd').trim(), ta = el.style.textAlign;
     const folded = /^H[123]$/.test(tag) && el.getAttribute('data-fold') === '1';
+    const ind = /^[1-4]$/.test(el.getAttribute('data-ind') || '') ? el.getAttribute('data-ind') : '';
     // Liens (web, courriel), images (incluses dans le document ou en ligne), listes de tâches
     const href = tag === 'A' ? (el.getAttribute('href') || '').trim() : '';
     const src = tag === 'IMG' ? (el.getAttribute('src') || '').trim() : '';
     const imgW = tag === 'IMG' && /^(s|m|l)$/.test(el.getAttribute('data-w') || '') ? el.getAttribute('data-w') : '';
     const check = tag === 'UL' && el.hasAttribute('data-check'), done = tag === 'LI' && el.getAttribute('data-done') === '1';
+    const olStart = tag === 'OL' && /^\d{1,4}$/.test(el.getAttribute('start') || '') && +el.getAttribute('start') > 1 ? el.getAttribute('start') : '';
     const rv = (tag === 'INS' || tag === 'DEL') && /^r[a-z0-9]{4,30}$/.test(el.getAttribute('data-rv') || '') ? { rv: el.getAttribute('data-rv'), a: (el.getAttribute('data-a') || '').slice(0, 60), t: /^\d{1,15}$/.test(el.getAttribute('data-t') || '') ? el.getAttribute('data-t') : '', ac: /^\d$/.test(el.getAttribute('data-ac') || '') ? el.getAttribute('data-ac') : '0' } : null;
     for (const a of [...el.attributes]) el.removeAttribute(a.name);
     if (tag === 'A') { if (/^(https?:|mailto:)/i.test(href) || /^#doc:[a-z0-9]{4,40}$/i.test(href)) el.setAttribute('href', href); else { el.replaceWith(...el.childNodes); continue; } }
@@ -2452,6 +2650,7 @@ function clean(node){
       el.setAttribute('src', src); el.setAttribute('alt', ''); if (imgW) el.setAttribute('data-w', imgW);
     }
     if (check) el.setAttribute('data-check', '');
+    if (olStart) el.setAttribute('start', olStart);
     if (rv) for (const k in rv) if (rv[k]) el.setAttribute('data-' + k, rv[k]);
     if (tag === 'INS' && !rv) { el.replaceWith(...el.childNodes); continue; }
     if (done) el.setAttribute('data-done', '1');
@@ -2460,67 +2659,149 @@ function clean(node){
     if (keep.n) el.setAttribute('data-nt', noteText);
     if (keep.s && /^\d+px$/.test(fs)) el.style.fontSize = fs;
     if (keep.c === 'perso') { if (isHex(cl) && isHex(cdk)) { el.style.setProperty('--cl', cl); el.style.setProperty('--cd', cdk); } else el.removeAttribute('data-c'); }
-    if (/^(left|right|center|justify)$/.test(ta) && /^(P|H1|H2|H3|DIV|LI|BLOCKQUOTE)$/.test(tag)) el.style.textAlign = ta;
+    if (/^(left|right|center|justify)$/.test(ta) && /^(P|H1|H2|H3|DIV|LI|BLOCKQUOTE|TD|TH)$/.test(tag)) el.style.textAlign = ta;
+    if (ind && /^(P|H1|H2|H3|BLOCKQUOTE|DIV)$/.test(tag)) el.setAttribute('data-ind', ind);
     if (tag === 'SPAN' && el.attributes.length === 0) el.replaceWith(...el.childNodes);
   }
 }
 function textToHTML(txt){
-  // Texte brut ou Markdown : titres #, listes - * 1., citations >, **gras**, *italique*, ~~barré~~, formules $…$.
-  const inline = t => esc(t)
-    .replace(/\$\$([^$]+)\$\$/g, (_, x) => `<span class="math" data-display="1" data-tex="${x.trim()}"></span>`)
-    .replace(/(^|[^$\\])\$([^\s$](?:[^$\n]*[^\s$\\])?)\$/g, (_, p, x) => `${p}<span class="math" data-tex="${x}"></span>`)
-    .replace(/\*\*(?=\S)(.+?)\*\*/g, '<b>$1</b>').replace(/__(?=\S)(.+?)__/g, '<b>$1</b>')
-    .replace(/(^|[^*\w])\*(?=\S)([^*]+?)\*(?!\w)/g, '$1<i>$2</i>').replace(/(^|[^_\w])_(?=\S)([^_]+?)_(?!\w)/g, '$1<i>$2</i>')
-    .replace(/~~(?=\S)(.+?)~~/g, '<s>$1</s>');
+  // Texte brut ou Markdown (celui qu'exporte Plume y compris) : titres #, listes à puces, numérotées
+  // et de tâches (avec sous-listes), citations >, blocs de code ```, tableaux | |, séparateur ---,
+  // **gras**, *italique*, ~~barré~~, `code`, [liens](…), ![images](…), formules $…$, échappements \*.
+  const keepEsc = [];
+  const inline = t => {
+    // Les caractères échappés (\* \_ \[ …) sont mis de côté pour ne pas être pris pour de la mise en forme.
+    t = t.replace(/\\([*_`~\[\]\\$#>|-])/g, (_, c) => `\u0000${keepEsc.push(c) - 1}\u0000`);
+    const codes = [];
+    t = t.replace(/`([^`]+)`/g, (_, c) => `\u0001${codes.push(c) - 1}\u0001`);
+    let h = esc(t)
+      .replace(/&lt;(\/?)(sub|sup)&gt;/g, '<$1$2>')
+      .replace(/!\[[^\]]*\]\(((?:https:\/\/|data:image\/)[^)\s]+)\)/g, (_, u) => `<img src="${u}" alt="">`)
+      .replace(/\[([^\]]+)\]\(((?:https?:|mailto:|#doc:)[^)\s]+)\)/g, (_, x, u) => `<a href="${u}">${x}</a>`)
+      .replace(/\$\$([^$]+)\$\$/g, (_, x) => `<span class="math" data-display="1" data-tex="${x.trim()}"></span>`)
+      .replace(/(^|[^$\\])\$([^\s$](?:[^$\n]*[^\s$\\])?)\$/g, (_, p, x) => `${p}<span class="math" data-tex="${x}"></span>`)
+      .replace(/\*\*(?=\S)(.+?)\*\*/g, '<b>$1</b>').replace(/__(?=\S)(.+?)__/g, '<b>$1</b>')
+      .replace(/(^|[^*\w])\*(?=\S)([^*]+?)\*(?!\w)/g, '$1<i>$2</i>').replace(/(^|[^_\w])_(?=\S)([^_]+?)_(?!\w)/g, '$1<i>$2</i>')
+      .replace(/~~(?=\S)(.+?)~~/g, '<s>$1</s>');
+    h = h.replace(/\u0001(\d+)\u0001/g, (_, i) => `<code>${esc(codes[i])}</code>`);
+    return h.replace(/\u0000(\d+)\u0000/g, (_, i) => esc(keepEsc[i]));
+  };
+  const lines = txt.replace(/\r\n?/g, '\n').replace(/^﻿/, '').split('\n');
   const out = [];
-  for (const b of txt.replace(/\r/g, '').split(/\n{2,}/)) {
-    if (!b.trim()) continue;
-    const lines = b.split('\n').filter(l => l.trim());
-    const ul = lines.every(l => /^\s*[-*+] /.test(l)), ol = lines.every(l => /^\s*\d+[.)] /.test(l));
-    if (ul || ol) {
-      const tag = ul ? 'ul' : 'ol';
-      out.push(`<${tag}>` + lines.map(l => `<li>${inline(l.replace(/^\s*([-*+]|\d+[.)]) /, ''))}</li>`).join('') + `</${tag}>`);
-    } else if (lines.every(l => /^> ?/.test(l))) {
-      out.push(`<blockquote>${lines.map(l => inline(l.replace(/^> ?/, ''))).join('<br>')}</blockquote>`);
-    } else if (lines.length === 1 && /^#{1,6} /.test(lines[0])) {
-      const n = Math.min(3, lines[0].match(/^#+/)[0].length);
-      out.push(`<h${n}>${inline(lines[0].replace(/^#+ /, ''))}</h${n}>`);
-    } else if (/^\$\$/.test(b.trim()) && /\$\$$/.test(b.trim())) {
-      out.push(`<p>${inline(b.trim().replace(/\n/g, ' '))}</p>`);
-    } else {
-      // Un titre en tête de bloc, suivi de texte sans ligne vide.
-      const hm = /^(#{1,6}) (.*)$/.exec(lines[0]);
-      if (hm) { const n = Math.min(3, hm[1].length); out.push(`<h${n}>${inline(hm[2])}</h${n}>`); lines.shift(); }
-      if (lines.length) out.push(`<p>${lines.map(inline).join('<br>')}</p>`);
+  const isList = l => /^(\s*)([-*+]|\d+[.)])\s+/.exec(l);
+  let i = 0, para = [];
+  const flush = () => { if (para.length) { out.push(`<p>${para.map(l => inline(l.replace(/ {2,}$/, ''))).join('<br>')}</p>`); para = []; } };
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { flush(); i++; continue; }
+    // Bloc de code
+    if (/^\s*```/.test(l)) {
+      flush(); const code = []; i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) code.push(lines[i++]);
+      i++; out.push(`<pre>${esc(code.join('\n'))}</pre>`); continue;
     }
+    // Formule seule sur plusieurs lignes
+    if (/^\s*\$\$/.test(l) && !/\$\$.*\$\$/.test(l)) {
+      flush(); const m = [l]; i++;
+      while (i < lines.length && !/\$\$\s*$/.test(lines[i])) m.push(lines[i++]);
+      if (i < lines.length) m.push(lines[i++]);
+      out.push(`<p>${inline(m.join(' '))}</p>`); continue;
+    }
+    // Titre
+    const hm = /^(#{1,6})\s+(.*)$/.exec(l);
+    if (hm) { flush(); const n = Math.min(3, hm[1].length); out.push(`<h${n}>${inline(hm[2].replace(/\s+#+\s*$/, ''))}</h${n}>`); i++; continue; }
+    // Séparateur
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)) { flush(); out.push('<hr>'); i++; continue; }
+    // Tableau
+    if (/^\s*\|/.test(l) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      flush(); const rows = [];
+      const cells = r => r.trim().replace(/^\||\|$/g, '').split(/(?<!\\)\|/).map(c => inline(c.trim().replace(/\\\|/g, '|')));
+      rows.push(cells(l)); i += 2;
+      while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push('<table><tbody>' + rows.map(r => '<tr>' + r.map(c => `<td>${c || '<br>'}</td>`).join('') + '</tr>').join('') + '</tbody></table>'); continue;
+    }
+    // Citation
+    if (/^>\s?/.test(l)) {
+      flush(); const q = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) q.push(lines[i++].replace(/^>\s?/, ''));
+      out.push(`<blockquote>${q.map(x => inline(x.replace(/ {2,}$/, ''))).join('<br>')}</blockquote>`); continue;
+    }
+    // Listes (avec sous-listes selon l'indentation, et listes de tâches)
+    if (isList(l)) {
+      flush();
+      const items = [];
+      while (i < lines.length && (isList(lines[i]) || (/^\s{2,}\S/.test(lines[i]) && items.length))) {
+        const m = isList(lines[i]);
+        if (!m) { items[items.length - 1].text += ' ' + lines[i].trim(); i++; continue; }
+        const depth = Math.floor(m[1].replace(/\t/g, '  ').length / 2), ordered = /\d/.test(m[2]);
+        let text = lines[i].slice(m[0].length), task = null;
+        const tm = /^\[([ xX])\]\s+/.exec(text); if (tm && !ordered) { task = tm[1] !== ' '; text = text.slice(tm[0].length); }
+        items.push({ depth, ordered, task, text }); i++;
+      }
+      const build = (from, depth) => {
+        let html = '', k = from;
+        const first = items[from], tag = first.ordered ? 'ol' : 'ul', check = first.task !== null && !first.ordered;
+        html += `<${tag}${check ? ' data-check' : ''}>`;
+        while (k < items.length && items[k].depth >= depth) {
+          if (items[k].depth > depth) { const [sub, nk] = build(k, items[k].depth); html = html.replace(/<\/li>$/, sub + '</li>'); k = nk; continue; }
+          const it = items[k];
+          html += `<li${it.task ? ' data-done="1"' : ''}>${inline(it.text) || '<br>'}</li>`; k++;
+        }
+        return [html + `</${tag}>`, k];
+      };
+      let k = 0; while (k < items.length) { const [h, nk] = build(k, items[k].depth); out.push(h); k = nk; }
+      continue;
+    }
+    para.push(l); i++;
   }
+  flush();
   return out.join('');
+}
+// Ouvre un fichier importé dans un nouveau document (le document en cours n'est jamais écrasé).
+// Si la mémoire est pleine, le texte s'affiche quand même, avec un avertissement.
+function openImported(html, name){
+  const id = newId();
+  docs.push({ id, title: 'Sans titre', updated: Date.now() });
+  let stored = store.set('plume-doc:' + id, html);
+  if (!stored && freeSpace()) stored = store.set('plume-doc:' + id, html);
+  saveDocs();
+  if (!library.hidden) closeLibrary(); openDoc(id);
+  if (!stored) { editor.innerHTML = html; renderAllMath(); refold(); updateEmpty(); statusEl.textContent = countLabel(); toast(`Mémoire pleine : « ${name} » est affiché mais pas enregistré. Supprime des documents pour faire de la place.`); return; }
+  save(); toast(`« ${name} » ouvert`);
+}
+// Images trop grandes (photos dans un fichier Word…) : réduites à 1600 px, comme une image insérée.
+function shrinkImages(html){
+  const big = new Set(); let i = 0;
+  while ((i = html.indexOf('src="data:image/', i)) >= 0) { const j = html.indexOf('"', i + 5); if (j < 0) break; if (j - i > 400000) big.add(html.slice(i + 5, j)); i = j; }
+  if (!big.size) return Promise.resolve(html);
+  return Promise.all([...big].map(src => new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res([src, c.toDataURL('image/jpeg', .85)]);
+    };
+    img.onerror = () => res([src, src]); img.src = src;
+  }))).then(pairs => { for (const [a, b] of pairs) html = html.split(a).join(b); return html; });
 }
 $('#file').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
   if (/\.docx$/i.test(f.name)) {
     e.target.value = '';
-    f.arrayBuffer().then(docxToHTML).then(h => {
-      const id = newId();
-      docs.push({ id, title: 'Sans titre', updated: Date.now() });
-      store.set('plume-doc:' + id, sanitize(h) || '<p><br></p>'); saveDocs();
-      if (!library.hidden) closeLibrary(); openDoc(id); save(); toast(`« ${f.name} » ouvert`);
-    }).catch(err => toast("Impossible d'ouvrir ce fichier Word" + (err && err.message ? ' : ' + err.message : '.')));
+    f.arrayBuffer().then(docxToHTML).then(shrinkImages).then(h => openImported(sanitize(h) || '<p><br></p>', f.name)).catch(err => toast("Impossible d'ouvrir ce fichier Word" + (err && err.message ? ' : ' + err.message : '.')));
     return;
   }
-  const rd = new FileReader();
+  const isHtml = /\.html?$/i.test(f.name), rd = new FileReader();
   rd.onload = () => {
-    const isHtml = /\.html?$/i.test(f.name);
+    // Un texte qui n'est pas en UTF-8 (anciens fichiers Windows) est relu dans le bon encodage.
+    if (!isHtml && !rd.retried && /\uFFFD/.test(rd.result)) { rd.retried = true; rd.readAsText(f, 'windows-1252'); return; }
     let src = isHtml ? rd.result : textToHTML(rd.result);
     if (isHtml) { const d = new DOMParser().parseFromString(src, 'text/html'), a = d.getElementById('plume-doc'); if (a) src = a.innerHTML; }
-    const html = sanitize(src) || '<p><br></p>';
-    // Le fichier s'ouvre dans un nouvel onglet : le document en cours n'est jamais écrasé.
-    const id = newId();
-    docs.push({ id, title: 'Sans titre', updated: Date.now() });
-    store.set('plume-doc:' + id, html); saveDocs();
-    if (!library.hidden) closeLibrary(); openDoc(id); save(); toast(`« ${f.name} » ouvert`);
+    shrinkImages(sanitize(src) || '<p><br></p>').then(html => openImported(html, f.name));
   };
-  rd.readAsText(f); e.target.value = '';
+  rd.readAsText(f);
+  e.target.value = '';
 });
 
 /* ---------- Export, copie ---------- */
@@ -2634,7 +2915,9 @@ let saveT;
 function changed(typing){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); refold(); histMark(typing === true); updateUndoBtns(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
 function save(){
   clearTimeout(saveT);
-  const ok = store.set('plume-doc:' + activeId, serialize());
+  let ok = store.set('plume-doc:' + activeId, serialize());
+  if (!ok && freeSpace()) ok = store.set('plume-doc:' + activeId, serialize());
+  if (!ok && Date.now() - (save.warned || 0) > 60000) { save.warned = Date.now(); toast('Mémoire pleine : ce document n’est plus enregistré. Supprime des images ou d’anciens documents.'); }
   const d = docs.find(x => x.id === activeId);
   if (d) { const t = docTitle(); if (d.title !== t) { d.title = t; renderTabs(); } d.updated = Date.now(); saveDocs(); }
   statusEl.textContent = ok ? countLabel() : 'Non enregistré · ' + countLabel();
@@ -2660,7 +2943,7 @@ function updateEmpty(){
   const empty = !editor.textContent.replace(/[​\s]/g,'') && !editor.querySelector('.math,li,h1,h2,h3,blockquote');
   editor.classList.toggle('is-empty', empty);
 }
-function restoreToStart(){ editor.focus(); const r = document.createRange(); r.selectNodeContents(editor); r.collapse(true); setRange(r); }
+function restoreToStart(){ editor.focus(); const r = document.createRange(); r.selectNodeContents(editor.firstElementChild && !/^(TABLE|HR|UL|OL)$/.test(editor.firstElementChild.tagName) ? editor.firstElementChild : editor); r.collapse(true); setRange(r); }
 
 let tT;
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(tT); tT = setTimeout(() => t.hidden = true, 2200); }
@@ -3386,9 +3669,14 @@ function placeBar(){
   barEl.style.transform = off ? `translateY(${off}px)` : '';
   document.documentElement.style.setProperty('--vv-top', off + 'px');
 }
-window.visualViewport?.addEventListener('scroll', placeBar);
-window.visualViewport?.addEventListener('resize', placeBar);
+let placeRaf = 0;
+const placeSoon = () => { if (!placeRaf) placeRaf = requestAnimationFrame(() => { placeRaf = 0; placeBar(); }); };
+window.visualViewport?.addEventListener('scroll', placeSoon);
+window.visualViewport?.addEventListener('resize', placeSoon);
 function setBarHidden(h){
+  // L'animation ne sert qu'à masquer ou réafficher : le reste du temps, la barre ne doit jamais
+  // « glisser » (sinon elle semblait sauter pendant un défilement rapide).
+  barEl.classList.add('bar-anim'); clearTimeout(setBarHidden.t); setBarHidden.t = setTimeout(() => barEl.classList.remove('bar-anim'), 450);
   document.body.classList.toggle('bar-hidden', h);
   store.set('plume-bar-hidden', h ? '1' : '0');
   const label = h ? "Afficher la barre d'outils" : "Masquer la barre d'outils";
@@ -3581,8 +3869,9 @@ function saveDocs(){ store.set('plume-docs', JSON.stringify(docs)); }
 function docTitle(){
   const c = editor.cloneNode(true); resolveSuggestions(c);
   c.querySelectorAll('.math').forEach(m => m.replaceWith(m.dataset.tex || ''));
+  c.querySelectorAll('br').forEach(b => b.replaceWith('\n'));
   for (const el of c.querySelectorAll('h1,h2,h3,p,li,blockquote,div')) {
-    const t = el.textContent.replace(/[​\s]+/g, ' ').trim();
+    const t = (el.textContent.split('\n').find(x => x.trim()) || '').replace(/[​\s]+/g, ' ').trim();
     if (t) return t.length > 32 ? t.slice(0, 32) + '…' : t;
   }
   return 'Sans titre';
@@ -3617,15 +3906,36 @@ function newDoc(){
   store.set('plume-doc:' + id, '<p><br></p>'); saveDocs();
   openDoc(id);
 }
+// Mémoire pleine : on fait de la place en retirant les plus anciennes versions enregistrées.
+function freeSpace(){
+  let freed = false;
+  try {
+    for (const k of Object.keys(localStorage).filter(k => k.startsWith('plume-ver:'))) {
+      let v = []; try { v = JSON.parse(localStorage.getItem(k) || '[]'); } catch(e) {}
+      if (Array.isArray(v) && v.length > 3) { localStorage.setItem(k, JSON.stringify(v.slice(0, 3))); freed = true; }
+      else if (!docs.some(d => 'plume-ver:' + d.id === k)) { localStorage.removeItem(k); freed = true; }
+    }
+  } catch(e) {}
+  return freed;
+}
+// Met un document dans « Supprimés récemment » (30 au plus). Renvoie false si la mémoire est
+// pleine : le document n'est alors PAS supprimé.
+function pushTrash(entry){
+  const trash = trashList(); trash.unshift(entry);
+  const json = () => JSON.stringify(trash.slice(0, 30));
+  if (store.set('plume-trash', json())) return true;
+  freeSpace(); if (store.set('plume-trash', json())) return true;
+  toast('Mémoire pleine : le document est gardé. Supprime des images ou d’anciens documents.');
+  return false;
+}
+const trashEntry = (d, html) => ({ id: d.id, title: d.title, html, at: Date.now(), goal: d.goal || 0, noCheck: d.noCheck ? 1 : 0 });
 function closeDoc(id){
   const i = docs.findIndex(d => d.id === id); if (i < 0) return;
   if (id === activeId) save();
-  // Un onglet fermé part dans une petite corbeille (les 10 derniers), pour pouvoir le rouvrir.
-  try {
-    const trash = JSON.parse(store.get('plume-trash') || '[]');
-    trash.unshift({ title: docs[i].title, html: store.get('plume-doc:' + id) || '' });
-    store.set('plume-trash', JSON.stringify(trash.slice(0, 10)));
-  } catch(e) {}
+  // Un onglet fermé part dans « Supprimés récemment », pour pouvoir le rouvrir (sauf s'il est vide).
+  const html = store.get('plume-doc:' + id) || '';
+  const empty = !new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body.textContent.replace(/[\s\u200b]/g, '') && !/<img|class="math/.test(html);
+  if (!empty && !pushTrash(trashEntry(docs[i], html))) return;
   try { localStorage.removeItem('plume-doc:' + id); } catch(e) {}
   docs.splice(i, 1);
   if (!docs.length) { activeId = null; newDoc(); }
@@ -3746,8 +4056,12 @@ function setWidth(w){
 // Largeur de référence : sur iPad et iPhone, celle de l'écran tenu à l'horizontale (la même dans
 // les deux sens) ; sur Mac, celle de la fenêtre.
 function refWidth(){
-  const touch = matchMedia('(pointer:coarse)').matches && screen.width && screen.height;
-  return touch ? Math.max(screen.width, screen.height) : innerWidth;
+  // iPad (même avec un clavier à pavé tactile) : l'app occupe tout l'écran → largeur de l'écran
+  // à l'horizontale ; dans une fenêtre réduite (Split View, Stage Manager) → largeur de la fenêtre.
+  const touch = navigator.maxTouchPoints > 1 && screen.width && screen.height;
+  if (!touch) return innerWidth;
+  const short = Math.min(screen.width, screen.height), long = Math.max(screen.width, screen.height);
+  return innerWidth >= short - 2 ? long : innerWidth;
 }
 function syncRefWidth(){ document.documentElement.style.setProperty('--ref-w', refWidth() + 'px'); }
 syncRefWidth();
@@ -4063,7 +4377,7 @@ function toMarkdown(root){
     return [...el.children].filter(c => c.tagName === 'LI').map(li => {
       i++;
       const own = [...li.childNodes].filter(c => !(c.nodeType === 1 && /^(UL|OL)$/.test(c.tagName))).map(inl).join('').trim();
-      const mark = el.tagName === 'OL' ? `${i}.` : el.hasAttribute('data-check') ? (li.dataset.done === '1' ? '- [x]' : '- [ ]') : '-';
+      const mark = el.tagName === 'OL' ? `${i + (+el.getAttribute('start') || 1) - 1}.` : el.hasAttribute('data-check') ? (li.dataset.done === '1' ? '- [x]' : '- [ ]') : '-';
       const subs = [...li.children].filter(c => /^(UL|OL)$/.test(c.tagName)).map(s => list(s, depth + 1)).join('\n');
       return '  '.repeat(depth) + mark + ' ' + own + (subs ? '\n' + subs : '');
     }).join('\n');
@@ -4138,7 +4452,7 @@ function exportDocx(){
     if (p.font) pr += `<w:rFonts w:ascii="${xe(p.font)}" w:hAnsi="${xe(p.font)}" w:cs="${xe(p.font)}"/>`;
     if (p.b) pr += '<w:b/>'; if (p.i) pr += '<w:i/>'; if (p.s) pr += '<w:strike/>';
     if (p.color) pr += `<w:color w:val="${p.color}"/>`;
-    if (p.size) pr += `<w:sz w:val="${Math.round(p.size * 1.5)}"/>`;
+    if (p.size) pr += `<w:sz w:val="${Math.round(p.size * 2)}"/>`;
     if (p.hl) pr += `<w:shd w:val="clear" w:color="auto" w:fill="${p.hl}"/>`;
     if (p.u) pr += `<w:u w:val="${p.u}"/>`;
     if (p.va) pr += `<w:vertAlign w:val="${p.va}"/>`;
@@ -4230,8 +4544,8 @@ function exportDocx(){
     { name: 'word/styles.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="${fontName}" w:hAnsi="${fontName}" w:cs="${fontName}"/><w:sz w:val="24"/><w:lang w:val="fr-FR"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="${{ serre: 300, normal: 360, large: 440 }[prefs.lh] || 360}" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>`
       + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>${prefs.indent ? '<w:pPr><w:ind w:firstLine="567"/></w:pPr>' : ''}</w:style>`
       + [[1, 40], [2, 32], [3, 26]].map(([n, sz]) => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="${n === 1 ? 360 : 280}" w:after="120"/><w:ind w:firstLine="0"/><w:outlineLvl w:val="${n - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${sz}"/></w:rPr></w:style>`).join('')
-      + `<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="567" w:firstLine="0"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="CCCCCC"/></w:pBdr></w:pPr><w:rPr><w:i/></w:rPr></w:style>`
-      + `<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0" w:line="260" w:lineRule="auto"/><w:ind w:firstLine="0"/><w:shd w:val="clear" w:color="auto" w:fill="F2F2F4"/></w:pPr><w:rPr><w:rFonts w:ascii="Menlo" w:hAnsi="Menlo"/><w:sz w:val="19"/></w:rPr></w:style>`
+      + `<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="CCCCCC"/></w:pBdr><w:ind w:left="567" w:firstLine="0"/></w:pPr><w:rPr><w:i/></w:rPr></w:style>`
+      + `<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:pPr><w:shd w:val="clear" w:color="auto" w:fill="F2F2F4"/><w:spacing w:after="0" w:line="260" w:lineRule="auto"/><w:ind w:firstLine="0"/></w:pPr><w:rPr><w:rFonts w:ascii="Menlo" w:hAnsi="Menlo"/><w:sz w:val="19"/></w:rPr></w:style>`
       + `<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="60"/><w:ind w:firstLine="0"/></w:pPr></w:style>`
       + `<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="1F5FD1"/><w:u w:val="single"/></w:rPr></w:style>`
       + `<w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style></w:styles>` },
@@ -4253,7 +4567,7 @@ function exportDocx(){
 function exportBackup(){
   save();
   const data = { app: window.plumeStandalone ? 'World' : 'Plume', format: 1, date: new Date().toISOString(),
-    docs: docs.map(d => ({ title: d.title, goal: d.goal || 0, html: store.get('plume-doc:' + d.id) || '' })) };
+    docs: docs.map(d => ({ id: d.id, title: d.title, goal: d.goal || 0, noCheck: d.noCheck ? 1 : 0, html: store.get('plume-doc:' + d.id) || '' })) };
   const day = new Date().toISOString().slice(0, 10);
   deliver([new File([JSON.stringify(data)], `Sauvegarde ${data.app} ${day}.json`, { type: 'application/json' })]);
 }
@@ -4264,10 +4578,16 @@ function importBackup(f){
     const list = Array.isArray(data?.docs) ? data.docs.filter(d => d && typeof d.html === 'string') : [];
     if (!list.length) { toast('Aucun document dans cette sauvegarde.'); return; }
     let first = null, ok = true;
+    // Chaque document garde son identifiant s'il est libre ; sinon il en reçoit un nouveau et les
+    // liens [[…]] des documents restaurés sont mis à jour.
+    const map = {};
+    for (const d of list) map[d.id || ''] = d.id && /^[a-z0-9]{4,40}$/.test(d.id) && !docs.some(x => x.id === d.id) ? d.id : newId();
     for (const d of list) {
-      const id = newId(); first = first || id;
-      docs.push({ id, title: String(d.title || 'Sans titre').slice(0, 60), goal: +d.goal || 0, updated: Date.now() });
-      ok = store.set('plume-doc:' + id, sanitize(d.html)) && ok;
+      const id = map[d.id || '']; first = first || id;
+      let html = sanitize(d.html);
+      html = html.replace(/href="#doc:([a-z0-9]{4,40})"/g, (m, old) => map[old] ? `href="#doc:${map[old]}"` : m);
+      const nd = { id, title: String(d.title || 'Sans titre').slice(0, 60), goal: +d.goal || 0, updated: Date.now() }; if (d.noCheck) nd.noCheck = true;
+      if (store.set('plume-doc:' + id, html)) docs.push(nd); else ok = false;
     }
     saveDocs(); openDoc(first);
     toast(ok ? `${list.length} document${list.length > 1 ? 's' : ''} restauré${list.length > 1 ? 's' : ''} dans de nouveaux onglets` : "Mémoire pleine : certains documents n'ont pas pu être restaurés.");
@@ -4738,7 +5058,9 @@ function toggleChecklist(){
   restore();
   let ul = anchorEl()?.closest('ul');
   if (ul && ul.hasAttribute('data-check')) { ul.removeAttribute('data-check'); ul.querySelectorAll(':scope > li[data-done]').forEach(li => li.removeAttribute('data-done')); changed(); return; }
-  if (!ul) { toggleList('ul'); ul = anchorEl()?.closest('ul'); }
+  const s = getSelection(), r = s.rangeCount ? s.getRangeAt(0) : null;
+  const spans = r && [...editor.children].filter(el => r.intersectsNode(el));
+  if (!ul || (spans && spans.some(el => !/^(UL|OL)$/.test(el.tagName)))) { toggleList('ul'); ul = anchorEl()?.closest('ul'); }
   if (ul) { ul.setAttribute('data-check', ''); changed(); }
 }
 // Cocher : toucher le rond à gauche d'une tâche.
@@ -4763,8 +5085,18 @@ function insertTable(rows = 3, cols = 3){
 }
 function insertRule(){ const hr = document.createElement('hr'); const [h] = insertBlocks(hr); caretIn(h.nextElementSibling); changed(); }
 function insertCodeBlock(){
+  restore();
   const el = topBlock();
-  if (el && el.tagName === 'P' && el.textContent.trim()) { setBlock('pre'); return; }
+  // Dans un bloc de code : il redevient du texte.
+  if (el && el.tagName === 'PRE') { setBlock('text'); return; }
+  const s = getSelection(), r = s.rangeCount ? s.getRangeAt(0) : null;
+  const tops = r ? [...editor.children].filter(b => r.intersectsNode(b) && /^(P|H1|H2|H3|BLOCKQUOTE)$/.test(b.tagName)) : [];
+  if (tops.length > 1) {
+    // Plusieurs paragraphes : un seul bloc de code, une ligne par paragraphe.
+    const pre = document.createElement('pre'); pre.textContent = tops.map(b => b.innerText.replace(/\n$/, '')).join('\n');
+    tops[0].before(pre); tops.forEach(b => b.remove()); caretIn(pre); changed(); return;
+  }
+  if (el && /^(P|H1|H2|H3|BLOCKQUOTE)$/.test(el.tagName) && el.textContent.trim()) { setBlock('pre'); return; }
   const pre = document.createElement('pre'); pre.append(document.createElement('br')); insertBlocks(pre); caretIn(pre); changed();
 }
 // Dans un bloc de code, Entrée va à la ligne ; deux Entrée sur une ligne vide à la fin en sortent.
@@ -4974,7 +5306,7 @@ async function docxToHTML(buf){
   const rels = {}, relDoc = await xml('word/_rels/document.xml.rels');
   relDoc?.querySelectorAll('Relationship').forEach(r => rels[r.getAttribute('Id')] = { t: r.getAttribute('Target'), ext: r.getAttribute('TargetMode') === 'External' });
   // Styles : quels identifiants sont des titres, une citation, et leur famille de polices
-  const styles = {}, styleNum = {}, stDoc = await xml('word/styles.xml');
+  const styles = {}, styleNum = {}, styleRun = {}, stDoc = await xml('word/styles.xml');
   if (stDoc) for (const st of stDoc.getElementsByTagNameNS('*', 'style')) {
     const id = st.getAttribute('w:styleId'), name = (st.getElementsByTagNameNS('*', 'name')[0]?.getAttribute('w:val') || '').toLowerCase();
     const lvl = st.getElementsByTagNameNS('*', 'outlineLvl')[0]?.getAttribute('w:val');
@@ -4988,7 +5320,12 @@ async function docxToHTML(buf){
     // Listes définies par le style (« List Bullet », « List Number »…)
     const snp = st.getElementsByTagNameNS('*', 'numPr')[0];
     const sn = snp?.getElementsByTagNameNS('*', 'numId')[0]?.getAttribute('w:val');
-    if (sn) styleNum[id] = { numId: sn, ilvl: +(snp.getElementsByTagNameNS('*', 'ilvl')[0]?.getAttribute('w:val') || 0) };
+    // Gras, italique, souligné, couleur définis par le style (« Strong », « Emphasis »…)
+    const srp = [...st.children].find(c => c.localName === 'rPr');
+    if (srp) { const g = n => { const e = [...srp.children].find(c => c.localName === n); if (!e) return null; const v = e.getAttribute('w:val'); return v === null ? true : !/^(0|false|none)$/.test(v) && v; };
+      styleRun[id] = { b: g('b'), i: g('i'), u: g('u'), color: g('color') }; }
+    const ln = /^list (bullet|number) (\d)$/.exec(name);
+    if (sn) styleNum[id] = { numId: sn, ilvl: ln ? +ln[2] - 1 : +(snp.getElementsByTagNameNS('*', 'ilvl')[0]?.getAttribute('w:val') || 0) };
     else if (/^list (bullet|number)( \d)?$/.test(name)) styleNum[id] = { kind: /bullet/.test(name) ? 'ul' : 'ol', ilvl: Math.max(0, (+(name.match(/\d$/) || [1])[0]) - 1) };
   }
   // Listes : numérotées ou à puces, par niveau
@@ -5015,6 +5352,9 @@ async function docxToHTML(buf){
     }
     return imgCache[path];
   };
+  let curPStyle = null, footN = 0; const footOut = [];
+  const fnDoc = await xml('word/footnotes.xml'), fnText = {};
+  if (fnDoc) for (const f of fnDoc.getElementsByTagNameNS('*', 'footnote')) fnText[f.getAttribute('w:id')] = [...f.getElementsByTagNameNS('*', 't')].map(t => t.textContent).join('').trim();
   const runHTML = async (r, deleted) => {
     const pr = kid(r, 'rPr');
     let inner = '';
@@ -5022,21 +5362,27 @@ async function docxToHTML(buf){
       if (c.localName === 't' || (deleted && c.localName === 'delText')) inner += esc(c.textContent);
       else if (c.localName === 'tab') inner += ' ';
       else if (c.localName === 'br' || c.localName === 'cr') inner += '<br>';
+      else if (c.localName === 'noBreakHyphen') inner += '\u2011';
+      else if (c.localName === 'softHyphen') inner += '\u00AD';
+      else if (c.localName === 'footnoteReference') { const t = fnText[c.getAttribute('w:id')]; if (t) { footN++; footOut.push(t); inner += `<sup>${footN}</sup>`; } }
       else if (c.localName === 'drawing' || c.localName === 'pict') {
         const blip = c.getElementsByTagNameNS('*', 'blip')[0] || c.getElementsByTagNameNS('*', 'imagedata')[0];
         const rid = blip && (blip.getAttribute('r:embed') || blip.getAttribute('r:id'));
         const src = rid && await imageSrc(rid); if (src) inner += `<img src="${src}" data-w="l">`;
       }
     }
-    if (!inner || !pr) return inner;
-    const on = n => { const v = val(pr, n); return v !== null && !/^(0|false|none)$/.test(v); };
+    // Le style du paragraphe compte, sauf pour un titre ou une citation (déjà mis en forme comme tels).
+    const base = Object.assign({}, styles[curPStyle] ? {} : styleRun[curPStyle] || {}, pr ? styleRun[val(pr, 'rStyle')] || {} : {});
+    if (!inner || (!pr && !base.b && !base.i && !base.u)) return inner;
+    const on = n => { const v = pr ? val(pr, n) : null; return v !== null ? !/^(0|false|none)$/.test(v) : !!base[n]; };
     if (on('b')) inner = `<b>${inner}</b>`;
     if (on('i')) inner = `<i>${inner}</i>`;
     if (on('strike') || on('dstrike')) inner = `<s>${inner}</s>`;
     const va = val(pr, 'vertAlign'); if (va === 'subscript') inner = `<sub>${inner}</sub>`; if (va === 'superscript') inner = `<sup>${inner}</sup>`;
     const at = [];
-    const u = val(pr, 'u'); if (u && u !== 'none') at.push(`data-u="${DOCX_U[u] || 'simple'}"`);
-    const col = val(pr, 'color'), cn = col && col !== 'auto' && !/^0{6}$/.test(col) ? nearestName(col, LIGHT_C) : null; if (cn) at.push(`data-c="${cn}"`);
+    const u = (pr && val(pr, 'u')) || (base.u === true ? 'single' : base.u); if (u && u !== 'none') at.push(`data-u="${DOCX_U[u] || 'simple'}"`);
+    if (!pr) return at.length ? `<span ${at.join(' ')}>${inner}</span>` : inner;
+    const col = val(pr, 'color') || (typeof base.color === 'string' ? base.color : null), cn = col && col !== 'auto' && !/^0{6}$/.test(col) ? nearestName(col, LIGHT_C) : null; if (cn) at.push(`data-c="${cn}"`);
     const hl = val(pr, 'highlight'), shd = kid(pr, 'shd')?.getAttribute('w:fill');
     const hn = hl && hl !== 'none' ? DOCX_HL[hl] || 'jaune' : shd && shd !== 'auto' && !/^f{6}$/i.test(shd) ? nearestName(shd, LIGHT_H) : null;
     if (hn) at.push(`data-h="${hn} plein"`);
@@ -5057,9 +5403,10 @@ async function docxToHTML(buf){
     for (const c of p.children) {
       if (c.localName === 'commentRangeStart') { openCmt.add(c.getAttribute('w:id')); continue; }
       if (c.localName === 'commentRangeEnd') { openCmt.delete(c.getAttribute('w:id')); continue; }
-      if (c.localName === 'ins' || c.localName === 'del') {
-        let inner = ''; for (const r of c.children) if (r.localName === 'r') inner += await runHTML(r, c.localName === 'del');
-        if (inner) { const a = c.getAttribute('w:author') || 'Word', dt = Date.parse(c.getAttribute('w:date') || '') || ''; h += withCmt(`<${c.localName} data-rv="r${newId()}" data-a="${esc(a)}" data-t="${dt}" data-ac="${rvAuthorIdx(a)}">${inner}</${c.localName}>`); }
+      if (/^(ins|del|moveTo|moveFrom)$/.test(c.localName)) {
+        const kind = /^(ins|moveTo)$/.test(c.localName) ? 'ins' : 'del';
+        let inner = ''; for (const r of c.children) inner += r.localName === 'r' ? await runHTML(r, kind === 'del') : await inlineHTML(r);
+        if (inner) { const a = c.getAttribute('w:author') || 'Word', dt = Date.parse(c.getAttribute('w:date') || '') || ''; h += withCmt(`<${kind} data-rv="r${newId()}" data-a="${esc(a)}" data-t="${dt}" data-ac="${rvAuthorIdx(a)}">${inner}</${kind}>`); }
         continue;
       }
       if (c.localName === 'r') h += withCmt(await runHTML(c));
@@ -5073,8 +5420,11 @@ async function docxToHTML(buf){
   };
   const out = []; let list = null; // pile des listes ouvertes : [{tag, lvl}]
   const closeLists = () => { while (list && list.length) out.push(`</li></${list.pop().tag}>`); list = null; };
+  const counts = {}; // numéros déjà utilisés par liste Word (pour reprendre 2, 3… après une coupure)
   const paraHTML = async p => {
-    const pp = kid(p, 'pPr'), sid = val(pp, 'pStyle'), body = await inlineHTML(p);
+    const pp = kid(p, 'pPr'), sid = val(pp, 'pStyle'); curPStyle = sid; const body = await inlineHTML(p);
+    // Paragraphe vide avec une bordure : c'est une ligne de séparation.
+    if (!body && pp && kid(pp, 'pBdr') && !kid(pp, 'numPr')) { closeLists(); out.push('<hr>'); return; }
     const jc = val(pp, 'jc'), align = { center:'center', right:'right', end:'right', both:'justify', distribute:'justify' }[jc];
     const numPr = pp && kid(pp, 'numPr'), sn = styleNum[sid] || {};
     const numId = val(numPr, 'numId') || sn.numId, ilvl = +(val(numPr, 'ilvl') ?? sn.ilvl ?? 0) || 0;
@@ -5083,8 +5433,12 @@ async function docxToHTML(buf){
       list = list || [];
       while (list.length > ilvl + 1) out.push(`</li></${list.pop().tag}>`); // remonter d'un ou plusieurs niveaux
       if (list.length === ilvl + 1 && (list[ilvl].tag !== tag || list[ilvl].num !== numId)) out.push(`</li></${list.pop().tag}>`); // autre liste
+      const ck = numId + ':' + ilvl; counts[ck] = (counts[ck] || 0) + 1;
       if (list.length === ilvl + 1) out.push(`</li><li>${body || '<br>'}`);
-      else { while (list.length < ilvl + 1) { list.push({ tag, num: numId }); out.push(`<${tag}><li>`); } out.push(body || '<br>'); }
+      else {
+        while (list.length < ilvl + 1) { const lv = list.length, st = lv === ilvl && tag === 'ol' && counts[ck] > 1 ? ` start="${counts[ck]}"` : ''; list.push({ tag, num: numId }); out.push(`<${tag}${st}><li>`); }
+        out.push(body || '<br>');
+      }
       return;
     }
     closeLists();
@@ -5097,7 +5451,9 @@ async function docxToHTML(buf){
       if (tr.localName !== 'tr') continue; h += '<tr>';
       for (const tc of tr.children) {
         if (tc.localName !== 'tc') continue;
-        const parts = []; for (const p of tc.children) if (p.localName === 'p') parts.push(await inlineHTML(p));
+        // Paragraphes de la case, y compris ceux d'un tableau imbriqué ou d'un bloc de contenu.
+        const parts = [], walk = async el => { for (const c of el.children) { if (c.localName === 'p') { curPStyle = val(kid(c, 'pPr'), 'pStyle'); parts.push(await inlineHTML(c)); } else if (/^(tbl|tr|tc|sdt|sdtContent)$/.test(c.localName)) await walk(c); } };
+        await walk(tc);
         h += `<td>${parts.filter(Boolean).join('<br>') || '<br>'}</td>`;
       }
       h += '</tr>';
@@ -5111,10 +5467,13 @@ async function docxToHTML(buf){
     else if (el.localName === 'sdt') { const c = kid(el, 'sdtContent'); if (c) for (const p of c.children) if (p.localName === 'p') await paraHTML(p); }
   }
   closeLists();
+  // Notes de bas de page : rassemblées à la fin, numérotées comme dans le texte.
+  if (footOut.length) out.push('<h3>Notes</h3><ol>' + footOut.map(t => `<li>${esc(t)}</li>`).join('') + '</ol>');
   // Finitions : blocs de code consécutifs réunis, cases ☐ ☑ en listes de tâches, $…$ en formules,
   // liens sans la couleur ni le soulignement imposés par Word.
   const box = document.createElement('div'); box.innerHTML = out.join('');
   box.querySelectorAll('pre').forEach(pre => { let n; while ((n = pre.nextElementSibling) && n.tagName === 'PRE') { pre.append('\n', ...n.childNodes); n.remove(); } });
+  box.querySelectorAll('sup > sup:only-child').forEach(x => { if (x.parentElement.childNodes.length === 1) x.parentElement.replaceWith(x); });
   box.querySelectorAll('ul').forEach(ul => {
     const lis = [...ul.children].filter(li => li.tagName === 'LI');
     if (!lis.length || !lis.every(li => /^[☐☑☒]\s?/.test(li.textContent))) return;
@@ -5155,18 +5514,18 @@ function setBlock(tag){
     if (/^(UL|OL)$/.test(el.tagName)) {
       // Dans une liste : chaque élément sélectionné devient un paragraphe du style demandé, hors de la liste.
       const lis = [...el.querySelectorAll(':scope > li')].filter(li => r.intersectsNode(li));
-      for (const li of lis) {
-        const nb = document.createElement(tag === 'text' ? 'p' : tag); nb.append(...[...li.childNodes].filter(n => !(n.nodeType === 1 && /^(UL|OL)$/.test(n.tagName))));
-        if (!nb.firstChild) nb.append(document.createElement('br'));
-        heads.push(nb);
-        // découpe la liste autour de l'élément
+      if (lis.length) {
         const after = document.createElement(el.tagName); if (el.hasAttribute('data-check')) after.setAttribute('data-check', '');
-        let n = li.nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
-        const sub = li.querySelector(':scope > ul, :scope > ol');
-        li.remove();
-        el.after(nb); if (sub) nb.after(sub);
-        (sub || nb).after(after);
-        if (!after.children.length) after.remove();
+        let n = lis[lis.length - 1].nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
+        let cur = el;
+        for (const li of lis) {
+          const subs = [...li.children].filter(c => /^(UL|OL)$/.test(c.tagName));
+          const nb = document.createElement(tag === 'text' ? 'p' : tag); nb.append(...[...li.childNodes].filter(c => !subs.includes(c)));
+          if (!nb.firstChild) nb.append(document.createElement('br'));
+          heads.push(nb); li.remove(); cur.after(nb); cur = nb;
+          for (const sub of subs) { cur.after(sub); cur = sub; }
+        }
+        if (after.children.length) cur.after(after);
         done = true;
       }
       if (!el.children.length) el.remove();
@@ -5175,6 +5534,12 @@ function setBlock(tag){
     if (!/^(P|H1|H2|H3|BLOCKQUOTE|PRE|DIV)$/.test(el.tagName)) continue;
     const want = tag === 'text' ? 'P' : tag.toUpperCase();
     if (el.tagName === want) { heads.push(el); continue; }
+    if (el.tagName === 'PRE' && want !== 'PRE') {
+      const lines = el.innerText.replace(/\n$/, '').split('\n');
+      let last = el;
+      for (const line of lines) { const b = document.createElement(want); if (line) b.textContent = line; else b.append(document.createElement('br')); last.after(b); last = b; heads.push(b); }
+      el.remove(); done = true; lastNew = last; continue;
+    }
     const nb = document.createElement(want);
     const align = el.style.textAlign; if (align) nb.style.textAlign = align;
     if (el.dataset.fold === '1' && /^H[123]$/.test(want)) nb.dataset.fold = '1';
@@ -5222,7 +5587,14 @@ function docPreview(html){
   }
   return out || '<i>Vide</i>';
 }
-const wordsOf = html => ((new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html').body.textContent || '').match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+const textOf = html => {
+  const b = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html').body;
+  b.querySelectorAll('.math,del[data-rv],.ai-sg ins').forEach(x => x.remove());
+  b.querySelectorAll('br').forEach(x => x.replaceWith(' '));
+  b.querySelectorAll('p,h1,h2,h3,li,blockquote,pre,td,th,div').forEach(x => x.append(' '));
+  return b.textContent || '';
+};
+const wordsOf = html => (textOf(html).match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
 const libDate = t => t ? verDate(t) : '';
 function openLibrary(){
   closePop(); hideSelbar(); if (activeId) save();
@@ -5234,7 +5606,7 @@ function renderLibrary(){
   if (library.hidden) return;
   const q = libQ.value.trim().toLowerCase();
   const list = [...docs].sort((a, b) => (b.updated || 0) - (a.updated || 0)).map(d => ({ d, html: store.get('plume-doc:' + d.id) || '' }))
-    .filter(x => !q || x.d.title.toLowerCase().includes(q) || x.html.replace(/<[^>]+>/g, ' ').toLowerCase().includes(q));
+    .filter(x => !q || x.d.title.toLowerCase().includes(q) || textOf(x.html).toLowerCase().includes(q));
   const trash = trashList();
   const card = x => `<div class="lib-card${x.d.id === activeId ? ' on' : ''}" data-id="${esc(x.d.id)}">
       <button class="lib-open" data-open="${esc(x.d.id)}" aria-label="Ouvrir ${esc(x.d.title)}"><div class="lib-page">${docPreview(x.html)}</div></button>
@@ -5261,9 +5633,7 @@ document.addEventListener('keydown', e => {
 function trashDoc(id){
   const i = docs.findIndex(d => d.id === id); if (i < 0) return;
   if (id === activeId) save();
-  const trash = trashList();
-  trash.unshift({ title: docs[i].title, html: store.get('plume-doc:' + id) || '', at: Date.now(), goal: docs[i].goal || 0 });
-  store.set('plume-trash', JSON.stringify(trash.slice(0, 30)));
+  if (!pushTrash(trashEntry(docs[i], store.get('plume-doc:' + id) || ''))) return false;
   try { localStorage.removeItem('plume-doc:' + id); } catch(e) {}
   docs.splice(i, 1);
   if (!docs.length) { activeId = null; newDoc(); }
@@ -5278,11 +5648,17 @@ libBody.addEventListener('click', e => {
   const r = e.target.closest('[data-restore]');
   if (r) {
     const trash = trashList(), t = trash.splice(+r.dataset.restore, 1)[0]; store.set('plume-trash', JSON.stringify(trash));
-    if (t) { const id = newId(); docs.push({ id, title: t.title || 'Sans titre', goal: t.goal || 0, updated: Date.now() }); store.set('plume-doc:' + id, t.html || '<p><br></p>'); saveDocs(); toast('Document récupéré'); }
+    if (t) {
+      // Le document retrouve son identifiant : les liens [[…]] vers lui et ses versions remarchent.
+      const id = t.id && /^[a-z0-9]{4,40}$/.test(t.id) && !docs.some(d => d.id === t.id) && !store.get('plume-doc:' + t.id) ? t.id : newId();
+      const d = { id, title: t.title || 'Sans titre', goal: t.goal || 0, updated: Date.now() }; if (t.noCheck) d.noCheck = true;
+      if (!store.set('plume-doc:' + id, t.html || '<p><br></p>')) { trash.splice(+r.dataset.restore, 0, t); store.set('plume-trash', JSON.stringify(trash)); toast('Mémoire pleine : impossible de récupérer ce document.'); renderLibrary(); return; }
+      docs.push(d); saveDocs(); toast('Document récupéré');
+    }
     renderLibrary(); return;
   }
   const pg = e.target.closest('[data-purge]');
-  if (pg) { const trash = trashList(); trash.splice(+pg.dataset.purge, 1); store.set('plume-trash', JSON.stringify(trash)); renderLibrary(); return; }
+  if (pg) { const trash = trashList(), t = trash.splice(+pg.dataset.purge, 1)[0]; store.set('plume-trash', JSON.stringify(trash)); if (t?.id && !docs.some(d => d.id === t.id)) try { localStorage.removeItem('plume-ver:' + t.id); } catch(e) {} renderLibrary(); return; }
   const more = e.target.closest('[data-more]');
   if (more) {
     const id = more.dataset.more, d = docs.find(x => x.id === id); if (!d) return;
@@ -5296,7 +5672,7 @@ libBody.addEventListener('click', e => {
         if (m === 'open') { closeLibrary(); openDoc(id); }
         if (m === 'dup') { if (id === activeId) save(); const nid = newId(); docs.push({ id: nid, title: d.title, goal: d.goal || 0, updated: Date.now() }); store.set('plume-doc:' + nid, store.get('plume-doc:' + id) || ''); saveDocs(); renderLibrary(); toast('Document dupliqué'); }
         if (m === 'file') { if (id === activeId) save(); const box = document.createElement('div'); box.innerHTML = store.get('plume-doc:' + id) || ''; box.querySelectorAll('.math:empty').forEach(x => x.textContent = x.dataset.display === '1' ? `$$${x.dataset.tex}$$` : `$${x.dataset.tex}$`); deliver([fileFor(box.innerHTML, d.title)]); }
-        if (m === 'del') { trashDoc(id); renderLibrary(); toast('Document supprimé. Il reste récupérable en bas de cet écran.'); }
+        if (m === 'del') { if (trashDoc(id) !== false) toast('Document supprimé. Il reste récupérable en bas de cet écran.'); renderLibrary(); }
       });
   }
 });
@@ -5560,24 +5936,41 @@ function toggleList(kind){
     // Déjà ce type de liste : les éléments touchés redeviennent des paragraphes.
     for (const l of lists) {
       const lis = [...l.children].filter(li => li.tagName === 'LI' && r.intersectsNode(li));
+      if (!lis.length) continue;
+      // Les éléments qui suivent le dernier élément touché restent dans une liste à part, après les paragraphes.
+      const after = document.createElement(l.tagName);
+      let n = lis[lis.length - 1].nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
+      let cur = l;
       for (const li of lis) {
-        const pEl = document.createElement('p'); pEl.append(...[...li.childNodes].filter(n => !(n.nodeType === 1 && /^(UL|OL)$/.test(n.tagName))));
+        const subs = [...li.children].filter(c => /^(UL|OL)$/.test(c.tagName));
+        const pEl = document.createElement('p'); pEl.append(...[...li.childNodes].filter(c => !subs.includes(c)));
         if (!pEl.firstChild) pEl.append(document.createElement('br'));
-        const after = document.createElement(l.tagName); let n = li.nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
-        li.remove(); l.after(pEl); if (after.children.length) pEl.after(after);
+        li.remove(); cur.after(pEl); cur = pEl;
+        for (const sub of subs) { cur.after(sub); cur = sub; } // une sous-liste n'est jamais perdue
       }
+      if (after.children.length) cur.after(after);
       if (!l.children.length) l.remove();
     }
   } else {
     // Sinon : tout devient une seule liste du type demandé.
-    const list = document.createElement(TAG);
+    let list = document.createElement(TAG);
     tops[0].before(list);
     for (const el of tops) {
       if (/^(UL|OL)$/.test(el.tagName)) { list.append(...el.children); el.remove(); continue; }
-      if (!/^(P|H1|H2|H3|BLOCKQUOTE|DIV|PRE)$/.test(el.tagName)) { list.after(el); continue; }
+      if (!/^(P|H1|H2|H3|BLOCKQUOTE|DIV|PRE)$/.test(el.tagName)) {
+        // Tableau, séparateur… : il reste à sa place ; la suite va dans une nouvelle liste.
+        if (!list.children.length) list.remove();
+        list = document.createElement(TAG); el.after(list); continue;
+      }
+      if (el.tagName === 'PRE') {
+        for (const line of el.innerText.replace(/\n$/, '').split('\n')) { const li = document.createElement('li'); if (line) li.textContent = line; else li.append(document.createElement('br')); list.append(li); }
+        el.remove(); continue;
+      }
       const li = document.createElement('li'); li.append(...el.childNodes); if (!li.firstChild) li.append(document.createElement('br'));
       list.append(li); el.remove();
     }
+    if (!list.children.length) { const prev = list.previousElementSibling; list.remove(); list = prev && prev.tagName === TAG ? prev : null; }
+    if (!list) { if (keep) setCaretOffsets(keep); changed(); return; }
     // Deux listes du même type côte à côte n'en font qu'une.
     for (const sib of [list.previousElementSibling, list.nextElementSibling]) {
       if (sib && sib.tagName === TAG && !sib.hasAttribute('data-check')) { if (sib === list.previousElementSibling) { sib.append(...list.children); list.remove(); } else { list.append(...sib.children); sib.remove(); } break; }
@@ -5595,13 +5988,15 @@ function toggleList(kind){
 const wlPop = document.createElement('div'); wlPop.className = 'wl-pop'; wlPop.hidden = true; wlPop.setAttribute('role', 'listbox'); document.body.append(wlPop);
 let wl = null; // { node, start, q, items, i }
 const fold2 = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Un titre trop long est raccourci (« … ») : « [[titre complet]] » doit quand même le trouver.
+const wlSame = (d, f) => { const t = fold2(d.title); return t === f || (t.endsWith('…') && t.length > 8 && f.startsWith(t.slice(0, -1))); };
 function wlMatches(q){
   const f = fold2(q.trim());
   const list = docs.filter(d => d.id !== activeId).map(d => ({ d, t: fold2(d.title) }))
     .filter(x => !f || x.t.includes(f))
     .sort((a, b) => (a.t.startsWith(f) ? 0 : 1) - (b.t.startsWith(f) ? 0 : 1) || (b.d.updated || 0) - (a.d.updated || 0))
     .slice(0, 8).map(x => ({ id: x.d.id, title: x.d.title }));
-  if (q.trim() && !docs.some(d => fold2(d.title) === f)) list.push({ create: true, title: q.trim() });
+  if (q.trim() && !docs.some(d => wlSame(d, f))) list.push({ create: true, title: q.trim() });
   return list;
 }
 function wlRender(){
@@ -5655,7 +6050,7 @@ editor.addEventListener('input', e => {
     if (n && n.nodeType === 3 && !n.parentElement.closest('a,pre,code')) {
       const m = /\[\[([^\[\]\n]{1,60})\]\]$/.exec(n.data.slice(0, s.anchorOffset));
       if (m) {
-        const f = fold2(m[1].trim()), d = docs.find(x => fold2(x.title) === f);
+        const f = fold2(m[1].trim()), d = docs.find(x => x.id !== activeId && wlSame(x, f));
         wl = { node: n, start: s.anchorOffset - m[0].length, q: m[1], i: 0, items: [] };
         wlPick(d ? { id: d.id, title: d.title } : { create: true, title: m[1].trim() }); return;
       }
@@ -5817,6 +6212,60 @@ function applyChecks(refresh){
   new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.classList.contains('chips')) setup(n); scan(n); } })
     .observe(document.body, { childList: true, subtree: true });
   scan(document);
+}
+
+
+/* ---------- Verre liquide : capsules de boutons et éclat qui suit le doigt ---------- */
+{
+  // Regroupe les boutons de la barre (entre deux séparateurs) dans des capsules de verre.
+  const group = box => {
+    let g = null;
+    for (const el of [...box.children]) {
+      if (el.classList.contains('sep') || el.classList.contains('tb-group')) { g = null; continue; }
+      if (el.id === 'status') { g = null; continue; }
+      if (!g) { g = document.createElement('span'); g.className = 'tb-group'; el.before(g); }
+      g.append(el);
+    }
+  };
+  group($('.tools')); group($('.meta'));
+  // Une capsule dont tous les boutons sont cachés disparaît.
+  const tidy = () => document.querySelectorAll('.tb-group').forEach(g => g.hidden = ![...g.children].some(c => getComputedStyle(c).display !== 'none' && !c.hidden));
+  tidy(); addEventListener('resize', tidy); setTimeout(tidy, 500);
+  // Éclat : la lumière se pose là où est le doigt ou la souris.
+  let raf = 0, last = null;
+  document.addEventListener('pointermove', e => {
+    last = e; if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0; const el = last.target.closest && last.target.closest('.pop, .tb-group');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (last.clientX - r.left) + 'px'); el.style.setProperty('--my', (last.clientY - r.top) + 'px');
+    });
+  }, { passive: true });
+  document.addEventListener('pointerout', e => { const el = e.target.closest && e.target.closest('.pop, .tb-group'); if (el && !el.contains(e.relatedTarget)) { el.style.removeProperty('--mx'); el.style.removeProperty('--my'); } }, { passive: true });
+}
+
+
+/* ---------- Copier : la mise en forme d'un passage copié en partie est gardée ----------
+   (copier « blue » au milieu d'un mot bleu donnait un mot noir une fois collé) */
+{
+  const FMT = '[data-c],[data-h],[data-u],[data-f],[data-s],b,i,s,u,sub,sup,strong,em,a';
+  const onCopy = e => {
+    const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return;
+    const r = sel.getRangeAt(0); if (!editor.contains(r.commonAncestorContainer)) return;
+    const box = document.createElement('div'); box.append(r.cloneContents());
+    let a = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
+    while (a && a !== editor && !a.matches(BLOCKS)) {
+      if (a.matches(FMT)) { const w = a.cloneNode(false); w.append(...box.childNodes); box.append(w); }
+      a = a.parentElement;
+    }
+    box.querySelectorAll('.ai-sg,.ai-block,.ai-tag').forEach(x => x.remove());
+    e.clipboardData.setData('text/html', box.innerHTML);
+    e.clipboardData.setData('text/plain', sel.toString());
+    e.preventDefault();
+    if (e.type === 'cut') document.execCommand('delete');
+  };
+  editor.addEventListener('copy', onCopy); editor.addEventListener('cut', onCopy);
 }
 
 /* ---------- Démarrage ---------- */
