@@ -1384,6 +1384,23 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 .bar-toggle{opacity:.28!important;width:30px!important;height:30px!important;background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;color:var(--ui)}
 .bar-toggle:hover,.bar-toggle:focus-visible{opacity:.8!important;background:var(--fill)!important}
 .bar-toggle svg{width:15px!important;height:15px!important}
+
+/* ================= Trois niveaux de transparence : Transparente, Intermédiaire, Opaque =================
+   Intermédiaire : la couleur reste pleine sur le haut de la barre et ne s'éclaircit qu'en bas ;
+   le flou est un peu plus fort, les menus plus couvrants. */
+:root[data-glass="mi"]{--menu-top:color-mix(in srgb,var(--bg) 80%,transparent);--menu-bot:color-mix(in srgb,var(--bg) 48%,transparent)}
+:root[data-glass="mi"] .bar::after{background:linear-gradient(to bottom,var(--barc) 0%,var(--barc) 45%,color-mix(in srgb,var(--barc) 82%,transparent) 72%,color-mix(in srgb,var(--barc) 50%,transparent) 90%,transparent 100%)!important}
+:root[data-glass="mi"] .bar::before{inset:0 0 -26px 0;-webkit-backdrop-filter:blur(14px) saturate(170%);backdrop-filter:blur(14px) saturate(170%);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 60%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,#000 60%,transparent 100%)}
+:root[data-glass="mi"] :is(.pop,.selbar,.findbar,.tablebar,.ai-dock,.style-pill,.paint-pill,.toast){-webkit-backdrop-filter:blur(14px) saturate(170%);backdrop-filter:blur(14px) saturate(170%)}
+
+/* ================= Zone de l'heure : de la couleur de la barre, toujours =================
+   Avant, iOS la colorait au chargement puis la repeignait en blanc quand on masquait et
+   réaffichait la barre. Elle prend maintenant la couleur de la barre (et celle du fond quand
+   la barre est masquée), et iOS reçoit la même couleur. */
+.bar{box-shadow:0 -200px 0 0 var(--barc)!important;
+  background:linear-gradient(to bottom,var(--barc) 0,var(--barc) env(safe-area-inset-top,0px),transparent env(safe-area-inset-top,0px))!important}
+:root[data-glass="opaque"] .bar{box-shadow:0 -200px 0 0 var(--barc)!important}
 </style>
 
 <header class="bar">
@@ -3210,7 +3227,7 @@ function setBarHidden(h){
   const label = h ? "Afficher la barre d'outils" : "Masquer la barre d'outils";
   barToggle.title = label; barToggle.setAttribute('aria-label', label);
   if (h) closePop();
-  syncBarHeight();
+  syncBarHeight(); syncStatusColor();
 }
 barToggle.addEventListener('mousedown', e => e.preventDefault()); // garder le curseur dans le texte
 barToggle.addEventListener('click', () => setBarHidden(!document.body.classList.contains('bar-hidden')));
@@ -3624,7 +3641,7 @@ function applyPrefs(){
   r.setProperty('--doc-ps', { mini:'.12em', serre:'.4em', normal:'.85em', large:'.85em' }[prefs.ps] || '.4em');
   editor.classList.toggle('indent', !!prefs.indent);
   editor.spellcheck = !!prefs.spell;
-  document.documentElement.dataset.glass = prefs.glass === 'opaque' ? 'opaque' : 'verre';
+  document.documentElement.dataset.glass = ['opaque','mi'].includes(prefs.glass) ? prefs.glass : 'verre';
   document.documentElement.dataset.barc = prefs.barColor || 'aucune';
   syncStatusColor();
 }
@@ -3632,13 +3649,14 @@ function applyPrefs(){
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
 function syncStatusColor(){
   requestAnimationFrame(() => {
-    // La zone de l'heure reste de la couleur du fond (blanc opaque en clair, noir en sombre).
+    // La zone de l'heure prend la couleur de la barre (celle du fond quand la barre est masquée).
     // Lue dans le thème lui-même : pendant une transition, le fond peut valoir « transparent »,
     // qu'iOS affiche en noir (en haut comme en bas de l'écran).
-    const c = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+    const cs = getComputedStyle(document.documentElement), bg = cs.getPropertyValue('--bg').trim() || '#ffffff';
+    const c = document.body.classList.contains('bar-hidden') ? bg : (cs.getPropertyValue('--barc').trim() || bg);
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; document.head.append(m);
-    document.documentElement.style.backgroundColor = c;
+    document.documentElement.style.backgroundColor = bg;
   });
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
@@ -3720,7 +3738,7 @@ function layoutHTML(){
     ${seg('ps', { large: 'normal' }[prefs.ps] || prefs.ps || 'serre', [['mini','Serré'],['serre','Normal'],['normal','Large']])}
     <div class="hr"></div>
     <div class="mh">Barre du haut</div>
-    ${seg('glass', prefs.glass === 'opaque' ? 'opaque' : 'verre', [['verre','Transparente'],['opaque','Opaque']])}
+    ${seg('glass', ['opaque','mi'].includes(prefs.glass) ? prefs.glass : 'verre', [['verre','Transparente'],['mi','Intermédiaire'],['opaque','Opaque']])}
     <div class="barcols" role="radiogroup" aria-label="Couleur de la barre">${BAR_COLORS.map(([k, n]) => `<button class="barcol" data-bc="${k}" title="${n}" aria-label="${n}" aria-checked="${(prefs.barColor || 'aucune') === k}"></button>`).join('')}</div>
     <div class="hr"></div>
     <label class="mi mi-switch">Retrait de première ligne<input type="checkbox" class="switch" data-s="indent"${prefs.indent ? ' checked' : ''}></label>
