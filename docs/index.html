@@ -1187,6 +1187,43 @@ body.lib-open .pop{z-index:80}
 :root:not([data-glass="opaque"]) :is(.pop,.selbar,.findbar,.tablebar,.outline-side,.notes-side,.side-panel,.bar) :is(.mi,.mh,.ai-item,button,a,b,span,dt,dd,label,h2,h3,p){text-shadow:0 0 3px var(--bg),0 0 8px var(--bg),0 0 16px var(--bg)}
 
 .spark,.bar .spark,.pop .spark{text-shadow:none!important}
+
+/* Largeur de la page et taille du texte, séparées */
+.sheet{max-width:var(--page-w,618px)}
+.z-a{font-family:var(--doc-font);font-size:13px;color:var(--ui)}.z-a.big{font-size:20px}
+
+/* ================= Révision (suivi des modifications) ================= */
+#editor ins[data-rv]{text-decoration:underline;text-decoration-thickness:.09em;text-underline-offset:.16em;color:var(--rvc);background:color-mix(in srgb,var(--rvc) 8%,transparent);border-radius:2px}
+#editor del[data-rv]{text-decoration:line-through;text-decoration-thickness:.09em;color:var(--rvc);opacity:.8}
+[data-ac="0"]{--rvc:#d0312d}[data-ac="1"]{--rvc:#1f5fd1}[data-ac="2"]{--rvc:#1d7a3a}[data-ac="3"]{--rvc:#7a3cc4}[data-ac="4"]{--rvc:#d2600b}[data-ac="5"]{--rvc:#c2337a}
+:root[data-theme="dark"] [data-ac="0"]{--rvc:#ff6b6b}:root[data-theme="dark"] [data-ac="1"]{--rvc:#74abff}:root[data-theme="dark"] [data-ac="2"]{--rvc:#5fd58a}:root[data-theme="dark"] [data-ac="3"]{--rvc:#bb98ff}:root[data-theme="dark"] [data-ac="4"]{--rvc:#ffa05a}:root[data-theme="dark"] [data-ac="5"]{--rvc:#ff7cb9}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) [data-ac="0"]{--rvc:#ff6b6b}:root:not([data-theme="light"]) [data-ac="1"]{--rvc:#74abff}:root:not([data-theme="light"]) [data-ac="2"]{--rvc:#5fd58a}:root:not([data-theme="light"]) [data-ac="3"]{--rvc:#bb98ff}:root:not([data-theme="light"]) [data-ac="4"]{--rvc:#ffa05a}:root:not([data-theme="light"]) [data-ac="5"]{--rvc:#ff7cb9} }
+/* Trait dans la marge à côté des paragraphes corrigés */
+#editor > :has(ins[data-rv], del[data-rv]){box-shadow:-18px 0 0 -16px #d0312d}
+#editor.rv-final del[data-rv]{display:none}
+#editor.rv-final ins[data-rv]{text-decoration:none;color:inherit;background:none}
+#editor.rv-orig ins[data-rv]{display:none}
+#editor.rv-orig del[data-rv]{text-decoration:none;color:inherit;opacity:1}
+#editor:is(.rv-final,.rv-orig) > :has(ins[data-rv], del[data-rv]){box-shadow:none}
+#rev-btn[aria-pressed="true"]{color:#d0312d}
+.rv-who{font-size:13px;font-weight:600;color:var(--rvc)}
+.rv-sw{margin:0 -4px}
+.rv-name{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;padding:4px 2px 8px;color:var(--ui)}
+.rv-name input{flex:1;max-width:180px;height:34px;border:0;border-radius:10px;background:var(--fill);color:var(--fg);padding:0 10px;font:inherit;font-size:16px}
+.rv-acts{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 6px}
+.rv-list{display:flex;flex-direction:column;gap:2px}
+.rv-item{display:flex;align-items:flex-start;gap:8px;padding:8px 6px;border-radius:12px;cursor:pointer}
+.rv-item:hover{background:var(--fill)}
+.rv-dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--rvc);margin-top:5px}
+.rv-txt{flex:1;min-width:0;font-size:13px;color:var(--ui);line-height:1.4}
+.rv-txt b{color:var(--fg);font-weight:600}
+.rv-ex{display:block;font-family:var(--doc-font);font-size:14.5px;color:var(--fg);overflow-wrap:anywhere}
+.rv-ex.del{text-decoration:line-through;color:var(--ui)}
+.rv-b{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:var(--fill);color:var(--fg);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.rv-b svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.rv-b.ok:hover{background:#34c759;color:#fff}.rv-b.no:hover{background:#ff3b30;color:#fff}
+
+.btn.primary,.btn.primary *,.chips .mi,.seg-b{text-shadow:none!important}
 </style>
 
 <header class="bar">
@@ -1216,6 +1253,7 @@ body.lib-open .pop{z-index:80}
   <div class="meta">
     <button class="status" id="status" aria-live="polite" title="Statistiques et objectif de mots"></button>
     <button class="tb" id="find-btn" title="Rechercher et remplacer (Ctrl+F)" aria-label="Rechercher"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></button>
+    <button class="tb" id="rev-btn" title="Révision : corriger en suivant les modifications (comme Word)" aria-label="Révision" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 19.5h7"/><path d="M14.5 5.5l4 4L9 19H5v-4z"/><path d="M12.5 7.5l4 4"/></svg></button>
     <button class="tb" id="notes-btn" title="Notes (Ctrl+Alt+M pour commenter la sélection)" aria-label="Notes" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span class="count" id="notes-count"></span></button>
     <button class="tb" id="focus-btn" title="Mode concentration : un toucher pour l'activer ou le couper" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
     <button class="tb tb-chev" id="focus-more" title="Réglages de la concentration : paragraphe ou phrase, intensité" aria-label="Réglages de la concentration"><svg viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
@@ -1845,6 +1883,7 @@ function undoRedo(cmd){
   hist.busy = false;
   clearTimeout(saveT); saveT = setTimeout(save, 700);
   updateDock(); updateUndoBtns(); queueToolbar(); centerSoon();
+  if (typeof sideKind !== 'undefined' && sideKind) renderSidePanel();
 }
 // Le curseur juste avant une modification, pour y revenir en annulant.
 editor.addEventListener('beforeinput', e => {
@@ -2014,7 +2053,7 @@ editor.addEventListener('paste', e => {
 function renderMissingMath(){ editor.querySelectorAll('.math').forEach(m => { if (!m.querySelector('svg')) renderMath(m); }); }
 
 /* ---------- Nettoyage du HTML (collage, ouverture de fichier) ---------- */
-const KEEP = new Set('B STRONG I EM U S STRIKE DEL P BR H1 H2 H3 UL OL LI BLOCKQUOTE SPAN DIV SUB SUP CODE PRE HR A IMG TABLE THEAD TBODY TR TD TH'.split(' '));
+const KEEP = new Set('INS B STRONG I EM U S STRIKE DEL P BR H1 H2 H3 UL OL LI BLOCKQUOTE SPAN DIV SUB SUP CODE PRE HR A IMG TABLE THEAD TBODY TR TD TH'.split(' '));
 const DROP = new Set('SCRIPT STYLE IFRAME OBJECT EMBED SVG HEAD META LINK TITLE NOSCRIPT TEMPLATE FORM INPUT BUTTON SELECT TEXTAREA VIDEO AUDIO MJX-CONTAINER'.split(' '));
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 function sanitize(html){
@@ -2044,6 +2083,7 @@ function clean(node){
     const src = tag === 'IMG' ? (el.getAttribute('src') || '').trim() : '';
     const imgW = tag === 'IMG' && /^(s|m|l)$/.test(el.getAttribute('data-w') || '') ? el.getAttribute('data-w') : '';
     const check = tag === 'UL' && el.hasAttribute('data-check'), done = tag === 'LI' && el.getAttribute('data-done') === '1';
+    const rv = (tag === 'INS' || tag === 'DEL') && /^r[a-z0-9]{4,30}$/.test(el.getAttribute('data-rv') || '') ? { rv: el.getAttribute('data-rv'), a: (el.getAttribute('data-a') || '').slice(0, 60), t: /^\d{1,15}$/.test(el.getAttribute('data-t') || '') ? el.getAttribute('data-t') : '', ac: /^\d$/.test(el.getAttribute('data-ac') || '') ? el.getAttribute('data-ac') : '0' } : null;
     for (const a of [...el.attributes]) el.removeAttribute(a.name);
     if (tag === 'A') { if (/^(https?:|mailto:)/i.test(href)) el.setAttribute('href', href); else { el.replaceWith(...el.childNodes); continue; } }
     if (tag === 'IMG') {
@@ -2051,6 +2091,8 @@ function clean(node){
       el.setAttribute('src', src); el.setAttribute('alt', ''); if (imgW) el.setAttribute('data-w', imgW);
     }
     if (check) el.setAttribute('data-check', '');
+    if (rv) for (const k in rv) if (rv[k]) el.setAttribute('data-' + k, rv[k]);
+    if (tag === 'INS' && !rv) { el.replaceWith(...el.childNodes); continue; }
     if (done) el.setAttribute('data-done', '1');
     for (const k in keep) el.setAttribute('data-' + k, keep[k]);
     if (folded) el.setAttribute('data-fold', '1');
@@ -2123,6 +2165,7 @@ $('#file').addEventListener('change', e => {
 /* ---------- Export, copie ---------- */
 function plainText(){
   const c = editor.cloneNode(true); resolveSuggestions(c);
+  c.querySelectorAll('del[data-rv]').forEach(d => d.remove()); c.querySelectorAll('ins[data-rv]').forEach(i => i.replaceWith(...i.childNodes));
   c.querySelectorAll('.math').forEach(m => m.replaceWith(m.dataset.display === '1' ? `$$${m.dataset.tex}$$` : `$${m.dataset.tex}$`));
   c.querySelectorAll('br').forEach(b => b.replaceWith('\n'));
   c.querySelectorAll('p,h1,h2,h3,blockquote,li,div').forEach(b => b.append('\n\n'));
@@ -2237,7 +2280,7 @@ function save(){
   if (ok) addVersion(false);
 }
 function countLabel(){
-  const w = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest('.math,.ai-sg ins') ? 2 : 1 });
+  const w = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest('.math,.ai-sg ins,del[data-rv]') ? 2 : 1 });
   let t = ''; while (w.nextNode()) t += w.currentNode.data + ' ';
   t = t.replace(/​/g,'');
   const words = (t.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
@@ -3087,6 +3130,7 @@ function highlightNote(id){
   if (c) { c.classList.add('on'); c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 }
 function openNotes(id, focus){
+  if (typeof sideKind !== 'undefined' && sideKind) closeSide(); // un seul panneau à droite à la fois
   notesSide.hidden = false; document.body.classList.add('notes-open'); notesBtn.setAttribute('aria-pressed', 'true');
   renderNotes();
   if (id) { highlightNote(id); if (focus) ntList.querySelector(`.nt-card[data-id="${CSS.escape(id)}"] .nt-text`)?.focus(); }
@@ -3192,6 +3236,7 @@ function openDoc(id){
   statusEl.textContent = countLabel();
   window.scrollTo(0, 0); renderTabs(); restoreToStart(); markCurrent();
   tabbar.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  rvSync();
   if (sideKind) renderSidePanel();
   olClosed = new Set(); renderOutline();
   if (!findbar.hidden) runFind();
@@ -3309,23 +3354,22 @@ function applyTheme(){
   queueToolbar();
 }
 function setTheme(t){ theme = t; store.set('plume-theme', theme); applyTheme(); }
-/* Largeur de la page : tout le texte grandit ou rétrécit avec elle (comme un zoom), sans changer
-   les tailles de police du document. Les lignes se coupent donc aux mêmes mots, quelle que soit
-   la largeur choisie. 618 px = la largeur « normale ». */
+/* Largeur de la page et taille du texte : deux réglages séparés.
+   - La largeur (Étroite, Normale, Large, Pleine, ou à la souris) ne change que la place prise.
+   - La taille du texte (curseur de 60 à 200 %) agrandit tout le texte comme un zoom, sans
+     toucher aux tailles de police du document : elles restent les mêmes d'un appareil à l'autre. */
 const PAGE_W = 618;
-let docZoom = 1;
-let widthMode = 'normal';
-// Pleine largeur : la page prend toute la place disponible, et le texte grandit avec.
-function fullZoom(){ const pg = $('.page'); const cs = getComputedStyle(pg); return (pg.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 8) / PAGE_W; }
-new ResizeObserver(() => { if (widthMode === 'plein') setWidth('plein'); }).observe($('.page'));
+let widthMode = 'normal', docZoom = 1;
 function setWidth(w){
   widthMode = w || 'normal';
-  let z = { etroite: .85, normal: 1, large: 1.3 }[w];
-  if (w === 'plein') z = Math.max(.6, fullZoom());
-  if (z == null && /^\d{3,4}px$/.test(w || '')) z = parseInt(w) / PAGE_W;
-  if (z == null && /^\d{2,3}ch$/.test(w || '')) z = parseInt(w) / 70;
-  docZoom = Math.min(w === 'plein' ? 3 : 2, Math.max(.6, z || 1));
-  document.documentElement.style.setProperty('--doc-zoom', docZoom.toFixed(3));
+  let v = { etroite: '520px', normal: PAGE_W + 'px', large: '820px', plein: 'none' }[w];
+  if (!v && /^\d{3,4}px$/.test(w || '')) v = w;
+  if (!v && /^\d{2,3}ch$/.test(w || '')) v = Math.round(parseInt(w) / 70 * PAGE_W) + 'px';
+  document.documentElement.style.setProperty('--page-w', v || PAGE_W + 'px');
+}
+function setZoom(z){
+  docZoom = Math.min(2, Math.max(.6, +z || 1));
+  document.documentElement.style.setProperty('--doc-zoom', docZoom.toFixed(2));
 }
 // Poignées de chaque côté du texte : glisser pour choisir la largeur, double-clic pour revenir à la normale.
 document.querySelectorAll('.grip').forEach(g => {
@@ -3335,13 +3379,13 @@ document.querySelectorAll('.grip').forEach(g => {
     const move = ev => {
       const r = sheet.getBoundingClientRect(), cx = r.left + r.width / 2;
       const max = $('.page').clientWidth - 2 * 56;
-      const w = Math.round(Math.max(PAGE_W * .6, Math.min(max, 2 * Math.abs(ev.clientX - cx))));
-      setWidth(w + 'px'); toast(`Taille de la page : ${Math.round(docZoom * 100)} %`);
+      const w = Math.round(Math.max(360, Math.min(max, 2 * Math.abs(ev.clientX - cx))));
+      setWidth(w + 'px'); toast(`Largeur de la page : ${w} px`);
     };
     const up = () => {
       g.classList.remove('drag');
       g.removeEventListener('pointermove', move); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up);
-      store.set('plume-width', Math.round(docZoom * PAGE_W) + 'px');
+      store.set('plume-width', getComputedStyle(document.documentElement).getPropertyValue('--page-w').trim());
     };
     g.addEventListener('pointermove', move); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
   });
@@ -3464,7 +3508,8 @@ function docLayout(){
     ${seg('theme', theme, [['auto','Auto'],['light','Clair'],['dark','Sombre']])}
     <div class="mh">Largeur de la page</div>
     ${seg('width', /^\d/.test(w) ? '' : w, [['etroite','Étroite'],['normal','Normale'],['large','Large'],['plein','Pleine']])}
-    <div class="dimrow wrow"><input type="range" class="dim-range" id="w-range" min="60" max="200" step="5" value="${Math.round(docZoom * 100)}" aria-label="Taille de la page en pourcentage"><span id="w-val">${Math.round(docZoom * 100)} %</span></div>
+    <div class="mh">Taille du texte à l'écran</div>
+    <div class="dimrow wrow"><span class="z-a" aria-hidden="true">A</span><input type="range" class="dim-range" id="w-range" min="60" max="200" step="5" value="${Math.round(docZoom * 100)}" aria-label="Taille du texte à l'écran, en pourcentage"><span class="z-a big" aria-hidden="true">A</span><span id="w-val">${Math.round(docZoom * 100)} %</span></div>
     <div class="mh">Interligne</div>
     ${seg('lh', prefs.lh, [['serre','Serré'],['normal','Normal'],['large','Aéré']])}
     <div class="mh">Espace entre les paragraphes</div>
@@ -3483,14 +3528,13 @@ function docLayout(){
       const k = ch.dataset.k, v = b.dataset.v;
       ch.querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-checked', x === b));
       if (k === 'theme') setTheme(v);
-      else if (k === 'width') { setWidth(v); store.set('plume-width', v); const r = p.querySelector('#w-range'); if (r) { r.value = Math.round(docZoom * 100); p.querySelector('#w-val').textContent = Math.round(docZoom * 100) + ' %'; } }
+      else if (k === 'width') { setWidth(v); store.set('plume-width', v); }
       else setPref(k, v);
     });
     const wr = p.querySelector('#w-range');
     wr.oninput = () => {
-      const z = +wr.value / 100; setWidth(Math.round(z * PAGE_W) + 'px'); store.set('plume-width', Math.round(z * PAGE_W) + 'px');
+      setZoom(+wr.value / 100); store.set('plume-zoom', String(docZoom));
       p.querySelector('#w-val').textContent = wr.value + ' %';
-      p.querySelectorAll('[data-k="width"] [data-v]').forEach(x => x.setAttribute('aria-checked', 'false'));
     };
     p.querySelectorAll('[data-s]').forEach(sw => sw.onchange = () => {
       if (sw.dataset.s === 'autofs') { autoFs = sw.checked; store.set('plume-autofs', autoFs ? '1' : '0'); }
@@ -3621,7 +3665,8 @@ function exportClone(){
 }
 function exportMarkdown(){
   save();
-  deliver([new File([toMarkdown(exportClone())], safeName(curTitle()) + '.md', { type: 'text/markdown' })]);
+  const c = exportClone(); c.querySelectorAll('del[data-rv]').forEach(d => d.remove()); c.querySelectorAll('ins[data-rv]').forEach(i => i.replaceWith(...i.childNodes));
+  deliver([new File([toMarkdown(c)], safeName(curTitle()) + '.md', { type: 'text/markdown' })]);
 }
 
 /* ---------- Export Word (.docx) ----------
@@ -3655,6 +3700,10 @@ const U_DOCX = { simple:'single', double:'double', pointille:'dotted', tirets:'d
 function exportDocx(){
   save();
   const root = exportClone(), rels = [], media = [];
+  let annId = 0; const cmt = {}, comments = [];
+  root.querySelectorAll('[data-n]').forEach(sp => { const id = sp.dataset.n; (cmt[id] = cmt[id] || { spans: [] }).spans.push(sp); });
+  for (const id in cmt) { cmt[id].cid = annId++; comments.push({ cid: cmt[id].cid, text: (cmt[id].spans.find(x => x.dataset.nt)?.dataset.nt || '').trim() }); }
+  const isoDate = t => new Date(+t || Date.now()).toISOString().replace(/\.\d+Z$/, 'Z');
   const relId = () => 'rId' + (rels.length + 10);
   const run = (text, p) => {
     if (!text) return '';
@@ -3678,6 +3727,18 @@ function exportDocx(){
       if (n.classList.contains('math')) { out += run(n.dataset.display === '1' ? `$$${n.dataset.tex}$$` : `$${n.dataset.tex}$`, { ...p, font: 'Cambria Math', i: true }); continue; }
       if (t === 'BR') { out += '<w:r><w:br/></w:r>'; continue; }
       if (t === 'IMG') { out += imageRun(n); continue; }
+      if ((t === 'INS' || t === 'DEL') && n.dataset.rv) {
+        const tag = t === 'INS' ? 'ins' : 'del', at = `w:id="${annId++}" w:author="${xe(n.dataset.a || 'Correcteur')}" w:date="${isoDate(n.dataset.t)}"`;
+        let inner = runs(n, p);
+        if (tag === 'del') inner = inner.replace(/<w:t xml:space="preserve">/g, '<w:delText xml:space="preserve">').replace(/<\/w:t>/g, '</w:delText>');
+        out += `<w:${tag} ${at}>${inner}</w:${tag}>`; continue;
+      }
+      if (n.dataset && n.dataset.n && cmt[n.dataset.n]) {
+        const c = cmt[n.dataset.n], firstSp = c.spans[0] === n, lastSp = c.spans[c.spans.length - 1] === n;
+        const inner = runs(n, q);
+        out += (firstSp ? `<w:commentRangeStart w:id="${c.cid}"/>` : '') + inner + (lastSp ? `<w:commentRangeEnd w:id="${c.cid}"/><w:r><w:commentReference w:id="${c.cid}"/></w:r>` : '');
+        continue;
+      }
       if (t === 'B' || t === 'STRONG') q.b = true;
       if (t === 'I' || t === 'EM') q.i = true;
       if (t === 'S' || t === 'STRIKE' || t === 'DEL') q.s = true;
@@ -3753,6 +3814,11 @@ function exportDocx(){
   // Les relations des liens et des images sont connues seulement après le corps : on refait ce fichier.
   files[2].data = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>${rels.join('')}</Relationships>`;
   files.push(...media);
+  if (comments.length) {
+    files.push({ name: 'word/comments.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:comments ${W}>${comments.map(c => `<w:comment w:id="${c.cid}" w:author="${xe(rvAuthor())}" w:date="${isoDate()}" w:initials="${xe(rvAuthor().slice(0, 2).toUpperCase())}"><w:p>${run(c.text || ' ', {})}</w:p></w:comment>`).join('')}</w:comments>` });
+    files[0].data = files[0].data.replace('</Types>', '<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/></Types>');
+    files[2].data = files[2].data.replace('</Relationships>', '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/></Relationships>');
+  }
   deliver([new File([zipStore(files)], safeName(curTitle()) + '.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })]);
 }
 
@@ -3837,6 +3903,7 @@ $('#sp-close').addEventListener('click', closeSide);
 notesBtn.addEventListener('click', () => { if (sideKind) closeSide(); }, true);
 function renderSidePanel(){
   if (sideKind === 'history') renderHistory();
+  else if (sideKind === 'review') renderReview();
 }
 /* ---------- Plan : barre latérale à gauche, comme dans Notes ou Pages ----------
    Tous les titres, rangés (titre 1 > titre 2 > titre 3). Un toucher y emmène ; la flèche replie
@@ -4519,11 +4586,11 @@ async function docxToHTML(buf){
     }
     return imgCache[path];
   };
-  const runHTML = async r => {
+  const runHTML = async (r, deleted) => {
     const pr = kid(r, 'rPr');
     let inner = '';
     for (const c of r.children) {
-      if (c.localName === 't') inner += esc(c.textContent);
+      if (c.localName === 't' || (deleted && c.localName === 'delText')) inner += esc(c.textContent);
       else if (c.localName === 'tab') inner += ' ';
       else if (c.localName === 'br' || c.localName === 'cr') inner += '<br>';
       else if (c.localName === 'drawing' || c.localName === 'pict') {
@@ -4548,10 +4615,25 @@ async function docxToHTML(buf){
     const font = kid(pr, 'rFonts')?.getAttribute('w:ascii'), fk = font && FONTS.find(f => f[1].toLowerCase() === font.toLowerCase()); if (fk) at.push(`data-f="${fk[0]}"`);
     return at.length ? `<span ${at.join(' ')}>${inner}</span>` : inner;
   };
+  const openCmt = new Set(), seenCmt = new Set(), cmtText = {};
+  const cmDoc = await xml('word/comments.xml');
+  if (cmDoc) for (const c of cmDoc.getElementsByTagNameNS('*', 'comment')) cmtText[c.getAttribute('w:id')] = c.textContent.trim().slice(0, 4000);
+  const withCmt = h => {
+    if (!h) return h;
+    for (const id of openCmt) { const first = !seenCmt.has(id); seenCmt.add(id); h = `<span data-n="w${id.replace(/[^0-9a-z]/gi, '')}c"${first ? ` data-nt="${esc(cmtText[id] || '')}"` : ''}>${h}</span>`; }
+    return h;
+  };
   const inlineHTML = async p => {
     let h = '';
     for (const c of p.children) {
-      if (c.localName === 'r') h += await runHTML(c);
+      if (c.localName === 'commentRangeStart') { openCmt.add(c.getAttribute('w:id')); continue; }
+      if (c.localName === 'commentRangeEnd') { openCmt.delete(c.getAttribute('w:id')); continue; }
+      if (c.localName === 'ins' || c.localName === 'del') {
+        let inner = ''; for (const r of c.children) if (r.localName === 'r') inner += await runHTML(r, c.localName === 'del');
+        if (inner) { const a = c.getAttribute('w:author') || 'Word', dt = Date.parse(c.getAttribute('w:date') || '') || ''; h += withCmt(`<${c.localName} data-rv="r${newId()}" data-a="${esc(a)}" data-t="${dt}" data-ac="${rvAuthorIdx(a)}">${inner}</${c.localName}>`); }
+        continue;
+      }
+      if (c.localName === 'r') h += withCmt(await runHTML(c));
       else if (c.localName === 'hyperlink') {
         let t = ''; for (const r of c.children) if (r.localName === 'r') t += await runHTML(r);
         const href = rels[c.getAttribute('r:id')]?.t;
@@ -4769,6 +4851,228 @@ libBody.addEventListener('click', e => {
   }
 });
 
+
+/* ---------- Révision : suivi des modifications, pour corriger une copie ----------
+   Quand la révision est active, rien n'est effacé : ce qu'on supprime reste barré, ce qu'on
+   ajoute apparaît souligné, en couleur, avec le nom de son auteur et l'heure. On accepte ou on
+   refuse ensuite chaque modification (ou toutes d'un coup). Les notes servent aux commentaires.
+   Le réglage est propre à chaque document ; un .docx exporté garde les modifications et les
+   commentaires, comme dans Word. */
+const RV_COLORS = 6;
+let rvOn = false, rvView = 'markup';
+const rvDoc = () => docs.find(x => x.id === activeId);
+const rvAuthor = () => (prefs.author || '').trim() || 'Correcteur';
+function rvAuthorIdx(name){ let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % RV_COLORS; }
+function rvMark(tag){
+  const el = document.createElement(tag), a = rvAuthor();
+  el.dataset.rv = 'r' + newId(); el.dataset.a = a; el.dataset.t = String(Date.now()); el.dataset.ac = String(rvAuthorIdx(a));
+  return el;
+}
+function rvSync(){
+  const d = rvDoc(); rvOn = d ? !!d.track : !!prefs.track;
+  document.body.classList.toggle('rv-on', rvOn);
+  $('#rev-btn')?.setAttribute('aria-pressed', rvOn);
+  editor.classList.toggle('rv-final', rvView === 'final'); editor.classList.toggle('rv-orig', rvView === 'orig');
+}
+function setTracking(v){
+  const d = rvDoc(); if (d) { d.track = v; saveDocs(); } else setPref('track', v);
+  rvSync(); toast(v ? 'Révision activée : les modifications sont suivies' : 'Révision désactivée');
+  if (sideKind === 'review') renderReview();
+}
+const rvMarks = () => [...editor.querySelectorAll('ins[data-rv], del[data-rv]')];
+const inMark = (n, tag) => (n.nodeType === 1 ? n : n.parentElement)?.closest(`${tag}[data-rv]`);
+
+// Supprimer en révision : le texte d'autrui est barré ; ce qu'on avait soi-même ajouté disparaît vraiment.
+function rvDeleteRange(r){
+  if (r.collapsed) return null;
+  // On découpe les nœuds texte aux bords de la plage, puis on traite chaque morceau.
+  const sc = r.startContainer, so = r.startOffset, ec = r.endContainer, eo = r.endOffset;
+  let first = null, last = null;
+  const nodes = [];
+  const w = document.createTreeWalker(r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentNode, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: n => (n.nodeType === 1 ? (n.classList.contains('math') ? 1 : 3) : 1)
+  });
+  while (w.nextNode()) { const n = w.currentNode; if (r.intersectsNode(n)) nodes.push(n); }
+  for (let n of nodes) {
+    if (n.nodeType === 3) {
+      let a = 0, b = n.data.length;
+      if (n === sc) a = so; if (n === ec) b = eo;
+      if (a >= b || !n.data.slice(a, b).replace(/​/g, '')) continue;
+      if (b < n.data.length) n.splitText(b);
+      if (a > 0) n = n.splitText(a);
+    } else if (!r.intersectsNode(n)) continue;
+    if (n.parentElement?.closest('.ai-sg, .ai-block')) continue;
+    first = first || n; last = n;
+    if (inMark(n, 'del')) continue;                               // déjà supprimé
+    const ins = inMark(n, 'ins');
+    if (ins) { n.remove(); if (!ins.textContent.replace(/​/g, '') && !ins.querySelector('.math,img')) ins.remove(); continue; } // un ajout retiré
+    const prev = n.previousSibling, next = n.nextSibling;
+    if (prev && prev.nodeType === 1 && prev.matches('del[data-rv]') && prev.dataset.a === rvAuthor()) prev.append(n);
+    else if (next && next.nodeType === 1 && next.matches('del[data-rv]') && next.dataset.a === rvAuthor()) next.prepend(n);
+    else { const del = rvMark('del'); n.replaceWith(del); del.append(n); }
+  }
+  return { first, last };
+}
+function rvPlaceAfter(node){ const r = document.createRange(); r.setStartAfter(node); r.collapse(true); setRange(r); return r; }
+// Écrire en révision : le texte va dans un ajout (le même tant qu'on tape au même endroit).
+function rvInsertText(text, range){
+  if (!range.collapsed) {
+    const start = [range.startContainer, range.startOffset], res = rvDeleteRange(range);
+    const h = res && res.last ? ((res.last.nodeType === 1 ? res.last : res.last.parentElement)?.closest('del[data-rv]') || res.last) : null;
+    if (h && h.isConnected) range = rvPlaceAfter(h);
+    else { range = document.createRange(); try { range.setStart(start[0], Math.min(start[1], start[0].length ?? start[0].childNodes.length)); } catch(e) { range.selectNodeContents(editor); range.collapse(false); } range.collapse(true); }
+  }
+  let n = range.startContainer, o = range.startOffset;
+  const del = inMark(n, 'del'); if (del) { range = rvPlaceAfter(del); n = range.startContainer; o = range.startOffset; }
+  const ins = inMark(n, 'ins');
+  if (ins && ins.dataset.a === rvAuthor()) {
+    if (n.nodeType === 3) { n.insertData(o, text); const c = document.createRange(); c.setStart(n, o + text.length); c.collapse(true); setRange(c); }
+    else { const t = document.createTextNode(text); range.insertNode(t); const c = document.createRange(); c.setStartAfter(t); c.collapse(true); setRange(c); }
+    return;
+  }
+  // Un ajout juste avant le curseur, du même auteur : on le prolonge.
+  if (n.nodeType === 3 && o === 0 && n.previousSibling?.matches?.('ins[data-rv]') && n.previousSibling.dataset.a === rvAuthor()) { const pv = n.previousSibling; pv.append(text); const c = document.createRange(); c.selectNodeContents(pv); c.collapse(false); setRange(c); return; }
+  if (n.nodeType === 1 && o > 0 && n.childNodes[o - 1]?.matches?.('ins[data-rv]') && n.childNodes[o - 1].dataset.a === rvAuthor()) { const pv = n.childNodes[o - 1]; pv.append(text); const c = document.createRange(); c.selectNodeContents(pv); c.collapse(false); setRange(c); return; }
+  const mark = rvMark('ins'); mark.textContent = text;
+  if (n.nodeType === 1 && n.childNodes.length === 1 && n.firstChild.nodeName === 'BR') { n.firstChild.remove(); n.append(mark); }
+  else range.insertNode(mark);
+  const c = document.createRange(); c.selectNodeContents(mark); c.collapse(false); setRange(c);
+}
+function staticToRange(sr){ const r = document.createRange(); r.setStart(sr.startContainer, sr.startOffset); r.setEnd(sr.endContainer, sr.endOffset); return r; }
+editor.addEventListener('beforeinput', e => {
+  if (!rvOn || e.defaultPrevented) return;
+  const t = e.inputType;
+  if (/^history/.test(t) || /^format/.test(t) || t === 'insertParagraph' || t === 'insertLineBreak' || e.isComposing) return;
+  const s = getSelection(); if (!s.rangeCount) return;
+  const tr = e.getTargetRanges ? e.getTargetRanges() : [];
+  let r = tr.length ? staticToRange(tr[0]) : s.getRangeAt(0).cloneRange();
+  if (/^insert(Text|ReplacementText)$/.test(t)) {
+    const text = e.data ?? e.dataTransfer?.getData('text/plain') ?? '';
+    if (!text) return;
+    e.preventDefault(); rvInsertText(text, r);
+  } else if (/^delete/.test(t)) {
+    e.preventDefault();
+    const back = /Backward/.test(t) || t === 'deleteByCut' || t === 'deleteContent';
+    if (r.collapsed) {
+      // Étendre d'un caractère (ou d'un mot), en sautant ce qui est déjà barré.
+      const unit = /Word/.test(t) ? 'word' : /Line/.test(t) ? 'lineboundary' : 'character';
+      for (let k = 0; k < 400; k++) {
+        s.removeAllRanges(); s.addRange(r); s.modify('extend', back ? 'backward' : 'forward', unit);
+        const ext = s.getRangeAt(0).cloneRange(); if (ext.collapsed) break;
+        const txt = ext.toString().replace(/​/g, ''), dels = ext.cloneContents().querySelectorAll('del[data-rv]');
+        const allDel = (inMark(ext.startContainer, 'del') && inMark(ext.endContainer, 'del')) || (dels.length && [...dels].map(d => d.textContent).join('') === txt);
+        if (allDel || !txt) { const c = ext.cloneRange(); c.collapse(back); r = c; if (!txt && k > 0) break; continue; }
+        r = ext; break;
+      }
+    }
+    if (r.collapsed) { setRange(r); return; }
+    const res = rvDeleteRange(r);
+    if (res && res.first) {
+      const edge = back ? res.first : res.last, eel = edge.nodeType === 1 ? edge : edge.parentElement, holder = (eel && eel.closest('del[data-rv]')) || edge;
+      const c = document.createRange(); if (holder.isConnected) { back ? c.setStartBefore(holder) : c.setStartAfter(holder); } else { c.setStart(r.startContainer, r.startOffset); }
+      c.collapse(true); setRange(c);
+    }
+  } else if (t === 'insertFromDrop' || t === 'deleteByDrag' || t === 'insertFromPaste') {
+    if (t !== 'insertFromPaste') e.preventDefault(); else return;
+  } else return;
+  rvMerge(); editor.normalize(); changed(true); markCurrent(); if (sideKind === 'review') queueReview();
+});
+// Deux marques voisines du même auteur et de même sorte n'en font qu'une.
+function rvMerge(){
+  const s = getSelection(), keep = s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
+  for (const m of editor.querySelectorAll('ins[data-rv], del[data-rv]')) {
+    if (!m.isConnected) continue;
+    let nx = m.nextSibling;
+    while (nx && nx.nodeType === 3 && !nx.data) { const t = nx.nextSibling; nx.remove(); nx = t; }
+    while (nx && nx.nodeType === 1 && nx.tagName === m.tagName && nx.dataset.rv && nx.dataset.a === m.dataset.a) {
+      m.append(...nx.childNodes); const t = nx.nextSibling; nx.remove(); nx = t;
+    }
+  }
+  if (keep && editor.contains(keep.startContainer)) { s.removeAllRanges(); s.addRange(keep); }
+}
+// Coller en révision : le texte collé devient un ajout.
+document.addEventListener('paste', e => {
+  if (!rvOn || !(editor.contains(e.target) || e.target === editor)) return;
+  const text = e.clipboardData?.getData('text/plain'); if (!text) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const s = getSelection(); if (!s.rangeCount) return;
+  rvInsertText(text.replace(/\s*\n+\s*/g, ' '), s.getRangeAt(0).cloneRange());
+  editor.normalize(); changed(); if (sideKind === 'review') queueReview();
+}, true);
+
+// Accepter ou refuser
+function rvResolve(el, accept){
+  if (!el || !el.isConnected) return;
+  const isIns = el.tagName === 'INS';
+  if (isIns === accept) el.replaceWith(...el.childNodes); else el.remove();
+}
+function rvResolveAll(accept){
+  const m = rvMarks(); if (!m.length) { toast('Aucune modification.'); return; }
+  m.forEach(el => rvResolve(el, accept)); editor.normalize(); changed();
+  toast(`${m.length} modification${m.length > 1 ? 's' : ''} ${accept ? 'acceptée' : 'refusée'}${m.length > 1 ? 's' : ''}`);
+  if (sideKind === 'review') renderReview();
+}
+// Toucher une modification (révision coupée, par exemple quand l'élève relit) : l'accepter ou la refuser.
+editor.addEventListener('click', e => {
+  const m = e.target instanceof Element && e.target.closest('ins[data-rv], del[data-rv]');
+  if (!m || !editor.contains(m) || rvOn || !getSelection().isCollapsed) return;
+  openPop(linkHost(m), `<div class="ai-card"><span class="rv-who" data-ac="${esc(m.dataset.ac || '0')}">${m.tagName === 'INS' ? 'Ajouté' : 'Supprimé'} par ${esc(m.dataset.a || '?')}${m.dataset.t ? ' · ' + esc(verDate(+m.dataset.t)) : ''}</span>
+    <div class="acts"><button class="btn primary sm" data-a="ok">Accepter</button><button class="btn sm" data-a="no">Refuser</button></div></div>`,
+    p => p.onclick = ev => { const a = ev.target.closest('[data-a]')?.dataset.a; if (!a) return; closePop(); rvResolve(m, a === 'ok'); editor.normalize(); changed(); if (sideKind === 'review') renderReview(); });
+});
+
+// Panneau Révision
+let rvT = 0;
+const queueReview = () => { clearTimeout(rvT); rvT = setTimeout(renderReview, 250); };
+function renderReview(){
+  if (sideKind !== 'review') return;
+  spTitle.textContent = 'Révision';
+  const marks = rvMarks(), notes = noteIds().length;
+  const seg = (k, cur, opts) => `<div class="chips" data-k="${k}">${opts.map(([v, n]) => `<button class="mi" data-v="${v}" aria-checked="${v === cur}">${n}</button>`).join('')}</div>`;
+  spBody.innerHTML = `
+    <label class="mi mi-switch rv-sw">Suivre les modifications<input type="checkbox" class="switch" id="rv-on"${rvOn ? ' checked' : ''}></label>
+    <label class="rv-name">Nom affiché<input id="rv-author" value="${esc(prefs.author || '')}" placeholder="Correcteur" autocomplete="off"></label>
+    <div class="mh">Afficher</div>
+    ${seg('view', rvView, [['markup', 'Corrections'], ['final', 'Finale'], ['orig', 'Originale']])}
+    <div class="rv-acts">
+      <button class="btn sm" data-a="note">Commenter la sélection</button>
+      <button class="btn sm" data-a="notes">Notes${notes ? ' · ' + notes : ''}</button>
+    </div>
+    <div class="mh">Modifications${marks.length ? ' · ' + marks.length : ''}</div>
+    ${marks.length ? `<div class="rv-acts"><button class="btn primary sm" data-a="all-ok">Tout accepter</button><button class="btn sm" data-a="all-no">Tout refuser</button></div>
+    <div class="rv-list">${marks.map((m, i) => `<div class="rv-item" data-i="${i}">
+      <span class="rv-dot" data-ac="${esc(m.dataset.ac || '0')}"></span>
+      <div class="rv-txt"><b>${m.tagName === 'INS' ? 'Ajout' : 'Suppression'}</b> · ${esc(m.dataset.a || '?')}<span class="rv-ex ${m.tagName === 'INS' ? 'ins' : 'del'}">${esc((m.textContent.replace(/​/g, '').trim() || '¶').slice(0, 80))}</span></div>
+      <button class="rv-b ok" data-ok="${i}" title="Accepter" aria-label="Accepter"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      <button class="rv-b no" data-no="${i}" title="Refuser" aria-label="Refuser"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>`).join('')}</div>` : '<p class="nt-empty">Aucune modification. Active « Suivre les modifications » : tout ce que tu effaces restera barré, tout ce que tu ajoutes sera souligné en couleur, à ton nom.</p>'}`;
+  spBody.querySelector('#rv-on').onchange = e => setTracking(e.target.checked);
+  const an = spBody.querySelector('#rv-author');
+  an.oninput = () => setPref('author', an.value.slice(0, 40));
+  spBody.querySelector('[data-k="view"]').onclick = e => {
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    rvView = b.dataset.v; rvSync(); spBody.querySelectorAll('[data-k="view"] [data-v]').forEach(x => x.setAttribute('aria-checked', x === b));
+  };
+  spBody.onclick = e => {
+    const ok = e.target.closest('[data-ok]'), no = e.target.closest('[data-no]');
+    if (ok || no) { const m = marks[+(ok || no).dataset[ok ? 'ok' : 'no']]; rvResolve(m, !!ok); editor.normalize(); changed(); renderReview(); return; }
+    const a = e.target.closest('[data-a]')?.dataset.a;
+    if (a === 'all-ok') rvResolveAll(true);
+    else if (a === 'all-no') rvResolveAll(false);
+    else if (a === 'note') addNote();
+    else if (a === 'notes') { closeSide(); openNotes(); }
+    else {
+      const it = e.target.closest('.rv-item'); if (!it) return;
+      const m = marks[+it.dataset.i]; if (!m?.isConnected) return;
+      const top = m.closest('#editor > *'); if (top) revealBlock(top);
+      m.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      m.classList.add('flash'); setTimeout(() => m.classList.remove('flash'), 900);
+    }
+  };
+}
+$('#rev-btn').addEventListener('click', () => sideKind === 'review' ? closeSide() : openSide('review'));
+editor.addEventListener('input', () => { if (sideKind === 'review') queueReview(); });
+
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
 <h1>Bienvenue dans World</h1>
@@ -4799,6 +5103,7 @@ refold();
 histReset();
 updateNotesCount();
 setWidth(store.get('plume-width'));
+setZoom(store.get('plume-zoom') || 1);
 applyTheme();
 applyFocus();
 applyTw();
@@ -4807,6 +5112,7 @@ placeBar();
 setAiHidden(aiHidden);
 applyPrefs();
 applyDim();
+rvSync();
 updateEmpty();
 statusEl.textContent = countLabel();
 { const d = docs.find(x => x.id === activeId); if (d) { d.title = docTitle(); saveDocs(); } }
