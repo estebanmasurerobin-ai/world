@@ -285,9 +285,9 @@ body.bar-hidden #editor > :is(h1,h2,h3)::before{opacity:0}
 #editor.focus-on.cur-h1 > h1,
 #editor.focus-on.cur-h2 > :is(h1,h2),
 #editor.focus-on.cur-h3 > :is(h1,h2,h3){opacity:1!important;filter:none!important}
-:root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.3)}
+:root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim-d,.3)}
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.3)}
+  :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim-d,.3)}
 }
 
 /* ---------- Suggestions IA, directement dans le texte ---------- */
@@ -1002,6 +1002,28 @@ button.status{font-size:15px;height:44px;padding:0 12px}
 .tab .x{width:26px;height:26px;font-size:19px}
 .tab-add{width:38px;height:38px;font-size:26px;border-radius:13px}
 .bar-toggle{width:42px;height:42px}.bar-toggle svg{width:18px;height:18px}
+
+/* ================= Barre : même verre que le haut de l'écran d'iOS =================
+   Un flou léger et presque aucune teinte : le texte reste deviné sous la barre. */
+.bar{background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(10px) saturate(180%);backdrop-filter:blur(10px) saturate(180%);box-shadow:none}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .bar{background:rgba(0,0,0,.12)} }
+:root[data-theme="dark"] .bar{background:rgba(0,0,0,.12)}
+/* Les lignes pour élargir la colonne n'apparaissent qu'avec une souris (sur iPad, elles restaient affichées) */
+@media (hover:none){ .grip::before{opacity:0!important} }
+/* Concentration : la phrase seule */
+::highlight(focus-dim){color:var(--dim-col-l,rgba(0,0,0,.24))}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) ::highlight(focus-dim){color:var(--dim-col-d,rgba(255,255,255,.3))} }
+:root[data-theme="dark"] ::highlight(focus-dim){color:var(--dim-col-d,rgba(255,255,255,.3))}
+/* Curseur d'atténuation à 5 crans */
+.dimrow{padding:6px 18px 12px}
+.dim-range{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;cursor:pointer}
+.dim-range::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:var(--fill2)}
+.dim-range::-moz-range-track{height:6px;border-radius:6px;background:var(--fill2)}
+.dim-range::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-11px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25),0 0 0 .5px rgba(0,0,0,.08)}
+.dim-range::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.dim-ticks{display:flex;justify-content:space-between;padding:4px 6px 0}
+.dim-ticks span{width:28px;text-align:center;font-size:14px;color:var(--ui);cursor:pointer;font-variant-numeric:tabular-nums}
+.dim-ticks span.on{color:var(--accent);font-weight:700}
 </style>
 
 <header class="bar">
@@ -2896,16 +2918,14 @@ function markCurrent(){
   editor.classList.toggle('has-cur', !!cur);
   const hl = cur && cur.parentElement === editor && /^H([123])$/.exec(cur.tagName);
   for (const n of [1, 2, 3]) editor.classList.toggle('cur-h' + n, !!hl && +hl[1] === n);
+  queueSentenceDim();
 }
 function applyFocus(){
   editor.classList.toggle('focus-on', focusOn);
   const b = $('#focus-btn'); b.setAttribute('aria-pressed', focusOn);
 }
-$('#focus-btn').addEventListener('click', () => {
-  focusOn = !focusOn; store.set('plume-focus', focusOn ? '1' : '0'); applyFocus();
-  toast(focusOn ? 'Mode concentration activé' : 'Mode concentration désactivé');
-  restore();
-});
+$('#focus-btn').addEventListener('click', e => openFocusMenu(e.currentTarget));
+function setFocusOn(v){ focusOn = v; store.set('plume-focus', focusOn ? '1' : '0'); applyFocus(); sentenceDim(); }
 
 // Retrouve un passage dans le texte, même s'il traverse plusieurs mises en forme.
 const normCh = c => (c === '’' || c === '‘') ? "'" : (c === ' ' || c === ' ') ? ' ' : (c === '“' || c === '”') ? '"' : c;
@@ -3155,9 +3175,7 @@ function docRoot(p){
     <button class="mi" data-a="new">Nouvel onglet${ICO(IC.newtab)}</button>
     <button class="mi" data-a="reopen">Rouvrir l'onglet fermé${ICO(IC.reopen)}</button>
     <div class="hr"></div>
-    <button class="mi" data-a="find">Rechercher et remplacer${ICO(IC.find)}</button>
-    <button class="mi" data-a="outline">Plan du document${ICO(IC.outline)}</button>
-    <button class="mi" data-a="stats">Statistiques et objectif${ICO(IC.stats)}</button>
+    ${statusEl.offsetParent ? '' : `<button class="mi" data-a="stats">Statistiques et objectif${ICO(IC.stats)}</button>`}
     <button class="mi" data-a="history">Historique des versions${ICO(IC.history)}</button>
     <label class="mi mi-switch">Vérifier le style<input type="checkbox" class="switch" id="style-toggle"${prefs.style ? ' checked' : ''}></label>
     <div class="hr"></div>
@@ -4116,6 +4134,65 @@ editor.addEventListener('click', e => {
 /* ---------- Versions automatiques à l'enregistrement ---------- */
 const _save = save;
 
+
+/* ---------- Concentration : niveau d'atténuation et « phrase seule » ----------
+   5 niveaux (environ 20 % de plus à chaque cran ; le niveau 4 est le réglage d'origine).
+   « La phrase » : dans le paragraphe en cours, seule la phrase où se trouve le curseur reste nette. */
+const DIM_L = [.8, .6, .42, .24, .07], DIM_D = [.82, .64, .46, .3, .1];
+function applyDim(){
+  const k = Math.min(5, Math.max(1, +prefs.focusLevel || 4)) - 1, r = document.documentElement.style;
+  r.setProperty('--dim', DIM_L[k]); r.setProperty('--dim-d', DIM_D[k]);
+  r.setProperty('--dim-col-l', `rgba(0,0,0,${DIM_L[k]})`); r.setProperty('--dim-col-d', `rgba(255,255,255,${DIM_D[k]})`);
+}
+let sdRaf = 0;
+function queueSentenceDim(){ if (!sdRaf) sdRaf = requestAnimationFrame(() => { sdRaf = 0; sentenceDim(); }); }
+function sentenceDim(){
+  if (!HL) return;
+  CSS.highlights.delete('focus-dim');
+  if (!focusOn || prefs.focusScope !== 'phrase') return;
+  const cur = editor.querySelector('.is-cur'); if (!cur || cur.closest('pre')) return;
+  const s = getSelection(); if (!s.rangeCount || !editor.contains(s.anchorNode)) return;
+  const blk = textBlocks().find(x => x.b === cur); if (!blk) return;
+  // Position du curseur dans le texte du paragraphe
+  let caret = 0; const r0 = s.getRangeAt(0);
+  for (let i = 0; i < blk.map.length; i++) { const [n, o] = blk.map[i]; const c = document.createRange(); c.setStart(n, o); if (c.compareBoundaryPoints(Range.START_TO_START, r0) < 0) caret = i + 1; else break; }
+  // Phrases : jusqu'au point, point d'exclamation, d'interrogation ou de suspension suivi d'une espace
+  const re = /[^.!?…]*(?:[.!?…]+["»”)]?(?=\s|$)|$)\s*/gu; let m, a = 0, z = blk.text.length;
+  while ((m = re.exec(blk.text)) && m[0]) { const st = m.index, en = st + m[0].length; if (caret >= st && (caret < en || en === blk.text.length)) { a = st; z = en; break; } }
+  const rs = [];
+  if (a > 0) rs.push(rangeOf(blk, 0, a));
+  if (z < blk.text.length) rs.push(rangeOf(blk, z, blk.text.length - z));
+  if (rs.length) CSS.highlights.set('focus-dim', new Highlight(...rs));
+}
+editor.addEventListener('input', queueSentenceDim);
+function openFocusMenu(btn){
+  const lvl = +prefs.focusLevel || 4, scope = prefs.focusScope === 'phrase' ? 'phrase' : 'para';
+  openPop(btn, `
+    <label class="mi mi-switch">Mode concentration<input type="checkbox" class="switch" id="fc-on"${focusOn ? ' checked' : ''}></label>
+    <div class="hr"></div>
+    <div class="mh">Garder net</div>
+    <div class="chips" data-k="scope">
+      <button class="mi" data-v="para" aria-checked="${scope === 'para'}">Le paragraphe</button>
+      <button class="mi" data-v="phrase" aria-checked="${scope === 'phrase'}">La phrase</button>
+    </div>
+    <div class="mh">Atténuation du reste</div>
+    <div class="dimrow">
+      <input type="range" class="dim-range" id="fc-lvl" min="1" max="5" step="1" value="${lvl}" aria-label="Niveau d'atténuation, de 1 à 5">
+      <div class="dim-ticks">${[1,2,3,4,5].map(n => `<span data-n="${n}"${n === lvl ? ' class="on"' : ''}>${n}</span>`).join('')}</div>
+    </div>`, p => {
+    p.querySelector('#fc-on').onchange = e => setFocusOn(e.target.checked);
+    p.querySelector('[data-k="scope"]').onclick = e => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      p.querySelectorAll('[data-k="scope"] [data-v]').forEach(x => x.setAttribute('aria-checked', x === b));
+      setPref('focusScope', b.dataset.v); if (!focusOn) { setFocusOn(true); p.querySelector('#fc-on').checked = true; } sentenceDim();
+    };
+    const rg = p.querySelector('#fc-lvl');
+    const upd = () => { setPref('focusLevel', +rg.value); applyDim(); p.querySelectorAll('.dim-ticks span').forEach(x => x.classList.toggle('on', +x.dataset.n === +rg.value)); if (!focusOn) { setFocusOn(true); p.querySelector('#fc-on').checked = true; } };
+    rg.oninput = upd;
+    p.querySelectorAll('.dim-ticks span').forEach(x => x.onclick = () => { rg.value = x.dataset.n; upd(); });
+  });
+}
+
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
 <h1>Bienvenue dans Plume</h1>
@@ -4154,6 +4231,7 @@ setBarHidden(store.get('plume-bar-hidden') === '1');
 placeBar();
 setAiHidden(aiHidden);
 applyPrefs();
+applyDim();
 updateEmpty();
 statusEl.textContent = countLabel();
 { const d = docs.find(x => x.id === activeId); if (d) { d.title = docTitle(); saveDocs(); } }
