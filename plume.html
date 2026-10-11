@@ -1512,14 +1512,22 @@ html:not(.grips) .grip{display:none!important}
 /* Zone de l'heure : toujours de la couleur du fond, jamais de celle de la barre.
    iOS prend la couleur juste sous l'heure : le bandeau descend de 3 px sur le haut de la barre
    (invisible, il se fond dans la zone de l'heure) pour que ce soit toujours lui qu'il lise. */
-:root:not(#z) .bar::before,:root:not(#z) .bar::after{top:calc(env(safe-area-inset-top,0px) + 12px)!important}
-/* Le haut de la barre (12 px sous l'heure) reste de la couleur du fond : c'est là qu'iOS lit la
-   couleur de la zone de l'heure. La couleur choisie commence juste en dessous, sous les boutons. */
-:root:not(#z) .bar{padding-top:calc(env(safe-area-inset-top,0px) + 18px)!important;
-  background:linear-gradient(to bottom,var(--bg) 0,var(--bg) calc(env(safe-area-inset-top,0px) + 12px),transparent calc(env(safe-area-inset-top,0px) + 12px))!important}
+:root:not(#z) .bar::before,:root:not(#z) .bar::after{top:env(safe-area-inset-top,0px)!important}
 
 /* Surligneur aligné sur le « A » de la couleur : même hauteur d'icône, même trait en dessous */
 #hl-btn svg{transform:translateY(2.5px) scale(1.08)}
+
+/* ================= Barre : verre gris =================
+   Plus de couleur au choix : la barre est blanche en mode clair, noire en mode sombre, avec un
+   voile gris et un grain très fin, comme un verre dépoli : le texte qui passe dessous dérange
+   moins. La zone de l'heure reste de la couleur du fond. */
+:root:not(#z){--barc:#e9e9ee}
+:root:not(#z)[data-theme="dark"]{--barc:#2a2a2f}
+@media (prefers-color-scheme: dark){ :root:not(#z):not([data-theme="light"]){--barc:#2a2a2f} }
+:root:not(#z):not([data-glass="opaque"]) .bar::after{
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") repeat,
+    color-mix(in srgb,var(--barc) var(--veil),transparent)!important;background-blend-mode:normal}
+:root:not(#z)[data-glass="opaque"] .bar::before{background:var(--barc)!important}
 </style>
 
 <header class="bar">
@@ -3785,7 +3793,7 @@ function applyPrefs(){
   editor.spellcheck = !!prefs.spell && checksOn();
   document.documentElement.classList.toggle('grips', !!prefs.grips);
   document.documentElement.dataset.glass = ['opaque','mi'].includes(prefs.glass) ? prefs.glass : 'verre';
-  document.documentElement.dataset.barc = prefs.barColor || 'aucune';
+  document.documentElement.dataset.barc = 'aucune'; // la barre est toujours de la couleur du thème (blanche ou noire)
   syncStatusColor();
 }
 // La zone de l'heure et de la batterie (iPhone, iPad, Mac) prend la couleur de la barre :
@@ -3892,7 +3900,6 @@ function layoutHTML(){
     <div class="hr"></div>
     <div class="mh">Barre du haut</div>
     ${seg('glass', ['opaque','mi'].includes(prefs.glass) ? prefs.glass : 'verre', [['verre','Transparente'],['mi','Intermédiaire'],['opaque','Opaque']])}
-    <div class="barcols" role="radiogroup" aria-label="Couleur de la barre">${BAR_COLORS.map(([k, n]) => `<button class="barcol" data-bc="${k}" title="${n}" aria-label="${n}" aria-checked="${(prefs.barColor || 'aucune') === k}"></button>`).join('')}</div>
     <div class="hr"></div>
     <label class="mi mi-switch">Retrait de première ligne<input type="checkbox" class="switch" data-s="indent"${prefs.indent ? ' checked' : ''}></label>
     ${matchMedia('(max-width:760px)').matches ? '' : `<label class="mi mi-switch">Barres de largeur<span class="hint">sur les côtés du texte</span><input type="checkbox" class="switch" data-s="grips"${prefs.grips ? ' checked' : ''}></label>`}
