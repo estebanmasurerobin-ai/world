@@ -1039,6 +1039,30 @@ button.status{font-size:15px;height:44px;padding:0 12px}
 .dim-ticks{display:flex;justify-content:space-between;padding:4px 6px 0}
 .dim-ticks span{width:28px;text-align:center;font-size:14px;color:var(--ui);cursor:pointer;font-variant-numeric:tabular-nums}
 .dim-ticks span.on{color:var(--accent);font-weight:700}
+
+/* ================= Verre le plus transparent possible =================
+   Menus, bulles et panneaux : presque aucune teinte, seulement le flou d'iOS. Le texte des menus
+   garde un léger halo pour rester lisible sur ce qu'il y a derrière. */
+:root{--lg-tint:rgba(255,255,255,.08);--lg-tint-strong:rgba(255,255,255,.2);--lg-sheen:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 40%)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--lg-tint:rgba(20,20,22,.1);--lg-tint-strong:rgba(20,20,22,.24);--lg-sheen:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,0) 40%)} }
+:root[data-theme="dark"]{--lg-tint:rgba(20,20,22,.1);--lg-tint-strong:rgba(20,20,22,.24);--lg-sheen:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,0) 40%)}
+.pop,.selbar,.cpanel,.mathpanel,.ai-dock,.findbar,.tablebar,.style-pill,.paint-pill,.toast,.notes-side,.outline-side{
+  background:var(--lg-sheen),var(--lg-tint-strong);-webkit-backdrop-filter:blur(18px) saturate(190%);backdrop-filter:blur(18px) saturate(190%)}
+.bar{background:transparent;-webkit-backdrop-filter:blur(10px) saturate(180%);backdrop-filter:blur(10px) saturate(180%)}
+:root[data-theme="dark"] .bar{background:transparent}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .bar{background:transparent} }
+.pop .mi,.pop .mh,.pop .ai-item,.pop dl,.pop .st-big,.selbar :is(button,a),.outline-side,.notes-side,.findbar{text-shadow:0 0 6px var(--bg),0 0 14px var(--bg)}
+.pop-scrim{position:fixed;inset:0;z-index:19;background:transparent}
+/* Application installée : les onglets juste sous l'heure, sans espace perdu */
+@media (display-mode: standalone){ .bar{padding-top:calc(env(safe-area-inset-top,0px) + 2px)} }
+
+/* Petits écrans (iPhone) : les outils de mise en forme prennent toute une ligne sous les autres boutons */
+@media (max-width:700px){
+  .bar{padding-left:10px;padding-right:10px;row-gap:2px}
+  .tb{height:44px;min-width:44px;padding:0 8px}
+  .meta{order:1;margin-left:auto}
+  .tools{order:2;flex-basis:100%}
+}
 </style>
 
 <header class="bar">
@@ -1113,7 +1137,10 @@ button.status{font-size:15px;height:44px;padding:0 12px}
 <div class="style-pill" id="style-pill" hidden><span class="sp-txt"></span><button class="sp-x" title="Arrêter la vérification du style" aria-label="Arrêter la vérification du style"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
 
 <aside class="outline-side" id="outline-side" hidden aria-label="Plan du document">
-  <div class="ol-head"><h2>Plan</h2><button class="tb" id="ol-close" title="Fermer le plan" aria-label="Fermer le plan"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="ol-head"><h2>Plan</h2>
+    <button class="tb" id="ol-fold" title="Replier toutes les sections du document" aria-label="Replier toutes les sections"><svg viewBox="0 0 24 24"><path d="M7 11l5-5 5 5M7 18l5-5 5 5"/></svg></button>
+    <button class="tb" id="ol-unfold" title="Déplier toutes les sections du document" aria-label="Déplier toutes les sections"><svg viewBox="0 0 24 24"><path d="M7 6l5 5 5-5M7 13l5 5 5-5"/></svg></button>
+    <button class="tb" id="ol-close" title="Fermer le plan" aria-label="Fermer le plan"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <nav class="ol-body" id="ol-body"></nav>
 </aside>
 
@@ -1185,7 +1212,7 @@ button.status{font-size:15px;height:44px;padding:0 12px}
   </div>
 </section>
 
-<input type="file" id="file" accept=".html,.htm,.txt,.md" hidden>
+<input type="file" id="file" accept=".html,.htm,.txt,.md,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -1399,7 +1426,7 @@ function updateToolbar(){
 /* ---------- Menus ---------- */
 let popOwner = null;
 let popAt = 0;
-function closePop(){ pop.hidden = true; popOwner?.setAttribute('aria-expanded','false'); popOwner = null; }
+function closePop(){ if (typeof popScrim !== 'undefined') popScrim.hidden = true; pop.hidden = true; popOwner?.setAttribute('aria-expanded','false'); popOwner = null; }
 function openPop(btn, html, bind){
   if (popOwner === btn) { closePop(); return; }
   closePop(); closeMath(false); hideSelbar();
@@ -1427,9 +1454,15 @@ function popPage(title, html, bind, back){
 // Une bulle posée sur le texte (lien, image, proposition de l'IA) se ferme en touchant ailleurs.
 const barMenuOpen = () => !!(popOwner instanceof Element && popOwner.closest('.bar'));
 document.addEventListener('mousedown', e => {
-  if (pop.hidden || pop.contains(e.target) || e.target.closest('[data-menu]')) return;
+  if (pop.hidden || pop.contains(e.target) || e.target.closest('[data-menu]') || e.target === popScrim) return;
   if (!barMenuOpen()) closePop();
 });
+// Menu de la barre ouvert : un voile invisible couvre le document. Faire défiler passe au travers
+// (le menu reste ouvert) ; un simple toucher ferme le menu et remet le curseur là où l'on écrivait.
+const popScrim = document.createElement('div'); popScrim.className = 'pop-scrim'; popScrim.hidden = true; document.body.append(popScrim);
+popScrim.addEventListener('mousedown', e => e.preventDefault());
+popScrim.addEventListener('click', () => { closePop(); restore(); });
+new MutationObserver(() => { popScrim.hidden = pop.hidden || !barMenuOpen(); }).observe(pop, { attributes: true, attributeFilter: ['hidden'] });
 pop.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 $('.bar').addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 window.addEventListener('resize', () => { if (!pop.hidden) placePop(); });
@@ -1904,6 +1937,16 @@ function textToHTML(txt){
 }
 $('#file').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
+  if (/\.docx$/i.test(f.name)) {
+    e.target.value = '';
+    f.arrayBuffer().then(docxToHTML).then(h => {
+      const id = newId();
+      docs.push({ id, title: 'Sans titre', updated: Date.now() });
+      store.set('plume-doc:' + id, sanitize(h) || '<p><br></p>'); saveDocs();
+      openDoc(id); save(); toast(`« ${f.name} » ouvert dans un nouvel onglet`);
+    }).catch(err => toast("Impossible d'ouvrir ce fichier Word" + (err && err.message ? ' : ' + err.message : '.')));
+    return;
+  }
   const rd = new FileReader();
   rd.onload = () => {
     const isHtml = /\.html?$/i.test(f.name);
@@ -2550,7 +2593,7 @@ const selbar = $('#selbar');
 function hideSelbar(){ selbar.hidden = true; }
 function showSelbar(){
   const s = getSelection();
-  if (painter || !s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode) || !cp.hidden || !mathPanel.hidden) { hideSelbar(); return; }
+  if (painter || !pop.hidden || !s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode) || !cp.hidden || !mathPanel.hidden) { hideSelbar(); return; }
   const r = s.getRangeAt(0), t = r.toString().replace(/​/g, '').trim();
   if (!t) { hideSelbar(); return; }
   $('#sb-search').href = 'https://www.google.com/search?q=' + encodeURIComponent(t.slice(0, 300));
@@ -3196,8 +3239,6 @@ function docRoot(p){
     <div class="hr"></div>
     <button class="mi mi-sub" data-p="file">Fichier${ICO(IC.folder)}</button>
     <button class="mi mi-sub" data-p="layout">Mise en page et réglages${ICO(IC.layout)}</button>
-    <button class="mi" data-a="fold">Replier les sections${ICO(IC.fold)}</button>
-    <button class="mi" data-a="unfold">Déplier les sections${ICO(IC.unfold)}</button>
     <button class="mi mi-sub mi-keys" data-p="keys">Raccourcis clavier${ICO(IC.keys)}</button>`;
   const btn = popOwner;
   p.onclick = e => {
@@ -3214,7 +3255,7 @@ function docRoot(p){
 }
 function docFile(){
   popPage('Fichier', `
-    <button class="mi" data-f="open">Ouvrir un fichier…<span class="hint">.html .md .txt</span>${ICO(IC.open)}</button>
+    <button class="mi" data-f="open">Ouvrir un fichier…<span class="hint">.docx .html .md .txt</span>${ICO(IC.open)}</button>
     <button class="mi" data-f="save">Enregistrer dans Fichiers…${ICO(IC.share)}</button>
     <button class="mi" data-f="saveall">Enregistrer tous les onglets…${ICO(IC.all)}</button>
     <div class="hr"></div>
@@ -3627,6 +3668,9 @@ function setOutline(open, remember = true){
 }
 olBtn.addEventListener('click', () => setOutline(!olOpen));
 $('#ol-close').addEventListener('click', () => setOutline(false));
+$('#ol-fold').addEventListener('click', () => { foldAll(true); renderOutline(); toast('Sections repliées'); });
+$('#ol-unfold').addEventListener('click', () => { foldAll(false); renderOutline(); toast('Sections dépliées'); });
+['#ol-fold', '#ol-unfold', '#ol-close'].forEach(k => $(k).addEventListener('mousedown', e => e.preventDefault()));
 function renderOutline(){
   if (!olOpen) return;
   const hs = [...editor.querySelectorAll(':scope > :is(h1,h2,h3)')];
@@ -4206,6 +4250,196 @@ function openFocusMenu(btn){
     rg.oninput = upd;
     p.querySelectorAll('.dim-ticks span').forEach(x => x.onclick = () => { rg.value = x.dataset.n; upd(); });
   });
+}
+
+
+/* ---------- Ouvrir un fichier Word (.docx) ----------
+   Le .docx est une archive zip : on lit le texte (word/document.xml), les listes, les liens et les
+   images, et on garde titres, gras, italique, soulignements, barré, indices, couleurs, surlignages,
+   tailles, polices connues, alignements et tableaux. */
+async function unzipEntries(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('archive illisible');
+  const n = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+  const out = {};
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nl));
+    out[name] = async () => {
+      const start = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = u8.slice(start, start + csize);
+      if (method === 0) return data;
+      if (method !== 8) throw new Error('compression non gérée');
+      if (typeof DecompressionStream === 'undefined') throw new Error('navigateur trop ancien');
+      return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    };
+    p += 46 + nl + xl + cl;
+  }
+  return out;
+}
+const hexRGB = h => [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+function nearestName(hex, table){
+  if (!/^[0-9a-f]{6}$/i.test(hex || '')) return null;
+  const c = hexRGB(hex); let best = null, bd = 1e9;
+  for (const [k, v] of Object.entries(table)) { const d = hexRGB(v).reduce((s, x, i) => s + (x - c[i]) ** 2, 0); if (d < bd) { bd = d; best = k; } }
+  return best;
+}
+const DOCX_HL = { yellow:'jaune', green:'vert', cyan:'bleu', blue:'bleu', magenta:'rose', red:'rose', darkYellow:'orange', lightGray:'violet', darkMagenta:'violet' };
+const DOCX_U = { single:'simple', double:'double', dotted:'pointille', dash:'tirets', dashLong:'tirets', wave:'ondule', thick:'epais' };
+async function docxToHTML(buf){
+  const z = await unzipEntries(buf), dec = new TextDecoder();
+  const xml = async name => z[name] ? new DOMParser().parseFromString(dec.decode(await z[name]()), 'application/xml') : null;
+  const doc = await xml('word/document.xml'); if (!doc) throw new Error('ce n\'est pas un document Word');
+  const rels = {}, relDoc = await xml('word/_rels/document.xml.rels');
+  relDoc?.querySelectorAll('Relationship').forEach(r => rels[r.getAttribute('Id')] = { t: r.getAttribute('Target'), ext: r.getAttribute('TargetMode') === 'External' });
+  // Styles : quels identifiants sont des titres, une citation, et leur famille de polices
+  const styles = {}, styleNum = {}, stDoc = await xml('word/styles.xml');
+  if (stDoc) for (const st of stDoc.getElementsByTagNameNS('*', 'style')) {
+    const id = st.getAttribute('w:styleId'), name = (st.getElementsByTagNameNS('*', 'name')[0]?.getAttribute('w:val') || '').toLowerCase();
+    const lvl = st.getElementsByTagNameNS('*', 'outlineLvl')[0]?.getAttribute('w:val');
+    let tag = null;
+    if (/^(heading 1|title|titre 1|titre)$/.test(name) || lvl === '0') tag = 'h1';
+    else if (/^(heading 2|subtitle|titre 2|sous-titre)$/.test(name) || lvl === '1') tag = 'h2';
+    else if (/^(heading [3-9]|titre [3-9])$/.test(name) || (lvl && +lvl >= 2 && +lvl < 9)) tag = 'h3';
+    else if (/quote|citation/.test(name)) tag = 'blockquote';
+    else if (/^(code|html preformatted|code html|source code)/.test(name)) tag = 'pre';
+    styles[id] = tag;
+    // Listes définies par le style (« List Bullet », « List Number »…)
+    const snp = st.getElementsByTagNameNS('*', 'numPr')[0];
+    const sn = snp?.getElementsByTagNameNS('*', 'numId')[0]?.getAttribute('w:val');
+    if (sn) styleNum[id] = { numId: sn, ilvl: +(snp.getElementsByTagNameNS('*', 'ilvl')[0]?.getAttribute('w:val') || 0) };
+    else if (/^list (bullet|number)( \d)?$/.test(name)) styleNum[id] = { kind: /bullet/.test(name) ? 'ul' : 'ol', ilvl: Math.max(0, (+(name.match(/\d$/) || [1])[0]) - 1) };
+  }
+  // Listes : numérotées ou à puces, par niveau
+  const nums = {}, numDoc = await xml('word/numbering.xml');
+  if (numDoc) {
+    const abs = {};
+    for (const a of numDoc.getElementsByTagNameNS('*', 'abstractNum')) {
+      const lv = {}; for (const l of a.getElementsByTagNameNS('*', 'lvl')) lv[l.getAttribute('w:ilvl')] = l.getElementsByTagNameNS('*', 'numFmt')[0]?.getAttribute('w:val') || 'bullet';
+      abs[a.getAttribute('w:abstractNumId')] = lv;
+    }
+    for (const n of numDoc.getElementsByTagNameNS('*', 'num')) nums[n.getAttribute('w:numId')] = abs[n.getElementsByTagNameNS('*', 'abstractNumId')[0]?.getAttribute('w:val')] || {};
+  }
+  const kid = (el, name) => { for (const c of el.children) if (c.localName === name) return c; return null; };
+  const val = (el, name) => { const k = el && kid(el, name); return k ? (k.getAttribute('w:val') ?? '') : null; };
+  const imgCache = {};
+  const imageSrc = async rid => {
+    const r = rels[rid]; if (!r || r.ext) return null;
+    const path = 'word/' + r.t.replace(/^\/?word\//, '').replace(/^\.\//, ''); if (!z[path]) return null;
+    if (!imgCache[path]) {
+      const bytes = await z[path](), ext = path.split('.').pop().toLowerCase(), mime = { png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif', webp:'image/webp' }[ext];
+      if (!mime) return null;
+      let bin = ''; for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
+      imgCache[path] = `data:${mime};base64,${btoa(bin)}`;
+    }
+    return imgCache[path];
+  };
+  const runHTML = async r => {
+    const pr = kid(r, 'rPr');
+    let inner = '';
+    for (const c of r.children) {
+      if (c.localName === 't') inner += esc(c.textContent);
+      else if (c.localName === 'tab') inner += ' ';
+      else if (c.localName === 'br' || c.localName === 'cr') inner += '<br>';
+      else if (c.localName === 'drawing' || c.localName === 'pict') {
+        const blip = c.getElementsByTagNameNS('*', 'blip')[0] || c.getElementsByTagNameNS('*', 'imagedata')[0];
+        const rid = blip && (blip.getAttribute('r:embed') || blip.getAttribute('r:id'));
+        const src = rid && await imageSrc(rid); if (src) inner += `<img src="${src}" data-w="l">`;
+      }
+    }
+    if (!inner || !pr) return inner;
+    const on = n => { const v = val(pr, n); return v !== null && !/^(0|false|none)$/.test(v); };
+    if (on('b')) inner = `<b>${inner}</b>`;
+    if (on('i')) inner = `<i>${inner}</i>`;
+    if (on('strike') || on('dstrike')) inner = `<s>${inner}</s>`;
+    const va = val(pr, 'vertAlign'); if (va === 'subscript') inner = `<sub>${inner}</sub>`; if (va === 'superscript') inner = `<sup>${inner}</sup>`;
+    const at = [];
+    const u = val(pr, 'u'); if (u && u !== 'none') at.push(`data-u="${DOCX_U[u] || 'simple'}"`);
+    const col = val(pr, 'color'), cn = col && col !== 'auto' && !/^0{6}$/.test(col) ? nearestName(col, LIGHT_C) : null; if (cn) at.push(`data-c="${cn}"`);
+    const hl = val(pr, 'highlight'), shd = kid(pr, 'shd')?.getAttribute('w:fill');
+    const hn = hl && hl !== 'none' ? DOCX_HL[hl] || 'jaune' : shd && shd !== 'auto' && !/^f{6}$/i.test(shd) ? nearestName(shd, LIGHT_H) : null;
+    if (hn) at.push(`data-h="${hn} plein"`);
+    const sz = val(pr, 'sz'); if (sz) { const px = Math.round(+sz / 2 * 4 / 3); if (px && Math.abs(px - 19) > 2) at.push(`data-s="${px}" style="font-size:${px}px"`); }
+    const font = kid(pr, 'rFonts')?.getAttribute('w:ascii'), fk = font && FONTS.find(f => f[1].toLowerCase() === font.toLowerCase()); if (fk) at.push(`data-f="${fk[0]}"`);
+    return at.length ? `<span ${at.join(' ')}>${inner}</span>` : inner;
+  };
+  const inlineHTML = async p => {
+    let h = '';
+    for (const c of p.children) {
+      if (c.localName === 'r') h += await runHTML(c);
+      else if (c.localName === 'hyperlink') {
+        let t = ''; for (const r of c.children) if (r.localName === 'r') t += await runHTML(r);
+        const href = rels[c.getAttribute('r:id')]?.t;
+        h += href && /^(https?:|mailto:)/i.test(href) ? `<a href="${esc(href)}">${t}</a>` : t;
+      } else if (/^(ins|smartTag|sdt|sdtContent|fldSimple)$/.test(c.localName)) h += await inlineHTML(c);
+    }
+    return h;
+  };
+  const out = []; let list = null; // pile des listes ouvertes : [{tag, lvl}]
+  const closeLists = () => { while (list && list.length) out.push(`</li></${list.pop().tag}>`); list = null; };
+  const paraHTML = async p => {
+    const pp = kid(p, 'pPr'), sid = val(pp, 'pStyle'), body = await inlineHTML(p);
+    const jc = val(pp, 'jc'), align = { center:'center', right:'right', end:'right', both:'justify', distribute:'justify' }[jc];
+    const numPr = pp && kid(pp, 'numPr'), sn = styleNum[sid] || {};
+    const numId = val(numPr, 'numId') || sn.numId, ilvl = +(val(numPr, 'ilvl') ?? sn.ilvl ?? 0) || 0;
+    if ((numId && numId !== '0') || sn.kind) {
+      const fmt = sn.kind && !numId ? (sn.kind === 'ul' ? 'bullet' : 'decimal') : (nums[numId] || {})[ilvl] || 'bullet', tag = fmt === 'bullet' || fmt === 'none' ? 'ul' : 'ol';
+      list = list || [];
+      while (list.length > ilvl + 1) out.push(`</li></${list.pop().tag}>`); // remonter d'un ou plusieurs niveaux
+      if (list.length === ilvl + 1 && (list[ilvl].tag !== tag || list[ilvl].num !== numId)) out.push(`</li></${list.pop().tag}>`); // autre liste
+      if (list.length === ilvl + 1) out.push(`</li><li>${body || '<br>'}`);
+      else { while (list.length < ilvl + 1) { list.push({ tag, num: numId }); out.push(`<${tag}><li>`); } out.push(body || '<br>'); }
+      return;
+    }
+    closeLists();
+    const tag = styles[sid] || (/^(Heading|Titre)1$|^Title$/i.test(sid || '') ? 'h1' : /^(Heading|Titre)2$/i.test(sid || '') ? 'h2' : /^(Heading|Titre)[3-9]$/i.test(sid || '') ? 'h3' : 'p');
+    out.push(`<${tag}${align ? ` style="text-align:${align}"` : ''}>${body || '<br>'}</${tag}>`);
+  };
+  const tableHTML = async t => {
+    let h = '<table><tbody>';
+    for (const tr of t.children) {
+      if (tr.localName !== 'tr') continue; h += '<tr>';
+      for (const tc of tr.children) {
+        if (tc.localName !== 'tc') continue;
+        const parts = []; for (const p of tc.children) if (p.localName === 'p') parts.push(await inlineHTML(p));
+        h += `<td>${parts.filter(Boolean).join('<br>') || '<br>'}</td>`;
+      }
+      h += '</tr>';
+    }
+    return h + '</tbody></table>';
+  };
+  const bodyEl = doc.getElementsByTagNameNS('*', 'body')[0];
+  for (const el of bodyEl.children) {
+    if (el.localName === 'p') await paraHTML(el);
+    else if (el.localName === 'tbl') { closeLists(); out.push(await tableHTML(el)); }
+    else if (el.localName === 'sdt') { const c = kid(el, 'sdtContent'); if (c) for (const p of c.children) if (p.localName === 'p') await paraHTML(p); }
+  }
+  closeLists();
+  // Finitions : blocs de code consécutifs réunis, cases ☐ ☑ en listes de tâches, $…$ en formules,
+  // liens sans la couleur ni le soulignement imposés par Word.
+  const box = document.createElement('div'); box.innerHTML = out.join('');
+  box.querySelectorAll('pre').forEach(pre => { let n; while ((n = pre.nextElementSibling) && n.tagName === 'PRE') { pre.append('\n', ...n.childNodes); n.remove(); } });
+  box.querySelectorAll('ul').forEach(ul => {
+    const lis = [...ul.children].filter(li => li.tagName === 'LI');
+    if (!lis.length || !lis.every(li => /^[☐☑☒]\s?/.test(li.textContent))) return;
+    ul.setAttribute('data-check', '');
+    lis.forEach(li => {
+      const w = document.createTreeWalker(li, NodeFilter.SHOW_TEXT); const t = w.nextNode();
+      if (t) { if (/^[☑☒]/.test(t.data)) li.setAttribute('data-done', '1'); t.data = t.data.replace(/^[☐☑☒]\s?/, ''); }
+    });
+  });
+  box.querySelectorAll('a span').forEach(sp => { sp.removeAttribute('data-u'); if (sp.dataset.c === 'bleu') sp.removeAttribute('data-c'); if (!sp.attributes.length) sp.replaceWith(...sp.childNodes); });
+  const tw = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), texts = []; while (tw.nextNode()) if (/\$/.test(tw.currentNode.data) && !tw.currentNode.parentElement.closest('pre,code')) texts.push(tw.currentNode);
+  for (const t of texts) {
+    const h = esc(t.data)
+      .replace(/\$\$([^$]+)\$\$/g, (_, x) => `<span class="math" data-display="1" data-tex="${x.trim()}"></span>`)
+      .replace(/(^|[^$\\])\$([^\s$](?:[^$\n]*[^\s$\\])?)\$/g, (_, p, x) => `${p}<span class="math" data-tex="${x}"></span>`);
+    if (h !== esc(t.data)) { const span = document.createElement('span'); span.innerHTML = h; t.replaceWith(...span.childNodes); }
+  }
+  return box.innerHTML;
 }
 
 /* ---------- Démarrage ---------- */
