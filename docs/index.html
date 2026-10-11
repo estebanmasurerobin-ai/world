@@ -1626,6 +1626,15 @@ html:not(.grips) .grip{display:none!important}
 
 /* Paragraphes en arabe, hébreu… : écrits de droite à gauche automatiquement */
 #editor :is(p,h1,h2,h3,li,blockquote,td,th){unicode-bidi:plaintext}
+
+/* Verre liquide sur tous les autres boutons : boîtes de dialogue, bibliothèque, recherche, Aa */
+.btn,.lib-act,.fb-b,.seg-b,.lib-more{box-shadow:var(--lg-cap-shadow)!important;background:var(--lg-cap),var(--fill)!important;border-radius:999px}
+.lib-act{border-radius:20px}
+.btn.primary{background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0)),var(--accent)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 0 .5px rgba(0,0,0,.12),0 3px 10px color-mix(in srgb,var(--accent) 35%,transparent)!important}
+.btn.danger{background:var(--lg-cap),color-mix(in srgb,#ff3b30 12%,var(--fill))!important}
+.seg-b[aria-pressed="true"]{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.9),rgba(255,255,255,.3) 70%),var(--seg-on)!important}
+:root[data-theme="dark"] .seg-b[aria-pressed="true"]{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.22),transparent 70%),var(--seg-on)!important}
+.btn:active,.lib-act:active,.fb-b:active,.seg-b:active{transform:scale(.95)}
 </style>
 
 <header class="bar">
@@ -4151,18 +4160,21 @@ function applyPrefs(){
 // La zone de l'heure et de la batterie (iPhone, iPad, Mac) prend la couleur de la barre :
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
 function syncStatusColor(){
-  requestAnimationFrame(() => {
-    // La zone de l'heure reste toujours de la couleur du fond : blanc opaque (noir en sombre).
-    // Lue dans le thème lui-même : pendant une transition, le fond peut valoir « transparent »,
-    // qu'iOS affiche en noir (en haut comme en bas de l'écran).
-    const cs = getComputedStyle(document.documentElement), bg = cs.getPropertyValue('--bg').trim() || '#ffffff';
-    const c = bg;
-    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
-    const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; document.head.append(m);
-    document.documentElement.style.backgroundColor = bg;
-  });
+  // La zone de l'heure est toujours de la couleur du fond (blanc en clair, noir en sombre) et suit
+  // EN DIRECT le thème : en « Auto », iOS reçoit les deux couleurs (une pour le mode clair, une pour
+  // le mode sombre) et choisit lui-même au moment où le système change, même app en arrière-plan.
+  const root = document.documentElement;
+  root.style.backgroundColor = 'var(--bg)';
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+  const add = (c, media) => { const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c; if (media) m.media = media; document.head.append(m); };
+  const forced = root.getAttribute('data-theme');
+  if (theme === 'auto' && !hostTheme) { add('#ffffff', '(prefers-color-scheme: light)'); add('#000000', '(prefers-color-scheme: dark)'); }
+  else add(forced === 'dark' ? '#000000' : '#ffffff');
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
+// Retour dans l'app (après avoir changé le mode dans le Centre de contrôle, par exemple)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncStatusColor(); });
+addEventListener('pageshow', () => syncStatusColor());
 function setPref(k, v){ prefs[k] = v; store.set('plume-prefs', JSON.stringify(prefs)); applyPrefs(); }
 
 /* ---------- Menu ⋯ ----------
