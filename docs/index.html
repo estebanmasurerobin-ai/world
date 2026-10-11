@@ -3625,14 +3625,16 @@ const PAGE_W = 618;
 let widthMode = 'normal', docZoom = 1;
 function setWidth(w){
   widthMode = w || 'normal';
-  // En pourcentage de la fenêtre : la page garde les mêmes proportions sur un iPad comme sur un
-  // grand écran. Le minimum en pixels ne sert qu'aux petites fenêtres, pour que le texte reste lisible.
-  let v = { etroite: 'max(40%, min(100%, 380px))', normal: 'max(52%, min(100%, 480px))',
-            large: 'max(66%, min(100%, 600px))', plein: 'min(88%, calc(100% - 32px))' }[w];
+  // Selon la fenêtre, mais pas en proportion fixe : une partie fixe + un pourcentage. La page
+  // grandit avec l'écran, moins vite que lui ; sur un très grand écran, « Étroite » reste
+  // vraiment étroite et « Pleine » ne va pas d'un bord à l'autre.
+  // iPad 13" : 534 · 650 · 860 · 1220 px — écran 2560 px : 760 · 1010 · 1315 · 1670 px.
+  const fit = (a, b) => `min(calc(100% - 32px), calc(${a}px + ${b}%))`;
+  let v = { etroite: fit(266, 20), normal: fit(247, 30), large: fit(352, 38), plein: fit(697, 39) }[w];
   if (!v && /^\d{2,3}%$/.test(w || '')) v = w;
   if (!v && /^\d{3,4}px$/.test(w || '')) v = w;
   if (!v && /^\d{2,3}ch$/.test(w || '')) v = Math.round(parseInt(w) / 70 * PAGE_W) + 'px';
-  document.documentElement.style.setProperty('--page-w', v || 'max(52%, min(100%, 480px))');
+  document.documentElement.style.setProperty('--page-w', v || 'min(calc(100% - 32px), calc(247px + 30%))');
 }
 function setZoom(z){
   docZoom = Math.min(2, Math.max(.6, +z || 1));
