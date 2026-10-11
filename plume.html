@@ -1617,6 +1617,44 @@ html:not(.grips) .grip{display:none!important}
 .seg-b[aria-pressed="true"]{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.9),rgba(255,255,255,.3) 70%),var(--seg-on)!important}
 :root[data-theme="dark"] .seg-b[aria-pressed="true"]{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.22),transparent 70%),var(--seg-on)!important}
 .btn:active,.lib-act:active,.fb-b:active,.seg-b:active{transform:scale(.95)}
+
+/* ================= Barre : textes centrés, boutons plus transparents =================
+   - Style, police et taille : le texte est centré dans son bouton (plus collé à gauche).
+   - Lettres (B, I, U, A, Aa, Ag, T, 19) centrées en hauteur sur les icônes : on aligne sur la
+     hauteur des capitales, pas sur la ligne de texte (Literata descend un peu sinon).
+   - Plus de rond qui reste affiché après un toucher sur iPad (l'état « survolé » restait collé). */
+.tb.sel{justify-content:center!important;gap:4px}
+#para-btn .full,#font-btn .full{text-align:center!important}
+.tb .glyph,.tb .lbl,.tb .full,.tb .tb-label{line-height:1!important;display:inline-flex;align-items:center;justify-content:center}
+.tb .full{display:none}
+@media (min-width:1340px){ .tb .full{display:inline-flex} }
+@supports (text-box: trim-both cap alphabetic){
+  .tb .glyph,.tb .lbl,.tb .full,.tb .tb-label{text-box:trim-both cap alphabetic}
+}
+@supports not (text-box: trim-both cap alphabetic){
+  .tb .glyph,.tb .lbl{position:relative;top:-1px}
+}
+@media (hover:none){
+  .tb:hover:not([aria-pressed="true"]):not([aria-expanded="true"]),.tb:focus:not([aria-pressed="true"]):not([aria-expanded="true"]){background:transparent!important}
+}
+.tb:focus:not(:focus-visible){outline:none}
+/* Capsules plus transparentes */
+:root{--lg-cap:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.06));
+  --lg-cap-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 1px rgba(0,0,0,.025),0 0 0 .5px rgba(0,0,0,.07),0 2px 8px rgba(0,0,0,.05)}
+:root[data-theme="dark"]{--lg-cap:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.015));
+  --lg-cap-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 .5px rgba(255,255,255,.08),0 2px 8px rgba(0,0,0,.3)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--lg-cap:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.015));
+  --lg-cap-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 .5px rgba(255,255,255,.08),0 2px 8px rgba(0,0,0,.3)} }
+.tb-group{-webkit-backdrop-filter:blur(6px) saturate(160%);backdrop-filter:blur(6px) saturate(160%)}
+
+/* Centrage vertical mesuré au pixel près (iPad, écran Retina) */
+.tb[data-cmd="bold"] .glyph,.tb[data-cmd="italic"] .glyph,#more-btn .glyph{transform:translateY(-1px)}
+#u-btn .glyph{transform:translateY(-2px)}
+#font-btn .lbl,#font-btn .full{transform:translateY(-1px)}
+#size-btn .lbl{transform:translateY(1.5px)}
+#para-btn .lbl,#para-btn .full{transform:translateY(-.5px)}
+.tb.swatched > *{transform:translateY(-2.5px)}
+#hl-btn svg{transform:translateY(0) scale(1.08)!important}
 </style>
 
 <header class="bar">
@@ -4459,7 +4497,7 @@ function exportDocx(){
       if (n.nodeType === 3) { out += run(n.data.replace(/​/g, ''), p); continue; }
       if (n.nodeType !== 1) continue;
       const t = n.tagName, q = { ...p };
-      if (n.classList.contains('math')) { out += run(n.dataset.display === '1' ? `$$${n.dataset.tex}$$` : `$${n.dataset.tex}$`, { ...p, font: 'Cambria Math', i: true }); continue; }
+      if (n.classList.contains('math')) { out += run(n.dataset.display === '1' ? `$$${n.dataset.tex}$$` : `$${n.dataset.tex}$`, { ...p, font: 'Cambria Math' }); continue; }
       if (t === 'BR') { out += '<w:r><w:br/></w:r>'; continue; }
       if (t === 'IMG') { out += imageRun(n); continue; }
       if ((t === 'INS' || t === 'DEL') && n.dataset.rv) {
@@ -4545,6 +4583,8 @@ function exportDocx(){
       + `<w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style></w:styles>` },
     { name: 'word/numbering.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ${W}><w:abstractNum w:abstractNumId="0">${lvls('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1">${lvls('decimal')}</w:abstractNum><w:abstractNum w:abstractNumId="2">${lvls('none')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num><w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num></w:numbering>` },
   ];
+  // Paragraphe vide après un tableau : seulement s'il en faut un (fin du document, ou un autre tableau juste après).
+  body = body.replace(/<\/w:tbl><w:p\/>(?=<w:p[ >])/g, '</w:tbl>');
   files.push({ name: 'word/document.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1418" w:right="1418" w:bottom="1418" w:left="1418" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr></w:body></w:document>` });
   // Les relations des liens et des images sont connues seulement après le corps : on refait ce fichier.
   files[2].data = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>${rels.join('')}</Relationships>`;
@@ -5392,9 +5432,25 @@ async function docxToHTML(buf){
     for (const id of openCmt) { const first = !seenCmt.has(id); seenCmt.add(id); h = `<span data-n="w${id.replace(/[^0-9a-z]/gi, '')}c"${first ? ` data-nt="${esc(cmtText[id] || '')}"` : ''}>${h}</span>`; }
     return h;
   };
+  let fld = null; // lien Word écrit sous forme de champ (HYPERLINK "…")
   const inlineHTML = async p => {
     let h = '';
     for (const c of p.children) {
+      if (c.localName === 'r') {
+        const fc = [...c.children].find(x => x.localName === 'fldChar'), it = [...c.children].find(x => x.localName === 'instrText');
+        if (fc) {
+          const t = fc.getAttribute('w:fldCharType');
+          if (t === 'begin') fld = { instr: '', text: '', on: false };
+          else if (t === 'separate' && fld) fld.on = true;
+          else if (t === 'end' && fld) {
+            const m = /HYPERLINK\s+"([^"]+)"/.exec(fld.instr), f = fld; fld = null;
+            h += m && /^(https?:|mailto:)/i.test(m[1]) ? `<a href="${esc(m[1])}">${f.text}</a>` : f.text;
+          }
+          continue;
+        }
+        if (it && fld && !fld.on) { fld.instr += it.textContent; continue; }
+        if (fld && fld.on) { fld.text += await runHTML(c); continue; }
+      }
       if (c.localName === 'commentRangeStart') { openCmt.add(c.getAttribute('w:id')); continue; }
       if (c.localName === 'commentRangeEnd') { openCmt.delete(c.getAttribute('w:id')); continue; }
       if (/^(ins|del|moveTo|moveFrom)$/.test(c.localName)) {
