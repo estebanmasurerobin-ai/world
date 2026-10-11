@@ -3607,11 +3607,14 @@ const PAGE_W = 618;
 let widthMode = 'normal', docZoom = 1;
 function setWidth(w){
   widthMode = w || 'normal';
-  // Pleine : comme le maximum qu'on atteignait en glissant les bords, avec une petite marge de chaque côté.
-  let v = { etroite: '520px', normal: PAGE_W + 'px', large: '820px', plein: 'calc(100% - 80px)' }[w];
+  // En pourcentage de la fenêtre : la page garde les mêmes proportions sur un iPad comme sur un
+  // grand écran. Le minimum en pixels ne sert qu'aux petites fenêtres, pour que le texte reste lisible.
+  let v = { etroite: 'max(40%, min(100%, 380px))', normal: 'max(52%, min(100%, 480px))',
+            large: 'max(66%, min(100%, 600px))', plein: 'min(88%, calc(100% - 32px))' }[w];
+  if (!v && /^\d{2,3}%$/.test(w || '')) v = w;
   if (!v && /^\d{3,4}px$/.test(w || '')) v = w;
   if (!v && /^\d{2,3}ch$/.test(w || '')) v = Math.round(parseInt(w) / 70 * PAGE_W) + 'px';
-  document.documentElement.style.setProperty('--page-w', v || PAGE_W + 'px');
+  document.documentElement.style.setProperty('--page-w', v || 'max(52%, min(100%, 480px))');
 }
 function setZoom(z){
   docZoom = Math.min(2, Math.max(.6, +z || 1));
@@ -3624,9 +3627,10 @@ document.querySelectorAll('.grip').forEach(g => {
     const sheet = $('.sheet');
     const move = ev => {
       const r = sheet.getBoundingClientRect(), cx = r.left + r.width / 2;
-      const max = $('.page').clientWidth - 2 * 56;
-      const w = Math.round(Math.max(360, Math.min(max, 2 * Math.abs(ev.clientX - cx))));
-      setWidth(w + 'px'); toast(`Largeur de la page : ${w} px`);
+      const pg = $('.page'), cs = getComputedStyle(pg), inner = pg.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const w = Math.max(360, Math.min(pg.clientWidth - 2 * 56, 2 * Math.abs(ev.clientX - cx)));
+      const pc = Math.max(25, Math.min(100, Math.round(w / inner * 100)));
+      setWidth(pc + '%'); toast(`Largeur de la page : ${pc} % de la fenêtre`);
     };
     const up = () => {
       g.classList.remove('drag');
