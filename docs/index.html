@@ -1113,11 +1113,54 @@ button.status{font-size:15px;height:44px;padding:0 12px}
   background:linear-gradient(to bottom,var(--bg) 0%,var(--bg) 62%,color-mix(in srgb,var(--bg) 75%,transparent) 82%,transparent 100%);
   -webkit-mask-image:linear-gradient(to bottom,#000 78%,transparent 100%);mask-image:linear-gradient(to bottom,#000 78%,transparent 100%)}
 :root[data-glass="opaque"] .bar{box-shadow:0 -200px 0 0 var(--bg),inset 0 -.5px 0 var(--glass-line)!important}
+
+/* ================= Documents (bibliothèque) ================= */
+.tabbar{display:none!important}
+.library{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;background:color-mix(in srgb,var(--bg) 86%,transparent);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);animation:lib-in .28s cubic-bezier(.2,.9,.25,1)}
+:root[data-glass="opaque"] .library{background:var(--bg)}
+@keyframes lib-in{from{opacity:0;transform:scale(1.02)}to{opacity:1;transform:none}}
+body.lib-open{overflow:hidden}
+body.lib-open .pop{z-index:80}
+.lib-head{display:flex;align-items:center;gap:14px;padding:calc(env(safe-area-inset-top,0px) + 14px) 24px 10px}
+.lib-head h2{margin:0;font-size:34px;font-weight:800;letter-spacing:-.02em}
+#lib-q{flex:1;max-width:420px;margin-left:auto;height:40px;border:0;border-radius:12px;background:var(--fill);color:var(--fg);padding:0 14px;font:inherit;font-size:16px}
+#lib-q:focus{outline:none;box-shadow:0 0 0 3px var(--ring)}
+.lib-body{flex:1;overflow-y:auto;padding:6px 24px calc(env(safe-area-inset-bottom,0px) + 40px)}
+.lib-body h3{font-size:20px;font-weight:700;margin:22px 0 12px}
+.lib-actions{display:flex;gap:12px;flex-wrap:wrap}
+.lib-act{display:flex;align-items:center;gap:12px;border:0;border-radius:16px;background:var(--fill);color:var(--fg);font:inherit;font-size:16px;font-weight:600;padding:14px 18px;cursor:pointer;text-align:left}
+.lib-act small{display:block;font-weight:400;font-size:12.5px;color:var(--ui)}
+.lib-act:hover{background:var(--fill2)}
+.lib-ico .mi-ic{margin:0;width:24px;height:24px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:22px 18px}
+.lib-card{display:flex;flex-direction:column;gap:8px;min-width:0}
+.lib-open{border:0;padding:0;background:none;cursor:pointer;border-radius:12px;display:block;width:100%}
+.lib-page{aspect-ratio:3/4;border-radius:12px;background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.12),0 6px 18px rgba(0,0,0,.08),0 0 0 .5px var(--glass-line);
+  padding:14px 13px;overflow:hidden;text-align:left;font-family:var(--doc-font);font-size:8.5px;line-height:1.45;color:var(--fg);transition:transform .2s,box-shadow .2s}
+.lib-page b{display:block;font-size:12px;margin:2px 0 4px;line-height:1.2}
+.lib-open:hover .lib-page{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.12),0 14px 30px rgba(0,0,0,.1),0 0 0 .5px var(--glass-line)}
+.lib-card.on .lib-page{box-shadow:0 0 0 3px var(--accent),0 6px 18px rgba(0,0,0,.1)}
+.lib-meta{display:flex;align-items:flex-start;gap:4px}
+.lib-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lib-t b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-t span{font-size:12px;color:var(--ui)}
+.lib-more{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:var(--ui);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.lib-more:hover{background:var(--fill)}
+.lib-more svg{width:20px;height:20px;fill:currentColor}
+.lib-trash{display:flex;flex-direction:column;gap:2px}
+.lib-tr{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px}
+.lib-tr:hover{background:var(--fill)}
+.lib-tr > div{flex:1;min-width:0;display:flex;flex-direction:column}
+.lib-tr b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lib-tr span{font-size:12px;color:var(--ui)}
+.lib-none{color:var(--ui)}
+@media (max-width:600px){ .lib-head{flex-wrap:wrap} #lib-q{order:3;flex-basis:100%;max-width:none} .lib-grid{grid-template-columns:repeat(2,1fr)} .lib-body,.lib-head{padding-left:16px;padding-right:16px} }
 </style>
 
 <header class="bar">
   <nav class="tabbar" id="tabbar" role="tablist" aria-label="Documents ouverts"></nav>
   <div class="tools" role="toolbar" aria-label="Mise en forme">
+    <button class="tb" id="docs-btn" title="Documents : tous tes documents, en ouvrir un, en créer un" aria-label="Documents"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg></button>
     <button class="tb" id="outline-btn" title="Plan : tous les titres du document" aria-label="Plan du document" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.5h1.6M5.8 11.5h1.6M5.8 14.5h1.6"/></svg></button>
     <span class="sep"></span>
     <button class="tb" id="undo-btn" title="Annuler (Ctrl+Z)" aria-label="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
@@ -1142,7 +1185,8 @@ button.status{font-size:15px;height:44px;padding:0 12px}
     <button class="status" id="status" aria-live="polite" title="Statistiques et objectif de mots"></button>
     <button class="tb" id="find-btn" title="Rechercher et remplacer (Ctrl+F)" aria-label="Rechercher"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></button>
     <button class="tb" id="notes-btn" title="Notes (Ctrl+Alt+M pour commenter la sélection)" aria-label="Notes" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span class="count" id="notes-count"></span></button>
-    <button class="tb" id="focus-btn" title="Mode concentration : seul le paragraphe en cours reste net" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
+    <button class="tb" id="focus-btn" title="Mode concentration : un toucher pour l'activer ou le couper" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 5h16" opacity=".35"/><path d="M4 9.5h16M4 14h11" stroke-width="2.2"/><path d="M4 18.5h16" opacity=".35"/></svg></button>
+    <button class="tb tb-chev" id="focus-more" title="Réglages de la concentration : paragraphe ou phrase, intensité" aria-label="Réglages de la concentration"><svg viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb" id="ai-btn" data-menu="ai" title="Suggestions de l'IA"><span class="spark">✦</span><span style="font-size:13px">IA</span></button>
     <button class="tb" id="fs-btn" title="Plein écran" hidden></button>
     <button class="tb" data-menu="doc" title="Document"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg></button>
@@ -1175,7 +1219,7 @@ button.status{font-size:15px;height:44px;padding:0 12px}
   </div>
   <div class="fb-row fb-opts">
     <label><input type="checkbox" class="switch sm" id="fb-case">Respecter les majuscules</label>
-    <label><input type="checkbox" class="switch sm" id="fb-docs">Tous les onglets</label>
+    <label><input type="checkbox" class="switch sm" id="fb-docs">Tous les documents</label>
   </div>
   <div class="fb-results" id="fb-results" hidden></div>
 </div>
@@ -1185,6 +1229,15 @@ button.status{font-size:15px;height:44px;padding:0 12px}
 </div>
 
 <div class="style-pill" id="style-pill" hidden><span class="sp-txt"></span><button class="sp-x" title="Arrêter la vérification du style" aria-label="Arrêter la vérification du style"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+
+<section class="library" id="library" hidden aria-label="Documents">
+  <div class="lib-head">
+    <h2>Documents</h2>
+    <input type="search" id="lib-q" placeholder="Rechercher dans les documents" autocomplete="off" aria-label="Rechercher dans les documents">
+    <button class="tb" id="lib-close" title="Revenir au document" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="lib-body" id="lib-body"></div>
+</section>
 
 <aside class="outline-side" id="outline-side" hidden aria-label="Plan du document">
   <div class="ol-head"><h2>Plan</h2>
@@ -1562,7 +1615,7 @@ const MENUS = {
       return `<button class="mi" data-v="${t}"><span style="font-family:var(--doc-font);${st}">${l}</span></button>`;
     }).join(''), p => p.onclick = e => {
       const b = e.target.closest('[data-v]'); if (!b) return;
-      exec('formatBlock', `<${b.dataset.v}>`); closePop();
+      setBlock(b.dataset.v === 'p' ? 'text' : b.dataset.v); closePop();
     });
   },
   font(btn){
@@ -2016,7 +2069,7 @@ $('#file').addEventListener('change', e => {
       const id = newId();
       docs.push({ id, title: 'Sans titre', updated: Date.now() });
       store.set('plume-doc:' + id, sanitize(h) || '<p><br></p>'); saveDocs();
-      openDoc(id); save(); toast(`« ${f.name} » ouvert dans un nouvel onglet`);
+      if (!library.hidden) closeLibrary(); openDoc(id); save(); toast(`« ${f.name} » ouvert`);
     }).catch(err => toast("Impossible d'ouvrir ce fichier Word" + (err && err.message ? ' : ' + err.message : '.')));
     return;
   }
@@ -2030,7 +2083,7 @@ $('#file').addEventListener('change', e => {
     const id = newId();
     docs.push({ id, title: 'Sans titre', updated: Date.now() });
     store.set('plume-doc:' + id, html); saveDocs();
-    openDoc(id); save(); toast(`« ${f.name} » ouvert dans un nouvel onglet`);
+    if (!library.hidden) closeLibrary(); openDoc(id); save(); toast(`« ${f.name} » ouvert`);
   };
   rd.readAsText(f); e.target.value = '';
 });
@@ -3055,7 +3108,8 @@ function applyFocus(){
   editor.classList.toggle('focus-on', focusOn);
   const b = $('#focus-btn'); b.setAttribute('aria-pressed', focusOn);
 }
-$('#focus-btn').addEventListener('click', e => openFocusMenu(e.currentTarget));
+$('#focus-btn').addEventListener('click', () => { setFocusOn(!focusOn); toast(focusOn ? 'Mode concentration activé' : 'Mode concentration désactivé'); restore(); });
+$('#focus-more').addEventListener('click', e => openFocusMenu(e.currentTarget));
 function setFocusOn(v){ focusOn = v; store.set('plume-focus', focusOn ? '1' : '0'); applyFocus(); sentenceDim(); }
 
 // Retrouve un passage dans le texte, même s'il traverse plusieurs mises en forme.
@@ -3090,6 +3144,7 @@ function docTitle(){
   return 'Sans titre';
 }
 function renderTabs(){
+  if (typeof library !== 'undefined' && !library.hidden) renderLibrary();
   tabbar.innerHTML = docs.map(d =>
     `<button class="tab" role="tab" data-id="${esc(d.id)}" aria-selected="${d.id === activeId}" title="${esc(d.title)}"><span class="t">${esc(d.title)}</span><span class="x" data-close title="Fermer l'onglet" aria-label="Fermer l'onglet">×</span></button>`
   ).join('') + '<button class="tab-add" id="tab-add" title="Nouvel onglet" aria-label="Nouvel onglet">+</button>';
@@ -3304,8 +3359,8 @@ function setPref(k, v){ prefs[k] = v; store.set('plume-prefs', JSON.stringify(pr
    et « Raccourcis » s'ouvrent comme des sous-menus d'iOS. */
 function docRoot(p){
   p.innerHTML = `
-    <button class="mi" data-a="new">Nouvel onglet${ICO(IC.newtab)}</button>
-    <button class="mi" data-a="reopen">Rouvrir l'onglet fermé${ICO(IC.reopen)}</button>
+    <button class="mi" data-a="new">Nouveau document${ICO(IC.newtab)}</button>
+    <button class="mi" data-a="library">Tous les documents${ICO(IC.all)}</button>
     <div class="hr"></div>
     ${statusEl.offsetParent ? '' : `<button class="mi" data-a="stats">Statistiques et objectif${ICO(IC.stats)}</button>`}
     <button class="mi" data-a="history">Historique des versions${ICO(IC.history)}</button>
@@ -3320,7 +3375,7 @@ function docRoot(p){
     if (sub) { ({ file: docFile, layout: docLayout, keys: docKeys })[sub.dataset.p](); return; }
     const a = e.target.closest('[data-a]')?.dataset.a; if (!a) return;
     closePop();
-    ({ new: newDoc, reopen: reopenClosed, find: () => openFind(), outline: () => setOutline(!olOpen),
+    ({ new: newDoc, reopen: reopenClosed, library: openLibrary, find: () => openFind(), outline: () => setOutline(!olOpen),
        stats: () => openStats(btn), history: () => openSide('history'),
        fold: () => foldAll(true), unfold: () => foldAll(false) })[a]();
   };
@@ -3331,7 +3386,7 @@ function docFile(){
   popPage('Fichier', `
     <button class="mi" data-f="open">Ouvrir un fichier…<span class="hint">.docx .html .md .txt</span>${ICO(IC.open)}</button>
     <button class="mi" data-f="save">Enregistrer dans Fichiers…${ICO(IC.share)}</button>
-    <button class="mi" data-f="saveall">Enregistrer tous les onglets…${ICO(IC.all)}</button>
+    <button class="mi" data-f="saveall">Enregistrer tous les documents…${ICO(IC.all)}</button>
     <div class="hr"></div>
     <div class="mh">Exporter</div>
     <button class="mi" data-f="pdf">PDF (imprimer)${ICO(IC.pdf)}</button>
@@ -4161,7 +4216,7 @@ function insertTable(rows = 3, cols = 3){
 function insertRule(){ const hr = document.createElement('hr'); const [h] = insertBlocks(hr); caretIn(h.nextElementSibling); changed(); }
 function insertCodeBlock(){
   const el = topBlock();
-  if (el && el.tagName === 'P' && el.textContent.trim()) { exec('formatBlock', '<pre>'); return; }
+  if (el && el.tagName === 'P' && el.textContent.trim()) { setBlock('pre'); return; }
   const pre = document.createElement('pre'); pre.append(document.createElement('br')); insertBlocks(pre); caretIn(pre); changed();
 }
 // Dans un bloc de code, Entrée va à la ligne ; deux Entrée sur une ligne vide à la fin en sortent.
@@ -4304,8 +4359,6 @@ editor.addEventListener('input', queueSentenceDim);
 function openFocusMenu(btn){
   const lvl = +prefs.focusLevel || 4, scope = prefs.focusScope === 'phrase' ? 'phrase' : 'para';
   openPop(btn, `
-    <label class="mi mi-switch">Mode concentration<input type="checkbox" class="switch" id="fc-on"${focusOn ? ' checked' : ''}></label>
-    <div class="hr"></div>
     <div class="mh">Garder net</div>
     <div class="chips" data-k="scope">
       <button class="mi" data-v="para" aria-checked="${scope === 'para'}">Le paragraphe</button>
@@ -4316,14 +4369,13 @@ function openFocusMenu(btn){
       <input type="range" class="dim-range" id="fc-lvl" min="1" max="5" step="1" value="${lvl}" aria-label="Niveau d'atténuation, de 1 à 5">
       <div class="dim-ticks">${[1,2,3,4,5].map(n => `<span data-n="${n}"${n === lvl ? ' class="on"' : ''}>${n}</span>`).join('')}</div>
     </div>`, p => {
-    p.querySelector('#fc-on').onchange = e => setFocusOn(e.target.checked);
     p.querySelector('[data-k="scope"]').onclick = e => {
       const b = e.target.closest('[data-v]'); if (!b) return;
       p.querySelectorAll('[data-k="scope"] [data-v]').forEach(x => x.setAttribute('aria-checked', x === b));
-      setPref('focusScope', b.dataset.v); if (!focusOn) { setFocusOn(true); p.querySelector('#fc-on').checked = true; } sentenceDim();
+      setPref('focusScope', b.dataset.v); if (!focusOn) setFocusOn(true); sentenceDim();
     };
     const rg = p.querySelector('#fc-lvl');
-    const upd = () => { setPref('focusLevel', +rg.value); applyDim(); p.querySelectorAll('.dim-ticks span').forEach(x => x.classList.toggle('on', +x.dataset.n === +rg.value)); if (!focusOn) { setFocusOn(true); p.querySelector('#fc-on').checked = true; } };
+    const upd = () => { setPref('focusLevel', +rg.value); applyDim(); p.querySelectorAll('.dim-ticks span').forEach(x => x.classList.toggle('on', +x.dataset.n === +rg.value)); if (!focusOn) setFocusOn(true); };
     rg.oninput = upd;
     p.querySelectorAll('.dim-ticks span').forEach(x => x.onclick = () => { rg.value = x.dataset.n; upd(); });
   });
@@ -4519,10 +4571,155 @@ async function docxToHTML(buf){
   return box.innerHTML;
 }
 
+
+/* ---------- Style de paragraphe (Texte, Titre 1-3, Citation, Code) ----------
+   Fait ici plutôt que par la commande du navigateur, qui se comporte différemment sur iPad
+   (et échouait souvent avec une grande sélection). Chaque paragraphe touché par la sélection
+   change de balise ; le texte, sa mise en forme et la sélection sont conservés. */
+function setBlock(tag){
+  restore();
+  const s = getSelection(); if (!s.rangeCount) return;
+  const r = s.getRangeAt(0), keep = caretOffsets();
+  const tops = [...editor.children].filter(el => r.intersectsNode(el));
+  if (!tops.length) { const t = topBlock(); if (t) tops.push(t); }
+  let done = false;
+  for (const el of tops) {
+    if (/^(UL|OL)$/.test(el.tagName)) {
+      // Dans une liste : chaque élément sélectionné devient un paragraphe du style demandé, hors de la liste.
+      const lis = [...el.querySelectorAll(':scope > li')].filter(li => r.intersectsNode(li));
+      for (const li of lis) {
+        const nb = document.createElement(tag === 'text' ? 'p' : tag); nb.append(...[...li.childNodes].filter(n => !(n.nodeType === 1 && /^(UL|OL)$/.test(n.tagName))));
+        if (!nb.firstChild) nb.append(document.createElement('br'));
+        // découpe la liste autour de l'élément
+        const after = document.createElement(el.tagName); if (el.hasAttribute('data-check')) after.setAttribute('data-check', '');
+        let n = li.nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
+        const sub = li.querySelector(':scope > ul, :scope > ol');
+        li.remove();
+        el.after(nb); if (sub) nb.after(sub);
+        (sub || nb).after(after);
+        if (!after.children.length) after.remove();
+        done = true;
+      }
+      if (!el.children.length) el.remove();
+      continue;
+    }
+    if (!/^(P|H1|H2|H3|BLOCKQUOTE|PRE|DIV)$/.test(el.tagName)) continue;
+    const want = tag === 'text' ? 'P' : tag.toUpperCase();
+    if (el.tagName === want) continue;
+    const nb = document.createElement(want);
+    const align = el.style.textAlign; if (align) nb.style.textAlign = align;
+    if (el.dataset.fold === '1' && /^H[123]$/.test(want)) nb.dataset.fold = '1';
+    if (want === 'PRE') nb.textContent = el.innerText.replace(/\n$/, ''); else nb.append(...el.childNodes);
+    if (!nb.firstChild) nb.append(document.createElement('br'));
+    el.replaceWith(nb); done = true;
+  }
+  if (keep) setCaretOffsets(keep);
+  if (done) { refold(); changed(); }
+  markCurrent(); queueToolbar();
+}
+
+
+/* ---------- Documents : la bibliothèque, à la place des onglets ----------
+   Comme l'écran d'accueil de Pages ou l'app Fichiers : une grille de tous les documents
+   (les plus récents d'abord), avec un aperçu, de quoi en créer un, en ouvrir un depuis Fichiers,
+   et les documents supprimés récemment, qu'on peut récupérer. */
+const library = $('#library'), libBody = $('#lib-body'), libQ = $('#lib-q');
+const trashList = () => { try { const t = JSON.parse(store.get('plume-trash') || '[]'); return Array.isArray(t) ? t : []; } catch(e) { return []; } };
+function docPreview(html){
+  const d = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html');
+  d.querySelectorAll('.math').forEach(m => m.replaceWith(' ∑ '));
+  const blocks = [...d.body.querySelectorAll('h1,h2,h3,p,li,blockquote,pre,td')].filter(b => !b.querySelector('h1,h2,h3,p,li,blockquote,pre,td'));
+  let out = '', n = 0;
+  for (const b of blocks) {
+    const t = b.textContent.replace(/[​\s]+/g, ' ').trim(); if (!t) continue;
+    const tag = /^H[123]$/.test(b.tagName) ? 'b' : 'span';
+    out += `<${tag}>${esc(t.slice(0, 220))}</${tag}> `; n += t.length; if (n > 420) break;
+  }
+  return out || '<i>Vide</i>';
+}
+const wordsOf = html => ((new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html').body.textContent || '').match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+const libDate = t => t ? verDate(t) : '';
+function openLibrary(){
+  closePop(); hideSelbar(); if (activeId) save();
+  library.hidden = false; document.body.classList.add('lib-open');
+  libQ.value = ''; renderLibrary();
+}
+function closeLibrary(){ library.hidden = true; document.body.classList.remove('lib-open'); closePop(); restore(); }
+function renderLibrary(){
+  if (library.hidden) return;
+  const q = libQ.value.trim().toLowerCase();
+  const list = [...docs].sort((a, b) => (b.updated || 0) - (a.updated || 0)).map(d => ({ d, html: store.get('plume-doc:' + d.id) || '' }))
+    .filter(x => !q || x.d.title.toLowerCase().includes(q) || x.html.replace(/<[^>]+>/g, ' ').toLowerCase().includes(q));
+  const trash = trashList();
+  const card = x => `<div class="lib-card${x.d.id === activeId ? ' on' : ''}" data-id="${esc(x.d.id)}">
+      <button class="lib-open" data-open="${esc(x.d.id)}" aria-label="Ouvrir ${esc(x.d.title)}"><div class="lib-page">${docPreview(x.html)}</div></button>
+      <div class="lib-meta"><div class="lib-t"><b>${esc(x.d.title)}</b><span>${esc(libDate(x.d.updated))} · ${fmtN(wordsOf(x.html))} mots</span></div>
+      <button class="lib-more" data-more="${esc(x.d.id)}" aria-label="Actions"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg></button></div>
+    </div>`;
+  libBody.innerHTML = `
+    ${q ? '' : `<div class="lib-actions">
+      <button class="lib-act" data-a="new"><span class="lib-ico">${ICO(IC.newtab)}</span>Nouveau document</button>
+      <button class="lib-act" data-a="files"><span class="lib-ico">${ICO(IC.open)}</span><span>Ouvrir depuis Fichiers…<small>Word, page web, Markdown, texte</small></span></button>
+    </div>`}
+    <h3>${q ? 'Résultats' : 'Récents'}</h3>
+    ${list.length ? `<div class="lib-grid">${list.map(card).join('')}</div>` : '<p class="lib-none">Aucun document ne correspond.</p>'}
+    ${!q && trash.length ? `<h3>Supprimés récemment</h3><div class="lib-trash">${trash.map((t, i) => `<div class="lib-tr"><div><b>${esc(t.title || 'Sans titre')}</b><span>${t.at ? esc(libDate(t.at)) : ''}</span></div><button class="btn sm" data-restore="${i}">Récupérer</button><button class="btn sm danger" data-purge="${i}">Supprimer</button></div>`).join('')}</div>` : ''}`;
+}
+libQ.addEventListener('input', renderLibrary);
+$('#docs-btn').addEventListener('click', () => library.hidden ? openLibrary() : closeLibrary());
+$('#lib-close').addEventListener('click', closeLibrary);
+document.addEventListener('keydown', e => {
+  if (!library.hidden && e.key === 'Escape') { e.preventDefault(); closeLibrary(); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'o') { e.preventDefault(); library.hidden ? openLibrary() : closeLibrary(); }
+});
+// Supprimer : le document part dans « Supprimés récemment » (30 au plus), d'où on peut le récupérer.
+function trashDoc(id){
+  const i = docs.findIndex(d => d.id === id); if (i < 0) return;
+  if (id === activeId) save();
+  const trash = trashList();
+  trash.unshift({ title: docs[i].title, html: store.get('plume-doc:' + id) || '', at: Date.now(), goal: docs[i].goal || 0 });
+  store.set('plume-trash', JSON.stringify(trash.slice(0, 30)));
+  try { localStorage.removeItem('plume-doc:' + id); } catch(e) {}
+  docs.splice(i, 1);
+  if (!docs.length) { activeId = null; newDoc(); }
+  else { saveDocs(); if (id === activeId) { activeId = null; openDoc([...docs].sort((a, b) => (b.updated || 0) - (a.updated || 0))[0].id); } }
+}
+libBody.addEventListener('click', e => {
+  const a = e.target.closest('[data-a]')?.dataset.a;
+  if (a === 'new') { closeLibrary(); newDoc(); return; }
+  if (a === 'files') { $('#file').click(); return; }
+  const open = e.target.closest('[data-open]')?.dataset.open;
+  if (open) { closeLibrary(); openDoc(open); return; }
+  const r = e.target.closest('[data-restore]');
+  if (r) {
+    const trash = trashList(), t = trash.splice(+r.dataset.restore, 1)[0]; store.set('plume-trash', JSON.stringify(trash));
+    if (t) { const id = newId(); docs.push({ id, title: t.title || 'Sans titre', goal: t.goal || 0, updated: Date.now() }); store.set('plume-doc:' + id, t.html || '<p><br></p>'); saveDocs(); toast('Document récupéré'); }
+    renderLibrary(); return;
+  }
+  const pg = e.target.closest('[data-purge]');
+  if (pg) { const trash = trashList(); trash.splice(+pg.dataset.purge, 1); store.set('plume-trash', JSON.stringify(trash)); renderLibrary(); return; }
+  const more = e.target.closest('[data-more]');
+  if (more) {
+    const id = more.dataset.more, d = docs.find(x => x.id === id); if (!d) return;
+    openPop(more, `
+      <button class="mi" data-m="open">Ouvrir${ICO(IC.open)}</button>
+      <button class="mi" data-m="dup">Dupliquer${ICO(IC.copy)}</button>
+      <button class="mi" data-m="file">Enregistrer dans Fichiers…${ICO(IC.share)}</button>
+      <div class="hr"></div>
+      <button class="mi danger" data-m="del">Supprimer${ICO(IC.trash)}</button>`, p => p.onclick = ev => {
+        const m = ev.target.closest('[data-m]')?.dataset.m; if (!m) return; closePop();
+        if (m === 'open') { closeLibrary(); openDoc(id); }
+        if (m === 'dup') { if (id === activeId) save(); const nid = newId(); docs.push({ id: nid, title: d.title, goal: d.goal || 0, updated: Date.now() }); store.set('plume-doc:' + nid, store.get('plume-doc:' + id) || ''); saveDocs(); renderLibrary(); toast('Document dupliqué'); }
+        if (m === 'file') { if (id === activeId) save(); const box = document.createElement('div'); box.innerHTML = store.get('plume-doc:' + id) || ''; box.querySelectorAll('.math:empty').forEach(x => x.textContent = x.dataset.display === '1' ? `$$${x.dataset.tex}$$` : `$${x.dataset.tex}$`); deliver([fileFor(box.innerHTML, d.title)]); }
+        if (m === 'del') { trashDoc(id); renderLibrary(); toast('Document supprimé. Il reste récupérable en bas de cet écran.'); }
+      });
+  }
+});
+
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
 <h1>Bienvenue dans World</h1>
-<p><span data-c="gris">Ceci est un texte d'exemple. Pour repartir de zéro : menu ⋯ en haut à droite, puis « Nouvel onglet ».</span></p>
+<p><span data-c="gris">Ceci est un texte d'exemple. Pour repartir de zéro : bouton Documents en haut à gauche, puis « Nouveau document ».</span></p>
 <p>Écrivez, tout simplement. En mode clair, le texte est noir sur fond blanc ; en mode sombre, il devient <b>blanc sur fond noir</b>. Les couleurs suivent aussi : chaque teinte a une version pour chaque mode.</p>
 <p>Sélectionnez un mot pour changer sa <span data-c="bleu">couleur</span>, sa <span data-s="26" style="font-size:26px">taille</span> ou sa <span data-f="caveat" data-s="26" style="font-size:26px">police</span>. Surlignez <span data-h="jaune marqueur">au marqueur</span>, <span data-h="vert plein">en aplat</span> ou <span data-h="rose contour">avec un contour</span>, et soulignez en <span data-u="ondule">ondulé</span>, en <span data-u="double">double</span>, en <span data-u="pointille">pointillé</span> ou en <span data-u="epais">trait épais</span>.</p>
 <h2>Les formules</h2>
