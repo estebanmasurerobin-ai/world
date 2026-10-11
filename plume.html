@@ -3533,7 +3533,7 @@ function openDoc(id){
   if (sideKind) renderSidePanel();
   olClosed = new Set(); renderOutline();
   if (!findbar.hidden) runFind();
-  styleCheck(); tablebar.hidden = true;
+  applyChecks(); tablebar.hidden = true;
   centerSoon();
 }
 function newDoc(){
@@ -3753,7 +3753,7 @@ function applyPrefs(){
   r.setProperty('--doc-lh', { serre:'1.45', normal:'1.7', large:'2' }[prefs.lh] || '1.7');
   r.setProperty('--doc-ps', { mini:'.12em', serre:'.4em', normal:'.85em', large:'.85em' }[prefs.ps] || '.4em');
   editor.classList.toggle('indent', !!prefs.indent);
-  editor.spellcheck = !!prefs.spell;
+  editor.spellcheck = !!prefs.spell && checksOn();
   document.documentElement.dataset.glass = ['opaque','mi'].includes(prefs.glass) ? prefs.glass : 'verre';
   document.documentElement.dataset.barc = prefs.barColor || 'aucune';
   syncStatusColor();
@@ -3788,6 +3788,7 @@ function docRoot(p){
     <button class="mi" data-a="history">Historique des versions${ICO(IC.history)}</button>
     ${matchMedia('(max-width:600px)').matches ? `<div class="hr"></div>
     ${document.documentElement.classList.contains('no-ai') ? '' : `<button class="mi" data-a="ai">Suggestions de l'IA<span class="hint">✦</span></button>`}` : ''}
+    <label class="mi mi-switch">Afficher les corrections<span class="hint">ce document</span><input type="checkbox" class="switch" id="check-toggle"${checksOn() ? ' checked' : ''}></label>
     <label class="mi mi-switch">Vérifier le style<input type="checkbox" class="switch" id="style-toggle"${prefs.style ? ' checked' : ''}></label>
     <div class="hr"></div>
     <button class="mi mi-sub" data-p="file">Fichier${ICO(IC.folder)}</button>
@@ -3807,6 +3808,12 @@ function docRoot(p){
        focus: () => $('#focus-btn').click(), focusset: () => openFocusMenu(btn), ai: () => MENUS.ai(btn) })[a]();
   };
   p.querySelector('#style-toggle').onchange = e => { setPref('style', e.target.checked); styleCheck(); };
+  p.querySelector('#check-toggle').onchange = e => {
+    const d = docs.find(x => x.id === activeId); if (!d) return;
+    if (e.target.checked) delete d.noCheck; else d.noCheck = true;
+    saveDocs(); applyChecks(true);
+    toast(e.target.checked ? 'Corrections affichées dans ce document' : 'Corrections masquées dans ce document');
+  };
   bindLayout(p);
   placePop();
 }
@@ -4522,7 +4529,7 @@ const stylePill = $('#style-pill');
 function styleCheck(){
   if (!HL) { if (prefs.style) { toast("La vérification du style n'est pas disponible sur ce navigateur."); setPref('style', false); } return; }
   ['st-weak','st-rep','st-long'].forEach(n => CSS.highlights.delete(n));
-  if (!prefs.style) { stylePill.hidden = true; return; }
+  if (!prefs.style || !checksOn()) { stylePill.hidden = true; return; }
   const weak = [], rep = [], long = [];
   for (const blk of textBlocks(true)) {
     if (blk.b.closest('pre')) continue;
@@ -5599,6 +5606,88 @@ if (document.activeElement === editor) document.body.classList.add('typing');
   };
   mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
   place();
+}
+
+
+/* ---------- Afficher ou masquer les corrections, document par document ----------
+   Pour un article copié qu'on ne va pas modifier : ni soulignement d'orthographe, ni
+   vérification du style. Le choix est gardé avec le document. */
+function checksOn(){ try { const d = docs.find(x => x.id === activeId); return !(d && d.noCheck); } catch(e) { return true; } }
+function applyChecks(refresh){
+  const on = !!prefs.spell && checksOn();
+  if (editor.spellcheck !== on) {
+    editor.spellcheck = on;
+    // Safari garde les soulignements déjà posés : on fait relire le texte au navigateur.
+    if (refresh && document.activeElement === editor) { editor.blur(); requestAnimationFrame(() => editor.focus({ preventScroll: true })); }
+  }
+  styleCheck();
+}
+
+
+/* ---------- Apple Pencil : il fait défiler, il n'écrit pas à la main ----------
+   Glisser le crayon sur le document fait défiler la page (avec l'élan, comme au doigt) ;
+   toucher du texte y place le curseur pour écrire au clavier ; deux touchers rapides
+   sélectionnent le mot. Rien n'est converti en écriture manuscrite. */
+{
+  const page = $('.page');
+  let pen = null, momentum = 0, lastTap = null;
+  const stylus = e => [...e.changedTouches].find(t => t.touchType === 'stylus');
+  const stopMomentum = () => { cancelAnimationFrame(momentum); momentum = 0; };
+  page.addEventListener('touchstart', e => {
+    const t = stylus(e); if (!t || e.touches.length > 1) return;
+    if (e.target.closest('.grip, input, textarea, button, select')) return;
+    e.preventDefault(); stopMomentum();
+    pen = { id: t.identifier, x: t.clientX, y: t.clientY, ly: t.clientY, at: Date.now(), drag: false, samples: [] };
+  }, { capture: true, passive: false });
+  page.addEventListener('touchmove', e => {
+    if (!pen) return;
+    const t = [...e.changedTouches].find(x => x.identifier === pen.id); if (!t) return;
+    e.preventDefault();
+    if (!pen.drag && Math.hypot(t.clientX - pen.x, t.clientY - pen.y) > 8) pen.drag = true;
+    if (!pen.drag) return;
+    const dy = t.clientY - pen.ly; pen.ly = t.clientY;
+    window.scrollBy(0, -dy);
+    const now = performance.now(); pen.samples.push([now, dy]); pen.samples = pen.samples.filter(s => now - s[0] < 100);
+  }, { capture: true, passive: false });
+  const end = e => {
+    if (!pen) return;
+    const t = [...e.changedTouches].find(x => x.identifier === pen.id); if (!t) return;
+    const p = pen; pen = null; e.preventDefault();
+    if (p.drag) {
+      // Élan : la page continue sur sa lancée puis ralentit.
+      const span = p.samples.length > 1 ? p.samples[p.samples.length - 1][0] - p.samples[0][0] : 0;
+      let v = span > 0 ? p.samples.reduce((a, s) => a + s[1], 0) / span : 0; // px par ms
+      v = Math.max(-4, Math.min(4, v));
+      let last = performance.now();
+      const step = now => {
+        const dt = now - last; last = now;
+        window.scrollBy(0, -v * dt); v *= Math.pow(0.95, dt / 16);
+        momentum = Math.abs(v) > 0.02 ? requestAnimationFrame(step) : 0;
+      };
+      if (Math.abs(v) > 0.1) momentum = requestAnimationFrame(step);
+      return;
+    }
+    if (e.type === 'touchcancel' || Date.now() - p.at > 600) return;
+    // Toucher : le curseur va là où on a touché, puis le clic habituel (lien, case à cocher, proposition…).
+    const x = t.clientX, y = t.clientY, target = document.elementFromPoint(x, y);
+    const dbl = lastTap && Date.now() - lastTap.at < 350 && Math.hypot(x - lastTap.x, y - lastTap.y) < 24;
+    lastTap = dbl ? null : { x, y, at: Date.now() };
+    const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
+    if (r && editor.contains(r.startContainer)) {
+      if (document.activeElement !== editor) editor.focus({ preventScroll: true });
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      if (dbl && sel.modify) { sel.modify('move', 'backward', 'word'); sel.modify('extend', 'forward', 'word'); }
+    }
+    if (target) {
+      const o = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
+      target.dispatchEvent(new MouseEvent('click', o));
+      if (dbl) target.dispatchEvent(new MouseEvent('dblclick', o));
+    }
+  };
+  page.addEventListener('touchend', end, { capture: true, passive: false });
+  page.addEventListener('touchcancel', end, { capture: true, passive: false });
+  addEventListener('wheel', stopMomentum, { passive: true });
+  document.addEventListener('touchstart', e => { if (!stylus(e)) stopMomentum(); }, { passive: true });
 }
 
 /* ---------- Démarrage ---------- */
