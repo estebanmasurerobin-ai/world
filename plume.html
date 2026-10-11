@@ -1320,6 +1320,32 @@ button.status{font-size:14px;padding:0 8px;height:40px}
 
 /* iPad à la verticale : boutons un peu plus serrés pour rester sur une seule ligne */
 @media (max-width:900px) and (min-width:701px){ .tb{min-width:35px;padding:0 3px} .sep{margin:0 1px} .bar{padding-left:8px;padding-right:8px;gap:2px} .tb svg{width:21px;height:21px} }
+
+/* ================= Boutons : de nouveau grands, contenus centrés et alignés ================= */
+.tb{height:48px;min-width:44px;padding:0 8px;border-radius:14px}
+.tb svg{width:24px;height:24px}
+.tb .glyph{font-size:22px}
+.tb .chev{width:10px;height:10px}
+#para-btn,#font-btn,#size-btn{padding:0 6px;gap:3px}
+.tb .lbl,.tb .glyph{display:inline-flex;align-items:center;justify-content:center;height:26px;line-height:1}
+#para-btn .lbl{width:24px}
+#font-btn .lbl{font-size:20px}
+#size-btn .lbl{font-size:17px}
+/* Couleur et surlignage : même gabarit (symbole de 24 px + trait de couleur dessous) */
+.swatched{flex-direction:column;justify-content:center;gap:2px}
+.swatched > :first-child{height:24px;display:flex;align-items:center;justify-content:center}
+#color-btn .glyph{font-size:22px;height:24px}
+.swatched .bar-sw{width:20px;height:4px;border-radius:2px}
+@media (pointer:coarse){ .tb{height:48px;min-width:44px} }
+@media (max-width:900px) and (min-width:701px){ .tb{min-width:40px;padding:0 5px} }
+@media (max-width:700px){ .tb{height:44px;min-width:40px;padding:0 6px} }
+/* Menu de surlignage : une rangée de pastilles, le style en dessous */
+.hl-dots{display:flex;gap:12px;padding:6px 16px 10px;flex-wrap:wrap}
+.hl-dot{width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;padding:0;background:var(--hl);box-shadow:inset 0 0 0 1.5px var(--hl-strong);transition:transform .12s}
+.hl-dot:hover{transform:scale(1.1)}
+.hl-dot[aria-checked="true"]{box-shadow:inset 0 0 0 1.5px var(--hl-strong),0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+.hl-dot.none{background:linear-gradient(135deg,transparent 45%,#ff3b30 45%,#ff3b30 55%,transparent 55%),var(--bg);box-shadow:inset 0 0 0 1.5px var(--line)}
+.hl-styles .mi span{font-family:var(--doc-font);font-size:15px}
 </style>
 
 <header class="bar">
@@ -1342,7 +1368,7 @@ button.status{font-size:14px;padding:0 8px;height:40px}
     <button class="tb swatched" id="color-btn" data-menu="color" title="Couleur du texte"><span class="glyph">A</span><span class="bar-sw"></span></button>
     <button class="tb swatched" id="hl-btn" data-menu="hl" title="Surlignage"><svg viewBox="0 0 24 24"><path d="M15 4l5 5-8.5 8.5H7v-4.5z"/><path d="M12.5 6.5l5 5"/></svg><span class="bar-sw" style="--swatch:transparent"></span></button>
     <span class="sep"></span>
-    <button class="tb" data-cmd="insertUnorderedList" title="Liste à puces"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".9" fill="currentColor"/><circle cx="4.5" cy="12" r=".9" fill="currentColor"/><circle cx="4.5" cy="18" r=".9" fill="currentColor"/></svg></button>
+    
     <button class="tb" id="insert-btn" data-menu="insert" title="Insérer : formule, lien, image, tableau, liste de tâches…" aria-label="Insérer"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
     <button class="tb" id="more-btn" data-menu="more" title="Plus de mise en forme : barré, indice, exposant, alignement, pinceau…" aria-label="Plus de mise en forme"><span class="glyph" style="font-size:15px">Aa</span><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3"/></svg></button>
   </div>
@@ -1825,13 +1851,21 @@ const MENUS = {
     });
   },
   hl(btn){
-    openPop(btn, HSTYLES.map(([s,sn]) =>
-      `<div class="hl-row"><span class="name">${sn}</span>${HCOLORS.map(([c,cn]) =>
-        `<button class="hl-sw" data-v="${c} ${s}" title="${sn} ${cn.toLowerCase()}"><span data-h="${c} ${s}">Ab</span></button>`).join('')}</div>`
-    ).join('') + `<div class="hr"></div><button class="mi" data-v="none">Retirer le surlignage</button>`,
+    // Une seule rangée de couleurs ; le style (marqueur, aplat, contour) se choisit à part et reste mémorisé.
+    const st = prefs.hlStyle || 'marqueur';
+    const curEl = anchorEl()?.closest('[data-h]'), cur = curEl ? curEl.dataset.h.split(' ')[0] : null;
+    openPop(btn, `<div class="mh">Couleur</div>
+      <div class="hl-dots">${HCOLORS.map(([c, cn]) => `<button class="hl-dot" data-c="${c}" title="${cn}" aria-label="${cn}" aria-checked="${c === cur}" style="--hl:var(--h-${c});--hl-strong:var(--hs-${c})"></button>`).join('')}
+        <button class="hl-dot none" data-c="none" title="Retirer le surlignage" aria-label="Retirer le surlignage"></button></div>
+      <div class="mh">Style</div>
+      <div class="chips hl-styles">${HSTYLES.map(([k, n]) => `<button class="mi" data-s="${k}" aria-checked="${k === st}"><span data-h="${cur || 'jaune'} ${k}">${n}</span></button>`).join('')}</div>`,
     p => p.onclick = e => {
-      const b = e.target.closest('[data-v]'); if (!b) return;
-      applyProp('h', b.dataset.v === 'none' ? null : b.dataset.v); closePop();
+      const dot = e.target.closest('[data-c]');
+      if (dot) { applyProp('h', dot.dataset.c === 'none' ? null : `${dot.dataset.c} ${prefs.hlStyle || 'marqueur'}`); closePop(); return; }
+      const sb = e.target.closest('[data-s]'); if (!sb) return;
+      setPref('hlStyle', sb.dataset.s); p.querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-checked', x === sb));
+      // Un passage déjà surligné prend tout de suite le nouveau style.
+      const h = anchorEl()?.closest('[data-h]'); if (h || (saved && !saved.collapsed && cur)) applyProp('h', `${(h ? h.dataset.h.split(' ')[0] : cur) || 'jaune'} ${sb.dataset.s}`);
     });
   },
   under(btn){
@@ -1863,6 +1897,7 @@ const MENUS = {
       <button class="mi" data-i="image">Image…${ICO(IC.image)}</button>
       <button class="mi" data-i="table">Tableau${ICO(IC.table)}</button>
       <div class="hr"></div>
+      <button class="mi" data-i="ul">Liste à puces${ICO('M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01')}</button>
       <button class="mi" data-i="check">Liste de tâches${ICO(IC.check)}</button>
       <button class="mi" data-i="ol">Liste numérotée${ICO(IC.ol)}</button>
       <button class="mi" data-i="code">Bloc de code${ICO(IC.code)}</button>
@@ -1871,7 +1906,7 @@ const MENUS = {
       const b = e.target.closest('[data-i]'); if (!b) return;
       const what = b.dataset.i; closePop();
       ({ math: () => openMath(null), link: () => openLinkEditor(), image: pickImage, table: insertTable,
-         check: toggleChecklist, ol: () => exec('insertOrderedList'), code: insertCodeBlock, hr: insertRule })[what]();
+         check: toggleChecklist, ul: () => toggleList('ul'), ol: () => toggleList('ol'), code: insertCodeBlock, hr: insertRule })[what]();
     });
   },
   more(btn){
@@ -1902,7 +1937,7 @@ const MENUS = {
   }
 };
 document.querySelectorAll('[data-menu]').forEach(b => b.addEventListener('click', () => MENUS[b.dataset.menu](b)));
-document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => exec(b.dataset.cmd)));
+document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => b.dataset.cmd === 'insertUnorderedList' ? toggleList('ul') : b.dataset.cmd === 'insertOrderedList' ? toggleList('ol') : exec(b.dataset.cmd)));
 /* Annuler / rétablir : un historique propre à Plume. Celui du navigateur ignorait les couleurs,
    les notes, les sections repliées ou les propositions de l'IA, et laissait des morceaux derrière lui.
    Chaque état est une copie du document avec la position du curseur ; la frappe est regroupée
@@ -2913,6 +2948,10 @@ document.addEventListener('mouseup', e => {
 document.addEventListener('touchend', e => { if (!selbar.contains(e.target)) setTimeout(showSelbar, 250); });
 editor.addEventListener('keyup', e => { if (e.shiftKey || e.key === 'Shift') showSelbar(); });
 document.addEventListener('selectionchange', () => { const s = getSelection(); if (!s.rangeCount || s.isCollapsed) hideSelbar(); });
+// Sur iPad, déplacer les poignées de sélection n'envoie aucun toucher à la page : la bulle
+// apparaît (ou se replace) quand la sélection ne bouge plus.
+let sbT = 0;
+document.addEventListener('selectionchange', () => { clearTimeout(sbT); sbT = setTimeout(() => { if (matchMedia('(pointer:coarse)').matches) showSelbar(); }, 450); });
 editor.addEventListener('input', hideSelbar);
 window.addEventListener('scroll', hideSelbar, { passive: true });
 selbar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
@@ -3533,12 +3572,14 @@ const ICO = d => `<svg class="mi-ic" viewBox="0 0 24 24"><path d="${d}"/></svg>`
 const fmtN = n => n.toLocaleString('fr-FR');
 
 /* ---------- Réglages (mise en page, saisie) ---------- */
-let prefs = { lh:'normal', ps:'normal', indent:false, spell:true, caps:true, style:false };
+let prefs = { lh:'normal', ps:'serre', indent:false, spell:true, caps:true, style:false };
 try { Object.assign(prefs, JSON.parse(store.get('plume-prefs') || '{}')); } catch(e) {}
+// Nouvelle échelle d'espacement : l'ancien « Normal » (trop large) devient « Normal » resserré.
+if (!prefs.psV2) { prefs.ps = prefs.ps === 'serre' ? 'mini' : 'serre'; prefs.psV2 = true; store.set('plume-prefs', JSON.stringify(prefs)); }
 function applyPrefs(){
   const r = document.documentElement.style;
   r.setProperty('--doc-lh', { serre:'1.45', normal:'1.7', large:'2' }[prefs.lh] || '1.7');
-  r.setProperty('--doc-ps', { serre:'.35em', normal:'.85em', large:'1.5em' }[prefs.ps] || '.85em');
+  r.setProperty('--doc-ps', { mini:'.12em', serre:'.4em', normal:'.85em', large:'.85em' }[prefs.ps] || '.4em');
   editor.classList.toggle('indent', !!prefs.indent);
   editor.spellcheck = !!prefs.spell;
   document.documentElement.dataset.glass = prefs.glass === 'opaque' ? 'opaque' : 'verre';
@@ -3632,7 +3673,7 @@ function layoutHTML(){
     <div class="mh">Interligne</div>
     ${seg('lh', prefs.lh, [['serre','Serré'],['normal','Normal'],['large','Aéré']])}
     <div class="mh">Espace entre les paragraphes</div>
-    ${seg('ps', prefs.ps, [['serre','Petit'],['normal','Normal'],['large','Grand']])}
+    ${seg('ps', { large: 'normal' }[prefs.ps] || prefs.ps || 'serre', [['mini','Serré'],['serre','Normal'],['normal','Large']])}
     <div class="hr"></div>
     <div class="mh">Barre du haut</div>
     ${seg('glass', prefs.glass === 'opaque' ? 'opaque' : 'verre', [['verre','Transparente'],['opaque','Opaque']])}
@@ -4435,7 +4476,7 @@ function toggleChecklist(){
   restore();
   let ul = anchorEl()?.closest('ul');
   if (ul && ul.hasAttribute('data-check')) { ul.removeAttribute('data-check'); ul.querySelectorAll(':scope > li[data-done]').forEach(li => li.removeAttribute('data-done')); changed(); return; }
-  if (!ul) { exec('insertUnorderedList'); ul = anchorEl()?.closest('ul'); }
+  if (!ul) { toggleList('ul'); ul = anchorEl()?.closest('ul'); }
   if (ul) { ul.setAttribute('data-check', ''); changed(); }
 }
 // Cocher : toucher le rond à gauche d'une tâche.
@@ -5138,7 +5179,12 @@ document.addEventListener('paste', e => {
 function rvResolve(el, accept){
   if (!el || !el.isConnected) return;
   const isIns = el.tagName === 'INS';
-  if (isIns === accept) el.replaceWith(...el.childNodes); else el.remove();
+  if (isIns === accept) { el.replaceWith(...el.childNodes); return; }
+  // Le texte disparaît : on évite de laisser deux espaces à la place.
+  const pv = el.previousSibling, nx = el.nextSibling;
+  if (pv && pv.nodeType === 3 && nx && nx.nodeType === 3 && /[ \u00a0]$/.test(pv.data) && /^[ \u00a0]/.test(nx.data)) nx.data = nx.data.slice(1);
+  else if (pv && pv.nodeType === 3 && nx && nx.nodeType === 3 && /[ \u00a0]$/.test(pv.data) && /^[.,;:!?)]/.test(nx.data)) pv.data = pv.data.replace(/[ \u00a0]$/, '');
+  el.remove();
 }
 function rvResolveAll(accept){
   const m = rvMarks(); if (!m.length) { toast('Aucune modification.'); return; }
@@ -5221,6 +5267,50 @@ editor.addEventListener('input', e => {
   const c = document.createRange(); c.setStart(blk, 0); c.collapse(true); setRange(c);
   setBlock({ 3: 'h1', 2: 'h2', 1: 'h3' }[m[1].length]);
 });
+
+
+/* ---------- Listes (puces, numéros) ----------
+   Faites ici plutôt que par la commande du navigateur : Safari ajoutait des balises de style
+   parasites dans chaque élément. Paragraphes sélectionnés → une liste ; liste du même type →
+   retour en paragraphes ; liste de l'autre type → changement de type. */
+function toggleList(kind){
+  restore();
+  const s = getSelection(); if (!s.rangeCount) return;
+  const r = s.getRangeAt(0), keep = caretOffsets(), TAG = kind === 'ol' ? 'OL' : 'UL';
+  let tops = [...editor.children].filter(el => r.intersectsNode(el));
+  if (!tops.length) { const t = topBlock(); if (t) tops = [t]; }
+  if (!tops.length) return;
+  const lists = tops.filter(el => /^(UL|OL)$/.test(el.tagName));
+  if (lists.length === tops.length && lists.every(l => l.tagName === TAG && !l.hasAttribute('data-check'))) {
+    // Déjà ce type de liste : les éléments touchés redeviennent des paragraphes.
+    for (const l of lists) {
+      const lis = [...l.children].filter(li => li.tagName === 'LI' && r.intersectsNode(li));
+      for (const li of lis) {
+        const pEl = document.createElement('p'); pEl.append(...[...li.childNodes].filter(n => !(n.nodeType === 1 && /^(UL|OL)$/.test(n.tagName))));
+        if (!pEl.firstChild) pEl.append(document.createElement('br'));
+        const after = document.createElement(l.tagName); let n = li.nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
+        li.remove(); l.after(pEl); if (after.children.length) pEl.after(after);
+      }
+      if (!l.children.length) l.remove();
+    }
+  } else {
+    // Sinon : tout devient une seule liste du type demandé.
+    const list = document.createElement(TAG);
+    tops[0].before(list);
+    for (const el of tops) {
+      if (/^(UL|OL)$/.test(el.tagName)) { list.append(...el.children); el.remove(); continue; }
+      if (!/^(P|H1|H2|H3|BLOCKQUOTE|DIV|PRE)$/.test(el.tagName)) { list.after(el); continue; }
+      const li = document.createElement('li'); li.append(...el.childNodes); if (!li.firstChild) li.append(document.createElement('br'));
+      list.append(li); el.remove();
+    }
+    // Deux listes du même type côte à côte n'en font qu'une.
+    for (const sib of [list.previousElementSibling, list.nextElementSibling]) {
+      if (sib && sib.tagName === TAG && !sib.hasAttribute('data-check')) { if (sib === list.previousElementSibling) { sib.append(...list.children); list.remove(); } else { list.append(...sib.children); sib.remove(); } break; }
+    }
+  }
+  if (keep) setCaretOffsets(keep);
+  changed(); markCurrent(); queueToolbar();
+}
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
