@@ -1,7 +1,7 @@
 // Garde World utilisable sans réseau. Les fichiers du site sont pris sur le réseau en priorité
 // (pour recevoir les mises à jour), et dans le cache quand il n'y a pas de connexion.
 // Polices et moteur de formules : cache d'abord.
-const CACHE = 'world-e53df93a98';
+const CACHE = 'world-4b20980f8c';
 const SHELL = ['./', './index.html', './standalone.js', './manifest.webmanifest',
                './icone-noire-180.png', './icone-noire-192.png', './icone-noire-512.png', './favicon.svg'];
 
