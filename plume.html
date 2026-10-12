@@ -1835,7 +1835,7 @@ html{touch-action:manipulation}
 /* La pastille qu'on fait glisser grossit comme une lentille : la frange s'accentue */
 .chips.lg-seg.lg-drag .lg-thumb::after{padding:6px;-webkit-backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1);backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1)}
 /* Pastille des choix segmentés : gonfle à l'appui, rebondit en se posant */
-.lg-thumb.lg-hold,.chips.lg-seg.lg-drag .lg-thumb{transform:scale(1.3,1.45)!important;
+.lg-thumb.lg-hold,.chips.lg-seg.lg-drag .lg-thumb{
   background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.04)),color-mix(in srgb,var(--bg) 12%,transparent)!important;
   box-shadow:var(--lg-rim),inset 0 0 0 1px rgba(255,255,255,.45),0 10px 26px rgba(0,0,0,.2)!important}
 .lg-thumb.lg-hold{transition:left .42s cubic-bezier(.3,1.35,.45,1),width .42s cubic-bezier(.3,1.35,.45,1),transform .28s cubic-bezier(.2,1.4,.4,1),background .2s,box-shadow .2s!important}
@@ -1850,6 +1850,14 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25)}
 input[type=range].lg-jelly::-webkit-slider-thumb{animation:lg-knob .55s cubic-bezier(.3,.7,.4,1)}
 @keyframes lg-knob{0%{transform:scale(1.25)}30%{transform:scale(.88)}55%{transform:scale(1.08)}78%{transform:scale(.97)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){ input[type=range]:active::-webkit-slider-thumb{transform:none} input[type=range].lg-jelly::-webkit-slider-thumb{animation:none} }
+/* Pastille : position, taille et gonflement pilotés par le ressort (JS) ; plus d'animations CSS */
+.lg-thumb,.pop .lg-thumb{left:0!important;transition:background .2s,box-shadow .2s,opacity .2s!important;animation:none!important;will-change:transform,width}
+.lg-thumb.lg-hold,.chips.lg-seg.lg-drag .lg-thumb{transform:none;transition:background .2s,box-shadow .2s!important}
+/* Plus de gris à l'appui : seule la goutte de verre réagit */
+html{-webkit-tap-highlight-color:transparent}
+.chips.lg-seg .mi:hover,.chips.lg-seg .mi:active,.chips.lg-seg .mi:focus{background:transparent!important}
+.tb:active:not(:disabled),:root[data-theme="dark"] .tb:active:not(:disabled){background:transparent!important}
+.pop .mi:active{background:transparent!important}
 </style>
 
 <header class="bar">
@@ -6982,16 +6990,45 @@ function applyChecks(refresh){
 }
 
 
-/* ---------- Choix segmentés en verre liquide (voir le CSS du même nom) ---------- */
+/* ---------- Choix segmentés en verre liquide (voir le CSS du même nom) ----------
+   La pastille est une goutte : elle suit le doigt avec un peu de retard (ressort amorti),
+   s'étire dans le sens du mouvement, gonfle quand on la touche et retombe avec un seul rebond. */
 {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
   const opts = ch => [...ch.querySelectorAll(':scope > .mi')];
+  const spring = (st, k, c, dt) => { const a = k * (st.t - st.v) - c * st.s; st.s += a * dt; st.v += st.s * dt; };
+  const run = th => {
+    const S = th._sp; if (S.raf) return;
+    let last = performance.now();
+    const frame = now => {
+      const dt = Math.min(.032, (now - last) / 1000); last = now;
+      const drag = th.parentElement && th.parentElement.classList.contains('lg-drag');
+      if (RM.matches) { S.x.v = S.x.t; S.w.v = S.w.t; S.b.v = S.b.t; S.x.s = S.w.s = S.b.s = 0; }
+      else {
+        spring(S.x, drag ? 150 : 230, drag ? 19 : 24, dt);   // position : un peu de retard, comme de l'eau
+        spring(S.w, 230, 24, dt);
+        spring(S.b, 260, 19, dt);                             // gonflement : un seul rebond en retombant
+      }
+      const still = Math.abs(S.x.t - S.x.v) < .3 && Math.abs(S.w.t - S.w.v) < .3 && Math.abs(S.b.t - S.b.v) < .004 && Math.abs(S.x.s) < 2 && Math.abs(S.b.s) < .02;
+      if (still) { for (const q of [S.x, S.w, S.b]) { q.v = q.t; q.s = 0; } } // posée exactement à sa place
+      const st = Math.min(.22, Math.abs(S.x.s) / 2600);       // étirement selon la vitesse
+      const sx = 1 + .3 * S.b.v + st, sy = 1 + .45 * S.b.v - st * .6;
+      th.style.width = Math.max(0, S.w.v) + 'px';
+      th.style.transform = `translateX(${S.x.v.toFixed(2)}px) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+      if (still) { S.raf = 0; return; }
+      S.raf = requestAnimationFrame(frame);
+    };
+    S.raf = requestAnimationFrame(frame);
+  };
+  const sp = th => th._sp || (th._sp = { x: { v: 0, t: 0, s: 0 }, w: { v: 0, t: 0, s: 0 }, b: { v: 0, t: 0, s: 0 }, raf: 0 });
   const place = (ch, instant) => {
     const th = ch.querySelector(':scope > .lg-thumb'), on = opts(ch).find(b => b.getAttribute('aria-checked') === 'true');
     if (!th) return;
     if (!on) { th.style.opacity = '0'; return; }
-    if (instant) th.style.transition = 'none';
-    th.style.opacity = '1'; th.style.left = on.offsetLeft + 'px'; th.style.width = on.offsetWidth + 'px';
-    if (instant) { void th.offsetWidth; th.style.transition = ''; }
+    th.style.opacity = '1';
+    const S = sp(th); S.x.t = on.offsetLeft; S.w.t = on.offsetWidth;
+    if (instant || !S.w.v) { S.x.v = S.x.t; S.w.v = S.w.t; S.x.s = S.w.s = 0; }
+    run(th);
   };
   const setup = ch => {
     if (ch.classList.contains('lg-seg') || opts(ch).length < 2) return;
@@ -7000,12 +7037,11 @@ function applyChecks(refresh){
     requestAnimationFrame(() => place(ch, true));
     new MutationObserver(() => place(ch)).observe(ch, { subtree: true, attributes: true, attributeFilter: ['aria-checked'] });
     let drag = null;
-    // Rebond : la pastille gonfle sous le doigt, puis tremble comme de la gelée en se posant.
-    const jelly = () => { th.classList.remove('lg-hold', 'lg-jelly'); void th.offsetWidth; th.classList.add('lg-jelly'); clearTimeout(th._j); th._j = setTimeout(() => th.classList.remove('lg-jelly', 'lg-snap'), 700); };
+    const swell = on => { const S = sp(th); S.b.t = on ? 1 : 0; th.classList.toggle('lg-hold', on); run(th); };
     ch.addEventListener('pointerdown', e => {
       if (e.button) return;
       drag = { id: e.pointerId, x: e.clientX, moving: false };
-      th.classList.remove('lg-jelly'); th.classList.add('lg-hold');
+      swell(true); // la goutte gonfle sous le doigt, même sur l'option déjà choisie
     });
     ch.addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
@@ -7014,24 +7050,25 @@ function applyChecks(refresh){
         drag.moving = true; ch.classList.add('lg-drag'); ch.setPointerCapture(e.pointerId);
         th.style.opacity = '1';
       }
-      const r = ch.getBoundingClientRect(), w = th.offsetWidth || opts(ch)[0].offsetWidth;
-      if (!th.offsetWidth) th.style.width = opts(ch)[0].offsetWidth + 'px';
-      // Au-delà du bord, la pastille suit encore un peu, avec une résistance élastique.
+      const r = ch.getBoundingClientRect(), S = sp(th), w = S.w.t || opts(ch)[0].offsetWidth;
+      // Au-delà du bord, la goutte suit encore un peu, avec une résistance élastique.
       const raw = e.clientX - r.left - w / 2, lo = 3, hi = r.width - w - 3, rub = d => 28 * (1 - Math.exp(-d / 45));
-      th.style.left = (raw < lo ? lo - rub(lo - raw) : raw > hi ? hi + rub(raw - hi) : raw) + 'px';
+      S.x.t = raw < lo ? lo - rub(lo - raw) : raw > hi ? hi + rub(raw - hi) : raw;
+      run(th);
     });
     const end = e => {
       if (!drag || e.pointerId !== drag.id) return;
       const d = drag; drag = null;
-      if (!d.moving) { jelly(); return; }
-      ch.classList.remove('lg-drag'); th.classList.add('lg-snap'); // retour à sa place avec un ressort
-      jelly();
-      const c = th.offsetLeft + th.offsetWidth / 2;
+      swell(false);
+      if (!d.moving) return;
+      ch.classList.remove('lg-drag');
+      const S = sp(th), c = S.x.t + S.w.t / 2;
       const best = opts(ch).reduce((a, b) => Math.abs(b.offsetLeft + b.offsetWidth / 2 - c) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - c) ? b : a);
       if (best.getAttribute('aria-checked') === 'true') place(ch); else best.click();
       requestAnimationFrame(() => place(ch));
     };
-    ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', e => { end(e); th.classList.remove('lg-hold'); });
+    ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
+    ch.addEventListener('lostpointercapture', e => { if (drag) end(e); });
   };
   const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
   new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.classList.contains('chips')) setup(n); scan(n); } })
