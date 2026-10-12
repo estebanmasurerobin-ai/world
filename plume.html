@@ -1859,7 +1859,7 @@ html{-webkit-tap-highlight-color:transparent}
 .chips.lg-seg .lg-word{display:inline;white-space:nowrap}
 .chips.lg-seg .lg-ch{display:inline-block;transform-origin:50% 65%;white-space:pre;will-change:transform}
 .chips.lg-seg{touch-action:none!important} /* tant que le doigt est sur les choix, il tient la bulle */
-.page.lg-rubber{transition:transform .55s cubic-bezier(.22,1.2,.36,1)}
+.page.lg-rubber{transition:transform .62s cubic-bezier(.2,1.32,.36,1)}
 </style>
 
 <header class="bar">
@@ -7600,7 +7600,8 @@ editor.addEventListener('keydown', e => {
    au lâcher, elle revient doucement. La barre ne bouge pas. Au doigt et au trackpad. */
 {
   const page = $('.page'), RM = matchMedia('(prefers-reduced-motion: reduce)');
-  const rub = d => 70 * (1 - Math.exp(-d / 140));
+  // Résistance façon iOS : la page suit bien au début, puis de plus en plus dur.
+  const rub = d => { const H = innerHeight || 800; return (1 - 1 / (d * .55 / H + 1)) * H; };
   const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
   let t0 = null, pull = 0, wheelT = 0, wheelAcc = 0;
   const show = px => { pull = px; page.classList.remove('lg-rubber'); page.style.transform = px ? `translateY(${px.toFixed(1)}px)` : ''; };
@@ -7610,12 +7611,29 @@ editor.addEventListener('keydown', e => {
   document.addEventListener('touchmove', e => {
     if (!t0 || e.touches.length !== 1) return;
     const y = e.touches[0].clientY, atTop = scrollY <= 0, atBot = scrollY >= maxY() - 1;
+    if (Math.abs(y - t0.y) > 12) t0.swiped = true;
     if (t0.edgeY === null) { if ((atBot && y < t0.y) || (atTop && y > t0.y)) { t0.edgeY = y; t0.dir = atBot ? -1 : 1; } else return; }
     const d = (y - t0.edgeY) * t0.dir;           // distance tirée au-delà du bout
     show(d > 0 ? t0.dir * rub(d) : 0);
   }, { passive: true });
-  const end = () => { t0 = null; back(); };
+  let tEnd = -1e9;
+  const end = () => { if (t0 && t0.swiped) tEnd = performance.now(); t0 = null; back(); };
   document.addEventListener('touchend', end, { passive: true }); document.addEventListener('touchcancel', end, { passive: true });
+  // Arrivée lancée en bout de document (le doigt déjà levé) : la page dépasse un peu puis revient.
+  let lastY = scrollY, lastT = performance.now(), v = 0;
+  addEventListener('scroll', () => {
+    const now = performance.now(), dt = now - lastT;
+    if (dt > 0) v = (scrollY - lastY) / dt;
+    lastY = scrollY; lastT = now;
+    // Seulement l'élan d'un glissement du doigt, jamais un défilement fait par l'app (curseur, recherche…).
+    if (t0 || pull || RM.matches || Math.abs(v) < .6 || now - tEnd > 2500) return;
+    const atBot = v > 0 && scrollY >= maxY() - 1, atTop = v < 0 && scrollY <= 0;
+    if (!atBot && !atTop) return;
+    const px = Math.min(90, Math.abs(v) * 38) * (atBot ? -1 : 1);
+    page.classList.add('lg-rubber'); page.style.transition = 'transform .16s cubic-bezier(.2,.7,.3,1)';
+    page.style.transform = `translateY(${px.toFixed(1)}px)`; pull = px; v = 0;
+    setTimeout(() => { page.style.transition = ''; back(); }, 160);
+  }, { passive: true });
   addEventListener('wheel', e => {
     if (e.ctrlKey || RM.matches || !ok(e.target)) return;
     const atBot = scrollY >= maxY() - 1 && e.deltaY > 0, atTop = scrollY <= 0 && e.deltaY < 0;
