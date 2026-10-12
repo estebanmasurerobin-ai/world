@@ -300,17 +300,17 @@ body.bar-hidden #editor > :is(h1,h2,h3)::before{opacity:0}
    L'opacité marche pareil sur fond blanc et sur fond noir, couleurs comprises. */
 #editor :is(p,h1,h2,h3,blockquote,li,div){transition:opacity .25s ease,filter .25s ease}
 /* Les autres paragraphes perdent leurs couleurs (surlignages, couleurs, formules, texte de l'IA) et s'effacent */
-#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.24);filter:grayscale(1)}
-#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)):hover{opacity:calc(var(--dim,.24) + .15)}
-#editor#editor.focus-on.has-cur :is(li,blockquote,div):not(.is-cur):not(:has(.is-cur)) :is(p,h1,h2,h3,blockquote,li,div){opacity:1}
+#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(.cur-in){opacity:var(--dim,.24);filter:grayscale(1)}
+#editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(.cur-in):hover{opacity:calc(var(--dim,.24) + .15)}
+#editor#editor.focus-on.has-cur :is(li,blockquote,div):not(.is-cur):not(.cur-in) :is(p,h1,h2,h3,blockquote,li,div){opacity:1}
 /* Curseur dans un titre : le plan reste lisible. Titre 1 → tous les titres 1 ; titre 2 → titres 1 et 2 ;
    titre 3 → tous les titres. Ils restent nets, en couleur et à leur taille. */
 #editor.focus-on.cur-h1 > h1,
 #editor.focus-on.cur-h2 > :is(h1,h2),
 #editor.focus-on.cur-h3 > :is(h1,h2,h3){opacity:1!important;filter:none!important}
-:root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim-d,.3)}
+:root[data-theme="dark"] #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(.cur-in){opacity:var(--dim-d,.3)}
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim-d,.3)}
+  :root:not([data-theme="light"]) #editor.focus-on.has-cur :is(p,h1,h2,h3,blockquote,li,div):not(.is-cur):not(.cur-in){opacity:var(--dim-d,.3)}
 }
 
 /* ---------- Suggestions IA, directement dans le texte ---------- */
@@ -779,7 +779,7 @@ body{-webkit-font-smoothing:antialiased}
 #editor img{display:block;max-width:100%;height:auto;margin:.3em auto;border-radius:12px;cursor:pointer}
 #editor img[data-w="s"]{width:33%}#editor img[data-w="m"]{width:60%}#editor img[data-w="l"]{width:100%}
 /* En concentration, ces blocs s'effacent aussi */
-#editor.focus-on.has-cur > :is(pre,table,hr):not(.is-cur):not(:has(.is-cur)){opacity:var(--dim,.24);filter:grayscale(1)}
+#editor.focus-on.has-cur > :is(pre,table,hr):not(.is-cur):not(.cur-in){opacity:var(--dim,.24);filter:grayscale(1)}
 
 /* Statut : nombre de mots cliquable, barre de progression vers l'objectif */
 button.status{border:0;background:transparent;font:inherit;font-size:12px;cursor:pointer;border-radius:8px;height:30px;position:relative}
@@ -1786,6 +1786,11 @@ html:not(.grips) .grip{display:none!important}
   .tools::-webkit-scrollbar{display:none}
   .tools > *{flex:none}
 }
+.toast{bottom:calc(env(safe-area-inset-bottom,0px) + 20px + var(--kb,0px))!important}
+.style-pill,.ai-dock{bottom:calc(env(safe-area-inset-bottom,0px) + 16px + var(--kb,0px))}
+/* Recherche ouverte : la page laisse la place de la barre de recherche */
+body.finding .page{padding-top:calc(var(--bar-h,0px) + var(--fb-h,0px) + 30px)}
+@media (max-width:600px){ body.finding .bar-toggle{display:none} }
 </style>
 
 <header class="bar">
@@ -2576,9 +2581,17 @@ function setCaretOffsets(o){
 }
 // Les propositions de l'IA ne font pas partie de l'historique : on garde le texte d'origine.
 // Les marques passagères (paragraphe en cours, note survolée…) non plus : sinon un Annuler semblerait ne rien faire.
+function patchEditor(html){
+  const tpl = document.createElement('template'); tpl.innerHTML = html;
+  const nw = [...tpl.content.childNodes], old = [...editor.childNodes];
+  let a = 0; while (a < nw.length && a < old.length && old[a].isEqualNode(nw[a])) a++;
+  let b = 0; while (b < nw.length - a && b < old.length - a && old[old.length - 1 - b].isEqualNode(nw[nw.length - 1 - b])) b++;
+  for (let i = a; i < old.length - b; i++) old[i].remove();
+  const ref = b ? old[old.length - b] : null; for (let i = a; i < nw.length - b; i++) editor.insertBefore(nw[i], ref);
+}
 function histHTML(){
   const c = editor.cloneNode(true); resolveSuggestions(c);
-  c.querySelectorAll('.is-cur,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
+  c.querySelectorAll('.is-cur,.cur-in,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','cur-in','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
   return c.innerHTML;
 }
 function histSnap(){
@@ -2619,7 +2632,7 @@ function undoRedo(cmd){
     return { idea, type: info.type, why: info.why, ex, rep: sp.querySelector('ins')?.textContent || '' };
   });
   aiCtl?.abort(); SG.clear();
-  editor.innerHTML = st.html;
+  patchEditor(st.html); // seuls les blocs qui ont changé sont remplacés (annuler reste rapide)
   for (const g of sgs) { if (!g.type) continue; if (g.idea) insertIdea(g.ex, g.why); else insertSg(g.type, g.ex, g.rep, g.why); }
   if (!pendingCount()) dockMsg = '';
   renderMissingMath(); refold(); renderNotes(); updateEmpty();
@@ -2628,6 +2641,7 @@ function undoRedo(cmd){
   clearTimeout(saveT); saveT = setTimeout(save, 700);
   updateDock(); updateUndoBtns(); queueToolbar(); centerSoon();
   if (typeof sideKind !== 'undefined' && sideKind) renderSidePanel();
+  if (typeof findbar !== 'undefined' && !findbar.hidden) runFind(true);
 }
 // Le curseur juste avant une modification, pour y revenir en annulant.
 editor.addEventListener('beforeinput', e => {
@@ -2882,6 +2896,10 @@ editor.addEventListener('paste', e => {
     const tmp = document.createElement('div'); tmp.innerHTML = h;
     // Un seul paragraphe collé dans un paragraphe : c'est du texte, pas un nouveau bloc.
     if (tmp.childNodes.length === 1 && tmp.firstChild.nodeName === 'P') tmp.firstChild.replaceWith(...tmp.firstChild.childNodes);
+    // Un bloc de code seul : gardé entier, comme bloc, sous le paragraphe en cours.
+    if (r && tmp.children.length === 1 && tmp.firstElementChild.tagName === 'PRE' && !tmp.textContent.replace(tmp.firstElementChild.textContent, '').trim()) {
+      saved = r.cloneRange(); const pre = tmp.firstElementChild; insertBlocks(pre); const c = document.createRange(); c.selectNodeContents(pre); c.collapse(false); setRange(c); changed(); return;
+    }
     // Uniquement du texte mis en forme (pas de paragraphes) : inséré tel quel, avec ses attributs.
     if (r && ![...tmp.children].some(c => /^(P|H1|H2|H3|UL|OL|LI|BLOCKQUOTE|PRE|TABLE|HR|DIV)$/.test(c.tagName))) {
       r.deleteContents(); intoBlock(r);
@@ -2903,7 +2921,11 @@ const DROP = new Set('SCRIPT STYLE IFRAME OBJECT EMBED SVG HEAD META LINK TITLE 
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 function sanitize(html){
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  wordLists(doc.body);
   resolveSuggestions(doc.body); clean(doc.body); normalizeTopLevel(doc.body);
+  // <li><p>…</p></li> (Google Docs, pages web) et <ul> directement dans <ul> : vraie structure de liste.
+  doc.body.querySelectorAll('ul > ul, ul > ol, ol > ul, ol > ol').forEach(sub => { const prev = sub.previousElementSibling; if (prev && prev.tagName === 'LI') prev.append(sub); else { const li = doc.createElement('li'); sub.before(li); li.append(sub); } });
+  doc.body.querySelectorAll('li > p, td > p, th > p').forEach(p => { if (p.previousSibling && !(p.previousSibling.nodeType === 3 && !p.previousSibling.data.trim())) p.before(doc.createElement('br')); p.replaceWith(...p.childNodes); });
   // Les espaces insécables qu'ajoute le navigateur au copier-coller deviennent de vraies espaces.
   const tw = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT); let tn;
   while ((tn = tw.nextNode())) if (tn.data.includes('\u00a0') && !tn.parentElement.closest('pre')) tn.data = tn.data.replace(/(\S)\u00a0(?=\S)/g, '$1 ');
@@ -2912,6 +2934,31 @@ function sanitize(html){
 // Une page web ou un fichier HTML arrive souvent enveloppé dans des <div> : on les retire pour
 // que titres, paragraphes et listes soient de vrais blocs (plan, titre, exports), et tout texte
 // isolé au premier niveau est mis dans un paragraphe.
+function wordLists(root){
+  const doc = root.ownerDocument;
+  // Commentaires conditionnels de Word (<!--[if !supportLists]-->) et appels de commentaires [JD1].
+  const tw = doc.createTreeWalker(root, NodeFilter.SHOW_COMMENT); const cm = []; let c; while ((c = tw.nextNode())) cm.push(c); cm.forEach(x => x.remove());
+  root.querySelectorAll('a[href^="#_msocom"], [style*="mso-element:comment-list"], .msocomtxt').forEach(x => x.remove());
+  let stack = [];
+  for (const p of [...root.querySelectorAll('p')]) {
+    const m = /mso-list:\s*l(\d+)\s+level(\d+)/.exec(p.getAttribute('style') || '');
+    if (!m) { if (p.parentElement === root || !p.closest('li')) stack = []; continue; }
+    const lvl = +m[2] - 1, mk = p.querySelector('[style*="mso-list:Ignore"], [style*="mso-list: Ignore"]');
+    const ordered = mk && /^\s*(\d+|[a-z]{1,4}|[ivxlc]+)[.)]/i.test(mk.textContent.replace(/\u00a0/g, ' '));
+    if (mk) mk.remove();
+    const li = doc.createElement('li'); li.append(...p.childNodes);
+    const prevEl = p.previousElementSibling;
+    if (!stack.length || !(prevEl && prevEl === stack.lastNode)) stack = [];
+    while (stack.length > lvl + 1) stack.pop();
+    while (stack.length < lvl + 1) {
+      const l = doc.createElement(ordered ? 'ol' : 'ul');
+      if (stack.length) { const host = stack[stack.length - 1].lastElementChild || stack[stack.length - 1].appendChild(doc.createElement('li')); host.append(l); } else p.before(l);
+      stack.push(l);
+    }
+    stack[stack.length - 1].append(li);
+    stack.lastNode = stack[0]; p.remove();
+  }
+}
 function normalizeTopLevel(root){
   const doc = root.ownerDocument;
   const BLK = /^(P|H1|H2|H3|UL|OL|BLOCKQUOTE|PRE|TABLE|HR|DIV)$/;
@@ -3158,7 +3205,7 @@ function serialize(){
   const c = editor.cloneNode(true); resolveSuggestions(c); dropEmptyFmt(c);
   c.querySelectorAll('.flash').forEach(e => e.classList.remove('flash'));
   c.querySelectorAll('.fold-hidden').forEach(e => { e.classList.remove('fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
-  c.querySelectorAll('.is-cur').forEach(e => { e.classList.remove('is-cur'); if (!e.classList.length) e.removeAttribute('class'); });
+  c.querySelectorAll('.is-cur,.cur-in').forEach(e => { e.classList.remove('is-cur','cur-in'); if (!e.classList.length) e.removeAttribute('class'); });
   c.querySelectorAll('.math').forEach(m => { m.replaceChildren(); m.classList.remove('pending'); m.removeAttribute('title'); });
   return c.innerHTML.replace(/​/g, '');
 }
@@ -3192,7 +3239,7 @@ ${[...document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis"
 }
 function liveHTML(){
   const c = editor.cloneNode(true); resolveSuggestions(c);
-  c.querySelectorAll('.is-cur,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
+  c.querySelectorAll('.is-cur,.cur-in,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','cur-in','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
   c.querySelectorAll('mjx-assistive-mml').forEach(m => m.remove()); // doublon invisible, sauf sans MathJax
   c.querySelectorAll('.math').forEach(m => { m.removeAttribute('title'); m.classList.remove('pending'); if (!m.querySelector('svg')) m.textContent = m.dataset.display === '1' ? `$$${m.dataset.tex}$$` : `$${m.dataset.tex}$`; });
   return c.innerHTML.replace(/​/g, '');
@@ -3255,7 +3302,7 @@ function copy(text){
 let saveT;
 function changed(typing){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); refold(); histMark(typing === true); updateUndoBtns(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
 function save(){
-  clearTimeout(saveT);
+  clearTimeout(saveT); saveT = 0;
   let ok = store.set('plume-doc:' + activeId, serialize());
   if (!ok && freeSpace()) ok = store.set('plume-doc:' + activeId, serialize());
   if (!ok && Date.now() - (save.warned || 0) > 60000) { save.warned = Date.now(); toast('Mémoire pleine : ce document n’est plus enregistré. Supprime des images ou d’anciens documents.'); }
@@ -3265,10 +3312,7 @@ function save(){
   if (ok) addVersion(false);
 }
 function countLabel(){
-  const w = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest('.math,.ai-sg ins,del[data-rv]') ? 2 : 1 });
-  let t = ''; while (w.nextNode()) t += w.currentNode.data + ' ';
-  t = t.replace(/​/g,'');
-  const words = (t.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+  const words = docStats(countText()).words; // même compte que les statistiques et les versions
   // Avec un objectif : « 640 / 1 000 mots », et une petite fête quand il est atteint.
   const d = docs.find(x => x.id === activeId), g = d?.goal || 0;
   statusEl.style.setProperty('--goal', g ? Math.min(100, words / g * 100) + '%' : '0%');
@@ -3798,6 +3842,7 @@ document.addEventListener('mouseup', e => {
   setTimeout(showSelbar, 0);
 });
 let sbScrollAt = 0;
+addEventListener('resize', () => { if (selbar.hidden) return; clearTimeout(sbT); sbT = setTimeout(showSelbar, 300); }); // rotation, Split View
 document.addEventListener('touchend', e => { if (!selbar.contains(e.target)) setTimeout(() => { if (Date.now() - sbScrollAt > 300) showSelbar(); }, 250); });
 editor.addEventListener('keyup', e => { if (e.shiftKey || e.key === 'Shift') showSelbar(); });
 document.addEventListener('selectionchange', () => { const s = getSelection(); if (!s.rangeCount || s.isCollapsed) hideSelbar(); });
@@ -4012,6 +4057,7 @@ function placeBar(){
   const keyboard = vv && innerHeight - vv.height > 120;
   const off = keyboard ? Math.max(0, Math.min(vv.offsetTop, innerHeight - vv.height)) : 0;
   barEl.style.transform = off ? `translateY(${off}px)` : '';
+  document.documentElement.style.setProperty('--kb', (keyboard ? Math.max(0, innerHeight - vv.offsetTop - vv.height) : 0) + 'px');
   document.documentElement.style.setProperty('--vv-top', off + 'px');
   if (vv) document.documentElement.style.setProperty('--vv-h', vv.height + 'px');
   // Un menu ouvert suit la barre (sinon il restait en arrière pendant le défilement, clavier ouvert).
@@ -4093,6 +4139,8 @@ function addNote(){
   const s = getSelection();
   if (!s.rangeCount || s.isCollapsed || !editor.contains(s.anchorNode)) { toast('Sélectionne d\'abord le passage à commenter.'); return; }
   saved = s.getRangeAt(0).cloneRange();
+  const old = [...editor.querySelectorAll('[data-n]')].find(el => saved.intersectsNode(el) && el.textContent.replace(/\u200b/g, '') && (() => { const t = document.createRange(); t.selectNodeContents(el); return saved.compareBoundaryPoints(Range.START_TO_END, t) > 0 && saved.compareBoundaryPoints(Range.END_TO_START, t) < 0; })());
+  if (old) { hideSelbar(); openNotes(old.dataset.n, true); toast('Ce passage a déjà une note : la voici.'); return; }
   const id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   applyProp('n', id);
   noteSpans(id).forEach(e => e.setAttribute('data-nt', ''));
@@ -4179,6 +4227,11 @@ function markCurrent(){
   const cur = b && editor.contains(b) ? b : null;
   editor.querySelectorAll('.is-cur').forEach(x => { if (x !== cur) { x.classList.remove('is-cur'); if (!x.classList.length) x.removeAttribute('class'); } });
   cur?.classList.add('is-cur');
+  // Les blocs qui contiennent le curseur (liste, citation…) portent « cur-in » : beaucoup plus
+  // rapide pour le navigateur qu'un sélecteur :has() sur tout le document.
+  const path = new Set(); for (let a = cur?.parentElement; a && a !== editor; a = a.parentElement) path.add(a);
+  editor.querySelectorAll('.cur-in').forEach(x => { if (!path.has(x)) { x.classList.remove('cur-in'); if (!x.classList.length) x.removeAttribute('class'); } });
+  path.forEach(a => a.classList.add('cur-in'));
   editor.classList.toggle('has-cur', !!cur);
   const hl = cur && cur.parentElement === editor && /^H([123])$/.exec(cur.tagName);
   for (const n of [1, 2, 3]) editor.classList.toggle('cur-h' + n, !!hl && +hl[1] === n);
@@ -4250,7 +4303,7 @@ function openDoc(id){
   tabbar.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   rvSync();
   if (sideKind) renderSidePanel();
-  olClosed = new Set(); renderOutline();
+  olClosed = new WeakSet(); renderOutline();
   if (!findbar.hidden) runFind();
   applyChecks(); tablebar.hidden = true;
   centerSoon();
@@ -4522,8 +4575,8 @@ function applyPrefs(){
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
 // iPhone / iPad, dans l'app World ou dans Safari (pas dans Plume, qui vit dans claude.ai)
 const IOS_APP = (navigator.maxTouchPoints > 1 && /Macintosh|iPad|iPhone/.test(navigator.userAgent) || /iPhone|iPad/.test(navigator.userAgent)) && window.top === window;
-function relaunchKeepingPlace(){
-  try { const r = JSON.parse(sessionStorage.getItem('plume-relaunch-at') || '0'); if (Date.now() - r < 8000) return; sessionStorage.setItem('plume-relaunch-at', String(Date.now())); } catch(e) {}
+function relaunchKeepingPlace(dark){
+  try { const prev = JSON.parse(sessionStorage.getItem('plume-relaunch-at') || 'null'); if (prev && Date.now() - prev.at < 8000 && prev.dark === dark) return; sessionStorage.setItem('plume-relaunch-at', JSON.stringify({ at: Date.now(), dark })); } catch(e) {}
   try {
     if (activeId) save();
     histFlush();
@@ -4552,7 +4605,7 @@ function syncStatusColor(){
   // Sur iPhone et iPad, quand le mode clair/sombre change, l'app se relance donc en un éclair,
   // au même endroit du texte, avec le curseur au même endroit (voir « Relance »).
   const dark = getComputedStyle(root).getPropertyValue('--bg').trim().toLowerCase() === '#000000';
-  if (syncStatusColor.last !== undefined && syncStatusColor.last !== dark && IOS_APP && performance.now() > 2500) relaunchKeepingPlace();
+  if (syncStatusColor.last !== undefined && syncStatusColor.last !== dark && IOS_APP && performance.now() > 2500) relaunchKeepingPlace(dark);
   syncStatusColor.last = dark;
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => syncStatusColor());
@@ -4797,7 +4850,7 @@ function toMarkdown(root){
 const wrapMd = (m, s) => { const t = s.trim(); if (!t) return s; const pre = s.match(/^\s*/)[0], post = s.match(/\s*$/)[0]; return pre + m + t + m + post; };
 function exportClone(){
   const c = editor.cloneNode(true); resolveSuggestions(c);
-  c.querySelectorAll('.is-cur,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
+  c.querySelectorAll('.is-cur,.cur-in,.on,.flash,.new,.fold-hidden').forEach(e => { e.classList.remove('is-cur','cur-in','on','flash','new','fold-hidden'); if (!e.classList.length) e.removeAttribute('class'); });
   return c;
 }
 function exportMarkdown(){
@@ -4830,7 +4883,7 @@ function zipStore(files){ // archive .zip sans compression (suffisant pour Word)
   e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, off, true);
   return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
 }
-const xe = s => String(s).replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+const xe = s => String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '').replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
 const LIGHT_C = { gris:'6B7080', rouge:'C62828', orange:'D2600B', jaune:'9A7400', vert:'1D7A3A', bleu:'1F5FD1', violet:'7A3CC4', rose:'C2337A', marron:'7A4A24' };
 const LIGHT_H = { jaune:'FFF07A', vert:'BDF2B4', bleu:'C4E2FF', rose:'FFCBE4', orange:'FFD9AB', violet:'E4D4FF' };
 const U_DOCX = { simple:'single', double:'double', pointille:'dotted', tirets:'dash', ondule:'wave', epais:'thick' };
@@ -4910,12 +4963,13 @@ function exportDocx(){
   };
   const align = el => { const a = el.style?.textAlign; return a ? `<w:jc w:val="${{ left:'left', center:'center', right:'right', justify:'both' }[a] || 'left'}"/>` : ''; };
   const para = (el, style, extra = '') => `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${extra}${align(el)}</w:pPr>${runs(el, {})}</w:p>`;
-  const listXml = (el, lvl) => [...el.children].filter(c => c.tagName === 'LI').map(li => {
+  const extraNums = []; let nextNum = 10;
+  const listXml = (el, lvl, numFor) => { if (el.tagName === 'OL' && !el.hasAttribute('data-check')) { const st = +el.getAttribute('start') || 1; const id = nextNum++; extraNums.push(`<w:num w:numId="${id}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="${Math.min(lvl, 8)}"><w:startOverride w:val="${st}"/></w:lvlOverride></w:num>`); numFor = id; } return [...el.children].filter(c => c.tagName === 'LI').map(li => {
     const own = li.cloneNode(true); own.querySelectorAll(':scope > ul, :scope > ol').forEach(x => x.remove());
-    const num = el.tagName === 'OL' ? 2 : 1, box = el.hasAttribute('data-check') ? (li.dataset.done === '1' ? '☑ ' : '☐ ') : '';
+    const num = el.tagName === 'OL' ? numFor : 1, box = el.hasAttribute('data-check') ? (li.dataset.done === '1' ? '☑ ' : '☐ ') : '';
     const p = `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${Math.min(lvl, 8)}"/><w:numId w:val="${box ? 3 : num}"/></w:numPr></w:pPr>${run(box, {})}${runs(own, {})}</w:p>`;
     return p + [...li.children].filter(c => /^(UL|OL)$/.test(c.tagName)).map(s => listXml(s, lvl + 1)).join('');
-  }).join('');
+  }).join(''); };
   let body = '';
   for (const b of root.children) {
     const t = b.tagName;
@@ -4945,7 +4999,7 @@ function exportDocx(){
       + `<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="60"/><w:ind w:firstLine="0"/></w:pPr></w:style>`
       + `<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="1F5FD1"/><w:u w:val="single"/></w:rPr></w:style>`
       + `<w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style></w:styles>` },
-    { name: 'word/numbering.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ${W}><w:abstractNum w:abstractNumId="0">${lvls('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1">${lvls('decimal')}</w:abstractNum><w:abstractNum w:abstractNumId="2">${lvls('none')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num><w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num></w:numbering>` },
+    { name: 'word/numbering.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ${W}><w:abstractNum w:abstractNumId="0">${lvls('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1">${lvls('decimal')}</w:abstractNum><w:abstractNum w:abstractNumId="2">${lvls('none')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num><w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num>${extraNums.join('')}</w:numbering>` },
   ];
   // Paragraphe vide après un tableau : seulement s'il en faut un (fin du document, ou un autre tableau juste après).
   body = body.replace(/<\/w:tbl><w:p\/>(?=<w:p[ >])/g, '</w:tbl>');
@@ -4991,9 +5045,9 @@ function importBackup(f){
       }
       saveFolders();
     }
-    for (const d of list) map[d.id || ''] = d.id && /^[a-z0-9]{4,40}$/.test(d.id) && !docs.some(x => x.id === d.id) ? d.id : newId();
+    const used = new Set(), ids = list.map(d => { const id = d.id && /^[a-z0-9]{4,40}$/.test(d.id) && !docs.some(x => x.id === d.id) && !used.has(d.id) ? d.id : newId(); used.add(id); if (d.id && !(d.id in map)) map[d.id] = id; return id; });
     for (const d of list) {
-      const id = map[d.id || '']; first = first || id;
+      const id = ids[list.indexOf(d)]; first = first || id;
       let html = sanitize(d.html);
       html = html.replace(/href="#doc:([a-z0-9]{4,40})"/g, (m, old) => map[old] ? `href="#doc:${map[old]}"` : m);
       const nd = { id, title: String(d.title || 'Sans titre').slice(0, 60), goal: +d.goal || 0, updated: Date.now(), created: +d.created || Date.now() }; if (d.noCheck) nd.noCheck = true;
@@ -5068,7 +5122,7 @@ function renderSidePanel(){
    Tous les titres, rangés (titre 1 > titre 2 > titre 3). Un toucher y emmène ; la flèche replie
    une partie du plan (sans toucher au document). La partie où se trouve le curseur est en bleu. */
 const olSide = $('#outline-side'), olBody = $('#ol-body'), olBtn = $('#outline-btn');
-let olOpen = false, olClosed = new Set();
+let olOpen = false, olClosed = new WeakSet(); // replis du plan, attachés aux titres eux-mêmes
 const wideScreen = () => innerWidth >= 960;
 function setOutline(open, remember = true){
   olOpen = open; olSide.hidden = !open;
@@ -5093,11 +5147,11 @@ function renderOutline(){
   const lv = hs.map(h => +h.tagName[1]), rows = [], stack = [];
   hs.forEach((h, i) => {
     while (stack.length && lv[stack[stack.length - 1]] >= lv[i]) stack.pop();
-    const hidden = stack.some(j => olClosed.has(j));
+    const hidden = stack.some(j => olClosed.has(hs[j]));
     const kids = i + 1 < hs.length && lv[i + 1] > lv[i];
     const txt = h.textContent.replace(/​/g, '').trim() || 'Sans titre';
     if (!hidden) rows.push(`<div class="ol-row l${lv[i]}${h === curH ? ' on' : ''}" style="--d:${stack.length}">`
-      + (kids ? `<button class="ol-tw${olClosed.has(i) ? ' closed' : ''}" data-t="${i}" aria-label="${olClosed.has(i) ? 'Déplier' : 'Replier'}"><svg viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3"/></svg></button>` : '<span class="ol-tw"></span>')
+      + (kids ? `<button class="ol-tw${olClosed.has(h) ? ' closed' : ''}" data-t="${i}" aria-label="${olClosed.has(h) ? 'Déplier' : 'Replier'}"><svg viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3"/></svg></button>` : '<span class="ol-tw"></span>')
       + `<button class="ol-i" data-i="${i}" title="${esc(txt)}">${esc(txt)}</button></div>`);
     stack.push(i);
   });
@@ -5107,7 +5161,7 @@ function renderOutline(){
 olBody.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 olBody.addEventListener('click', e => {
   const t = e.target.closest('[data-t]');
-  if (t) { const k = +t.dataset.t; olClosed.has(k) ? olClosed.delete(k) : olClosed.add(k); renderOutline(); return; }
+  if (t) { const h = editor.querySelectorAll(':scope > :is(h1,h2,h3)')[+t.dataset.t]; if (h) olClosed.has(h) ? olClosed.delete(h) : olClosed.add(h); renderOutline(); return; }
   const b = e.target.closest('[data-i]'); if (!b) return;
   const hs = [...editor.querySelectorAll(':scope > :is(h1,h2,h3)')];
   if (hs[+b.dataset.i]) goToBlock(hs[+b.dataset.i]);
@@ -5178,7 +5232,7 @@ function renderHistory(preview){
     spBody.querySelector('[data-a="back"]').onclick = () => renderHistory();
     spBody.querySelector('[data-a="restore"]').onclick = () => {
       addVersion(true);
-      editor.innerHTML = sanitize(v.html); renderAllMath(); refold(); renderNotes(); changed();
+      editor.innerHTML = sanitize(v.html); renderAllMath(); refold(); renderNotes(); changed(); if (!findbar.hidden) runFind();
       restoreToStart(); toast('Version restaurée. Annuler (Ctrl+Z) revient au texte d\'avant.');
       renderHistory();
     };
@@ -5196,8 +5250,15 @@ function renderHistory(preview){
 const findbar = $('#findbar'), fbQ = $('#fb-q'), fbR = $('#fb-r'), fbCount = $('#fb-count'), fbRes = $('#fb-results');
 const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight === 'function';
 let fbHits = [], fbI = -1, fbT = 0;
+try { new ResizeObserver(() => document.documentElement.style.setProperty('--fb-h', findbar.offsetHeight + 'px')).observe(findbar); } catch(e) {}
 const BLOCK_SEL = 'p,h1,h2,h3,li,blockquote,pre,td,th,div';
 // Le texte de chaque bloc, avec la position de chaque caractère dans le document.
+function blockEntry(b){
+  const w = document.createTreeWalker(b, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement.closest(BLOCK_SEL) !== b || n.parentElement.closest('.math,.ai-sg')) ? 2 : 1 });
+  let text = ''; const map = [];
+  while (w.nextNode()) { const n = w.currentNode; for (let i = 0; i < n.data.length; i++) { if (n.data[i] === '​') continue; text += normCh(n.data[i]); map.push([n, i]); } }
+  return text ? { b, text, map } : null;
+}
 function textBlocks(visibleOnly){
   const out = [];
   for (const b of editor.querySelectorAll(BLOCK_SEL)) {
@@ -5210,7 +5271,9 @@ function textBlocks(visibleOnly){
   return out;
 }
 const rangeOf = (blk, k, len) => { const a = blk.map[k], z = blk.map[k + len - 1], r = document.createRange(); r.setStart(a[0], a[1]); r.setEnd(z[0], z[1] + 1); return r; };
-const fold = s => s.toLowerCase();
+// Recherche sans tenir compte des majuscules ni des accents (« ecole » trouve « école »),
+// en gardant la même longueur de texte (sinon « İ » décalait tout et provoquait une erreur).
+const fold = s => { let o = ''; for (const c of s) { let l = c.toLowerCase(); if (l.length !== c.length) l = c; const b = l.normalize('NFD')[0].toLowerCase(); o += b.length === l.length && /\p{L}/u.test(b) ? b : l; } return o; };
 function findAll(q, cs){
   const hits = []; if (!q) return hits;
   const nq = [...q].map(normCh).join(''), qq = cs ? nq : fold(nq);
@@ -5258,6 +5321,10 @@ function closeFind(){
   if (r && editor.contains(r.startContainer)) { editor.focus({ preventScroll: true }); setRange(r.cloneRange()); }
 }
 function replaceRange(r, text){
+  if (rvOn) { // révision : le remplacement est suivi (ancien texte barré, nouveau souligné)
+    if (text) rvInsertText(text, r); else rvDeleteRange(r);
+    rvMerge(); return getSelection().anchorNode;
+  }
   r.deleteContents(); const t = document.createTextNode(text); r.insertNode(t);
   const c = document.createRange(); c.setStartAfter(t); c.collapse(true); return t;
 }
@@ -5645,7 +5712,7 @@ function sentenceDim(){
   if (!focusOn || prefs.focusScope !== 'phrase') return;
   const cur = editor.querySelector('.is-cur'); if (!cur || cur.closest('pre')) return;
   const s = getSelection(); if (!s.rangeCount || !editor.contains(s.anchorNode)) return;
-  const blk = textBlocks().find(x => x.b === cur); if (!blk) return;
+  const blk = cur.matches(BLOCK_SEL) && !cur.closest('.ai-block') ? blockEntry(cur) : null; if (!blk) return; // seulement le paragraphe en cours (rapide)
   // Position du curseur dans le texte du paragraphe
   let caret = 0; const r0 = s.getRangeAt(0);
   for (let i = 0; i < blk.map.length; i++) { const [n, o] = blk.map[i]; const c = document.createRange(); c.setStart(n, o); if (c.compareBoundaryPoints(Range.START_TO_START, r0) < 0) caret = i + 1; else break; }
@@ -5865,7 +5932,7 @@ async function docxToHTML(buf){
     const jc = val(pp, 'jc'), align = { center:'center', right:'right', end:'right', both:'justify', distribute:'justify' }[jc];
     const numPr = pp && kid(pp, 'numPr'), sn = styleNum[sid] || {};
     const numId = val(numPr, 'numId') || sn.numId, ilvl = +(val(numPr, 'ilvl') ?? sn.ilvl ?? 0) || 0;
-    if ((numId && numId !== '0') || sn.kind) {
+    if (((numId && numId !== '0') || sn.kind) && !/^h[1-3]$/.test(styles[sid] || '')) {
       const fmt = sn.kind && !numId ? (sn.kind === 'ul' ? 'bullet' : 'decimal') : (nums[numId] || {})[ilvl] || 'bullet', tag = fmt === 'bullet' || fmt === 'none' ? 'ul' : 'ol';
       list = list || [];
       while (list.length > ilvl + 1) out.push(`</li></${list.pop().tag}>`); // remonter d'un ou plusieurs niveaux
@@ -6287,7 +6354,7 @@ function rvDeleteRange(r){
     first = first || n; last = n;
     if (inMark(n, 'del')) continue;                               // déjà supprimé
     const ins = inMark(n, 'ins');
-    if (ins) { n.remove(); if (!ins.textContent.replace(/​/g, '') && !ins.querySelector('.math,img')) ins.remove(); continue; } // un ajout retiré
+    if (ins && ins.dataset.a === rvAuthor()) { n.remove(); if (!ins.textContent.replace(/​/g, '') && !ins.querySelector('.math,img')) ins.remove(); continue; } // un ajout retiré
     const prev = n.previousSibling, next = n.nextSibling;
     if (prev && prev.nodeType === 1 && prev.matches('del[data-rv]') && prev.dataset.a === rvAuthor()) prev.append(n);
     else if (next && next.nodeType === 1 && next.matches('del[data-rv]') && next.dataset.a === rvAuthor()) next.prepend(n);
@@ -6308,7 +6375,7 @@ function rvFixSpaces(block){
     let d = x.data, changedHere = false;
     for (let i = 0; i < d.length; i++) {
       const g = pos + i;
-      if (d[i] === '\u00a0' && g > 0 && g < all.length - 1 && /\S/.test(all[g - 1]) && all[g - 1] !== '\u00a0' && /\S/.test(all[g + 1]) && all[g + 1] !== '\u00a0') { d = d.slice(0, i) + ' ' + d.slice(i + 1); changedHere = true; }
+      if (d[i] === '\u00a0' && x.parentElement?.closest('ins[data-rv]') && !/[:;!?»%€]/.test(all[g + 1] || '') && all[g - 1] !== '«' && g > 0 && g < all.length - 1 && /\S/.test(all[g - 1]) && all[g - 1] !== '\u00a0' && /\S/.test(all[g + 1]) && all[g + 1] !== '\u00a0') { d = d.slice(0, i) + ' ' + d.slice(i + 1); changedHere = true; }
     }
     if (changedHere) { const sel = getSelection(), keepOff = sel.anchorNode === x ? sel.anchorOffset : -1; x.data = d; if (keepOff >= 0) { const c = document.createRange(); c.setStart(x, keepOff); c.collapse(true); setRange(c); } }
     pos += x.data.length;
@@ -6336,7 +6403,7 @@ function rvInsertText(text, range){
   const mark = rvMark('ins'); mark.textContent = text;
   if (n.nodeType === 1 && n.childNodes.length === 1 && n.firstChild.nodeName === 'BR') { n.firstChild.remove(); n.append(mark); }
   else range.insertNode(mark);
-  const c = document.createRange(); c.selectNodeContents(mark); c.collapse(false); setRange(c);
+  const c = document.createRange(); c.setStart(mark.firstChild, mark.firstChild.length); c.collapse(true); setRange(c);
 }
 function staticToRange(sr){ const r = document.createRange(); r.setStart(sr.startContainer, sr.startOffset); r.setEnd(sr.endContainer, sr.endOffset); return r; }
 editor.addEventListener('beforeinput', e => {
@@ -6350,10 +6417,39 @@ editor.addEventListener('beforeinput', e => {
     const text = e.data ?? e.dataTransfer?.getData('text/plain') ?? '';
     if (!text) return;
     e.preventDefault(); rvInsertText(text, r); rvFixSpaces(blockOf(getSelection().anchorNode));
+    // L'événement « input » n'a pas lieu (saisie faite par l'app) : on le donne aux automatismes
+    // (majuscule, [[liens]], # titres, $formules$), comme pour une frappe ordinaire.
+    queueMicrotask(() => editor.dispatchEvent(new InputEvent('input', { inputType: t, data: text, bubbles: true })));
   } else if (/^delete/.test(t)) {
     e.preventDefault();
     const back = /Backward/.test(t) || t === 'deleteByCut' || t === 'deleteContent';
+    if (s.isCollapsed) r = s.getRangeAt(0).cloneRange(); // Safari donne parfois une plage qui enjambe la fin du paragraphe
     if (r.collapsed) {
+      // Bord de paragraphe : rien à barrer. Un paragraphe vide (créé par Entrée) s'en va ; sinon on passe à côté.
+      const blk = blockOf(r.startContainer);
+      if (blk && editor.contains(blk)) {
+        const side = document.createRange();
+        if (back) { side.setStart(blk, 0); side.setEnd(r.startContainer, r.startOffset); } else { side.setStart(r.startContainer, r.startOffset); side.setEnd(blk, blk.childNodes.length); }
+        const live = x => { const c = x.cloneContents(); c.querySelectorAll('del[data-rv]').forEach(d => d.remove()); return c.textContent.replace(/\u200b/g, '') || c.querySelector('img,.math'); };
+        if (!live(side)) {
+          const nb = back ? blk.previousElementSibling : blk.nextElementSibling;
+          const bare = x => !x.textContent.replace(/[\u200b]/g, '') && !x.querySelector('img,.math,table,hr');
+          const TXT = /^(P|H1|H2|H3|BLOCKQUOTE|LI)$/;
+          if (nb && TXT.test(blk.tagName) && TXT.test(nb.tagName)) {
+            if (bare(blk)) { blk.remove(); caretIn(nb, back); }
+            else if (bare(nb)) { nb.remove(); }
+            else {
+              // Entrée n'est pas suivie : la jonction des deux paragraphes ne l'est pas non plus.
+              const [A, B] = back ? [nb, blk] : [blk, nb];
+              while (A.lastChild && A.lastChild.nodeName === 'BR') A.lastChild.remove();
+              const z = document.createTextNode('\u200b'); A.append(z); A.append(...B.childNodes); B.remove();
+              const c = document.createRange(); c.setStart(z, 1); c.collapse(true); setRange(c);
+            }
+            changed(true); if (sideKind === 'review') queueReview(); return;
+          }
+          if (!side.toString().replace(/\u200b/g, '')) return;
+        }
+      }
       // Étendre d'un caractère (ou d'un mot), en sautant ce qui est déjà barré.
       const unit = /Word/.test(t) ? 'word' : /Line/.test(t) ? 'lineboundary' : 'character';
       for (let k = 0; k < 400; k++) {
@@ -6373,8 +6469,9 @@ editor.addEventListener('beforeinput', e => {
       c.collapse(true); setRange(c);
     }
   } else if (t === 'insertFromDrop' || t === 'deleteByDrag' || t === 'insertFromPaste') {
-    if (t !== 'insertFromPaste') e.preventDefault(); else return;
+    if (t !== 'insertFromPaste') { e.preventDefault(); if (t === 'insertFromDrop') toast('En révision, le glisser-déposer est désactivé : coupe puis colle.'); } else return;
   } else return;
+  { const b = blockOf(getSelection().anchorNode || editor); if (b && editor.contains(b) && !b.firstChild) { b.append(document.createElement('br')); caretIn(b); } }
   rvMerge(); editor.normalize(); changed(true); markCurrent(); if (sideKind === 'review') queueReview();
 });
 // Deux marques voisines du même auteur et de même sorte n'en font qu'une.
@@ -6409,7 +6506,15 @@ function rvResolve(el, accept){
   const pv = el.previousSibling, nx = el.nextSibling;
   if (pv && pv.nodeType === 3 && nx && nx.nodeType === 3 && /[ \u00a0]$/.test(pv.data) && /^[ \u00a0]/.test(nx.data)) nx.data = nx.data.slice(1);
   else if (pv && pv.nodeType === 3 && nx && nx.nodeType === 3 && /[ \u00a0]$/.test(pv.data) && /^[.,;:!?)]/.test(nx.data)) pv.data = pv.data.replace(/[ \u00a0]$/, '');
+  const blk = el.parentElement?.closest('p,h1,h2,h3,li,blockquote');
   el.remove();
+  // Un paragraphe (ou un élément de liste) entièrement supprimé disparaît avec son texte.
+  if (blk && blk.isConnected && !blk.textContent.replace(/[\u200b]/g, '') && !blk.querySelector('img,.math,table,hr')) {
+    const host = blk.parentElement;
+    if (host === editor && editor.children.length === 1) { blk.replaceChildren(document.createElement('br')); return; }
+    blk.remove();
+    if (host && /^(UL|OL)$/.test(host.tagName) && !host.children.length) host.remove();
+  }
 }
 function rvResolveAll(accept){
   const m = rvMarks(); if (!m.length) { toast('Aucune modification.'); return; }
@@ -6703,9 +6808,11 @@ function applyChecks(refresh){
     };
     const writeMode = range => {
       if (editable()) return;
+      // Sélection faite au crayon : c'est elle que la frappe remplace.
+      const s0 = getSelection(), penSel = s0.rangeCount && editor.contains(s0.anchorNode) && editor.contains(s0.focusNode) ? s0.getRangeAt(0).cloneRange() : null;
       editor.contentEditable = 'true';
       editor.focus({ preventScroll: true });
-      const r = range || lastRange || (saved && editor.contains(saved.startContainer) && editor.contains(saved.endContainer) ? saved : null);
+      const r = range || penSel || lastRange || (saved && editor.contains(saved.startContainer) && editor.contains(saved.endContainer) ? saved : null);
       if (r) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
     };
     // Crayon qui survole l'écran (Apple Pencil Pro, Apple Pencil 2 sur les iPad récents)
@@ -6841,7 +6948,8 @@ function applyChecks(refresh){
     else if ([...box.children].some(c => c.tagName === 'TR')) { const t = document.createElement('table'), tb = document.createElement('tbody'); tb.append(...box.childNodes); t.append(tb); box.append(t); }
     else if ([...box.children].some(c => /^T[DH]$/.test(c.tagName))) { const t = document.createElement('table'), tb = document.createElement('tbody'), tr = document.createElement('tr'); tr.append(...box.childNodes); tb.append(tr); t.append(tb); box.append(t); }
     box.querySelectorAll('.ai-sg,.ai-block,.ai-tag').forEach(x => x.remove());
-    box.querySelectorAll('.is-cur').forEach(x => x.classList.remove('is-cur'));
+    if (!box.querySelector('pre') && ca.closest('pre')) { const pre = document.createElement('pre'); pre.append(...box.childNodes); box.append(pre); }
+    box.querySelectorAll('.is-cur,.cur-in').forEach(x => x.classList.remove('is-cur','cur-in'));
     e.clipboardData.setData('text/html', box.innerHTML);
     e.clipboardData.setData('text/plain', sel.toString());
     e.preventDefault();
@@ -6963,12 +7071,13 @@ function twKeepAwake(){
 function twWake(){
   if (!prefs.sound) return false;
   try {
+    if (TW.ctx && TW.ctx.state === 'closed') { TW.ctx = null; TW.out = null; TW.keep = null; TW.next = {}; }
     if (!TW.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
       try { TW.ctx = new AC({ latencyHint: 0 }); } catch(e) { TW.ctx = new AC({ latencyHint: 'interactive' }); } // la plus petite mémoire tampon possible
       TW.out = TW.ctx.createGain(); TW.out.gain.value = twGain(); TW.out.connect(TW.ctx.destination); twBuild(); ['key', 'space', 'back', 'ret'].forEach(twPrep);
     }
-    if (TW.ctx.state !== 'running') TW.ctx.resume();
+    if (TW.ctx.state !== 'running') TW.ctx.resume().catch(() => {});
     if (!TW.keep || performance.now() - TW.kept > 5000) { TW.kept = performance.now(); twKeepAwake(); }
     return true;
   } catch(e) { return false; }
@@ -6982,6 +7091,7 @@ function twPrep(kind){
   src.connect(TW.out); TW.next[kind] = src;
 }
 function twPlay(kind){
+  if (kind === 'back') { const t = performance.now(); if (t - (TW.lastBack || 0) < 45) return; TW.lastBack = t; }
   if (!twWake()) return;
   const src = TW.next[kind]; TW.next[kind] = null;
   if (src) src.start(); else { twPrep(kind); TW.next[kind].start(); TW.next[kind] = null; }
@@ -6990,9 +7100,11 @@ function twPlay(kind){
 function twKind(k){ return k === 'Enter' ? 'ret' : k === ' ' ? 'space' : (k === 'Backspace' || k === 'Delete') ? 'back' : (k && (k.length === 1 || k === 'Tab')) ? 'key' : null; }
 // Sur window en phase de capture : ce gestionnaire passe avant tous les autres.
 window.addEventListener('keydown', e => {
-  if (!prefs.sound || e.repeat && e.key === 'Enter' || e.ctrlKey || e.metaKey || !(e.target === editor || editor.contains(e.target))) return;
+  if (!prefs.sound || e.ctrlKey || e.metaKey || !(e.target === editor || editor.contains(e.target))) return;
   const k = twKind(e.key); if (!k) return;
-  TW.lastKey = performance.now(); twPlay(k);
+  TW.lastKey = performance.now();
+  if (e.repeat && (k === 'ret' || k === 'back')) return; // touche maintenue : pas de rafale de sons
+  twPlay(k);
 }, true);
 // Clavier à l'écran qui n'envoie pas de vraie touche : on suit la saisie elle-même.
 editor.addEventListener('beforeinput', e => {
@@ -7005,7 +7117,7 @@ editor.addEventListener('beforeinput', e => {
 editor.addEventListener('focus', () => { if (prefs.sound && TW.ctx) twWake(); });
 document.addEventListener('visibilitychange', () => {
   if (!TW.ctx) return;
-  if (document.hidden) { try { TW.keep && TW.keep.stop(); } catch(e) {} TW.keep = null; TW.ctx.suspend?.(); }
+  if (document.hidden) { try { TW.keep && TW.keep.stop(); } catch(e) {} TW.keep = null; if (TW.ctx.state !== 'closed') TW.ctx.suspend().catch(() => {}); }
   else if (prefs.sound) twWake();
 });
 // Volume : réglage de 0 à 100 (courbe douce, comme l'oreille), gardé dans les réglages.
@@ -7022,11 +7134,11 @@ function openSoundMenu(btn){
       <input type="range" class="dim-range" id="snd-vol" min="0" max="100" step="1" value="${v}" aria-label="Volume du son, de 0 à 100">
       <div class="dim-ticks snd-ticks"><span>Doux</span><span id="snd-pc">${v} %</span><span>Fort</span></div>
     </div>`, p => {
-    p.querySelector('#snd-on').onchange = () => $('#sound-btn').click();
+    p.querySelector('#snd-on').onchange = () => { TW.fromMenu = true; $('#sound-btn').click(); };
     p.querySelector('#snd-packs').onclick = e => {
       const b = e.target.closest('[data-pack]'); if (!b) return;
       setPref('soundPack', b.dataset.pack);
-      if (!prefs.sound) { $('#sound-btn').click(); p.querySelector('#snd-on').checked = true; }
+      if (!prefs.sound) { TW.fromMenu = true; $('#sound-btn').click(); p.querySelector('#snd-on').checked = true; }
       if (TW.ctx) { twBuild(); TW.next = {}; ['key', 'space', 'back', 'ret'].forEach(twPrep); }
       p.querySelectorAll('#snd-packs [data-pack]').forEach(x => { const on = x === b; x.setAttribute('aria-checked', on); });
       setTimeout(() => { twPlay('key'); setTimeout(() => twPlay('key'), 140); setTimeout(() => twPlay('space'), 290); setTimeout(() => twPlay('key'), 420); }, 30); // un petit aperçu
@@ -7035,7 +7147,7 @@ function openSoundMenu(btn){
     rg.oninput = () => {
       setPref('soundVol', +rg.value); p.querySelector('#snd-pc').textContent = rg.value + ' %';
       if (TW.out) TW.out.gain.value = twGain();
-      if (!prefs.sound) { $('#sound-btn').click(); p.querySelector('#snd-on').checked = true; }
+      if (!prefs.sound) { TW.fromMenu = true; $('#sound-btn').click(); p.querySelector('#snd-on').checked = true; }
       clearTimeout(tt); tt = setTimeout(() => twPlay('key'), 60); // on entend tout de suite le nouveau volume
     };
   });
@@ -7043,16 +7155,17 @@ function openSoundMenu(btn){
 $('#sound-more').addEventListener('click', e => openSoundMenu(e.currentTarget));
 function twSync(){ $('#sound-btn').setAttribute('aria-pressed', !!prefs.sound); }
 $('#sound-btn').addEventListener('click', () => {
+  const fromMenu = TW.fromMenu; TW.fromMenu = false;
   setPref('sound', !prefs.sound); twSync();
   if (prefs.sound) {
     twWake(); setTimeout(() => twPlay('key'), 40);
-    setTimeout(() => { const c = TW.ctx, l = c ? Math.round(((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000) : 0;
+    setTimeout(() => { if (!prefs.sound) return; const c = TW.ctx, l = c ? Math.round(((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000) : 0;
       toast(!c ? 'Son impossible sur cet appareil' : c.state !== 'running' ? `Son bloqué par l'appareil (${c.state})` : 'Son de machine à écrire activé' + (l ? ` · délai du son : ${l} ms` : '')); }, 400);
   } else {
     if (TW.keep) { try { TW.keep.stop(); } catch(e) {} TW.keep = null; }
-    TW.ctx?.suspend?.(); toast('Son de machine à écrire coupé');
+    if (TW.ctx && TW.ctx.state !== 'closed') TW.ctx.suspend().catch(() => {}); toast('Son de machine à écrire coupé');
   }
-  restore();
+  if (!fromMenu) restore();
 });
 // Son activé au démarrage : la sortie s'ouvre au premier toucher ou à la première touche.
 // (Safari n'accepte de lancer le son que sur un toucher relâché, un clic ou une touche.)
@@ -7183,7 +7296,7 @@ editor.addEventListener('keydown', e => {
       // Bord du paragraphe : on continue dans le paragraphe voisin, comme sur un ordinateur,
       // sauf s'il y a là une formule, une image, un tableau, une liste…
       const TXT = /^(P|H1|H2|H3|BLOCKQUOTE)$/, nb = back ? blk.previousElementSibling : blk.nextElementSibling;
-      return !(TXT.test(blk.tagName) && blk.parentElement === editor && nb && TXT.test(nb.tagName) && !nb.querySelector('.math,img') && !blk.querySelector('.math,img'));
+      return !(TXT.test(blk.tagName) && blk.parentElement === editor && nb && TXT.test(nb.tagName) && !nb.querySelector('.math,img') && !blk.querySelector('.math,img') && !nb.classList.contains('fold-hidden') && !(back ? nb : blk).matches('[data-fold="1"]') && !editor.querySelector(':scope > .fold-hidden'));
     }
     // Le caractère juste à côté est-il une formule, une image… ?
     const n = s.anchorNode, o = s.anchorOffset;
@@ -7215,6 +7328,13 @@ editor.addEventListener('keydown', e => {
   editor.addEventListener('keyup', e => { if (e.key === 'Backspace' || e.key === 'Delete') { released = true; stop(); } });
   editor.addEventListener('blur', () => { released = true; stop(); });
 }
+
+// Tab dans un paragraphe, un titre ou une citation : le curseur reste dans le texte
+// (listes, tableaux et code ont déjà leur propre Tab, enregistré avant).
+editor.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+  e.preventDefault();
+});
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
