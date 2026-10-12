@@ -7073,7 +7073,7 @@ editor.addEventListener('keydown', e => {
 // effaçaient la formule (Safari : tout le paragraphe suivant). On fait la jonction nous-mêmes ;
 // à côté d'une formule centrée seule sur sa ligne, le curseur va juste à côté d'elle sans rien effacer.
 editor.addEventListener('beforeinput', e => {
-  if (rvOn || (e.inputType !== 'deleteContentBackward' && e.inputType !== 'deleteContentForward')) return;
+  if (e.defaultPrevented || rvOn || (e.inputType !== 'deleteContentBackward' && e.inputType !== 'deleteContentForward')) return;
   const s = getSelection(); if (!s.rangeCount || !s.isCollapsed) return;
   const TXT = /^(P|H1|H2|H3|BLOCKQUOTE)$/, back = e.inputType === 'deleteContentBackward';
   const cur = anchorEl()?.closest('#editor > *'); if (!cur || !TXT.test(cur.tagName)) return;
@@ -7082,6 +7082,7 @@ editor.addEventListener('beforeinput', e => {
   if (t.toString().replace(/​/g, '') || t.cloneContents().querySelector('img,.math')) return;
   const A = back ? cur.previousElementSibling : cur, B = back ? cur : cur.nextElementSibling;
   if (!A || !B || !TXT.test(A.tagName) || !TXT.test(B.tagName) || !(A.querySelector('.math') || B.querySelector('.math'))) return;
+  if ([A, B].some(x => x.classList.contains('fold-hidden')) || A.dataset.fold === '1') return; // section repliée : on la rouvre ailleurs
   e.preventDefault(); if (!hist.before) hist.before = caretOffsets();
   const txt = el => { const c = el.cloneNode(true); c.querySelectorAll('.math').forEach(m => m.remove()); return c.textContent.replace(/[\s​]/g, ''); };
   const empty = el => !txt(el) && !el.querySelector('img,.math');
@@ -7103,7 +7104,16 @@ editor.addEventListener('beforeinput', e => {
 // Saisie composée (accents par touche morte, clavier japonais, dictée) : même majuscule automatique,
 // et en révision le texte composé devient un ajout suivi.
 let compStart = null;
-editor.addEventListener('compositionstart', () => { const s = getSelection(); compStart = s.rangeCount ? caretOffsets() : null; });
+editor.addEventListener('compositionstart', () => {
+  const s = getSelection(); compStart = s.rangeCount ? caretOffsets() : null;
+  // Révision : une sélection remplacée par une lettre accentuée devient une suppression suivie,
+  // et on ne compose jamais à l'intérieur d'un passage barré.
+  if (rvOn && s.rangeCount && editor.contains(s.anchorNode)) {
+    const r = s.getRangeAt(0);
+    if (!r.collapsed) { const res = rvDeleteRange(r.cloneRange()); const h = res && res.last ? ((res.last.nodeType === 1 ? res.last : res.last.parentElement)?.closest('del[data-rv]') || res.last) : null; if (h && h.isConnected) rvPlaceAfter(h); changed(true); }
+    else { const d = inMark(s.anchorNode, 'del'); if (d) rvPlaceAfter(d); }
+  }
+});
 editor.addEventListener('compositionend', e => {
   const st = compStart; compStart = null; const data = e.data || ''; if (!data) return;
   setTimeout(() => {
@@ -7112,7 +7122,8 @@ editor.addEventListener('compositionend', e => {
     if (n.nodeType !== 3 || off < data.length || n.data.slice(off - data.length, off) !== data) return;
     if (rvOn && !n.parentElement.closest('ins[data-rv]')) {
       const r = document.createRange(); r.setStart(n, off - data.length); r.setEnd(n, off);
-      const m = rvMark('ins'); r.surroundContents(m); const c = document.createRange(); c.selectNodeContents(m); c.collapse(false); setRange(c); rvMerge(); changed(true);
+      const m = rvMark('ins'), d = inMark(n, 'del');
+      if (d) { n.deleteData(off - data.length, data.length); m.textContent = data; d.after(m); } else r.surroundContents(m); const c = document.createRange(); c.selectNodeContents(m); c.collapse(false); setRange(c); rvMerge(); changed(true);
       return;
     }
     if (prefs.caps && /^\p{Ll}/u.test(data) && !n.parentElement.closest('pre,code,.math,a')) {
