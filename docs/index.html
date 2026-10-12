@@ -1876,6 +1876,8 @@ html{-webkit-tap-highlight-color:transparent}
 .pop .mi:active{background:transparent!important}
 .chips.lg-seg .lg-word{display:inline;white-space:nowrap}
 .chips.lg-seg .lg-ch{display:inline-block;transform-origin:50% 65%;white-space:pre;will-change:transform}
+.chips.lg-seg{touch-action:none!important} /* tant que le doigt est sur les choix, il tient la bulle */
+.page.lg-rubber{transition:transform .55s cubic-bezier(.22,1.2,.36,1)}
 </style>
 
 <header class="bar">
@@ -7094,8 +7096,7 @@ function applyChecks(refresh){
     ch.addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
       if (!drag.moving) {
-        const dx = Math.abs(e.clientX - drag.x), dy = Math.abs(e.clientY - drag.y);
-        if (dx < 6 || dx < dy) return; // un geste surtout vertical reste un défilement du menu
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return; // doigt posé sur les choix : c'est la bulle qu'on manipule
         drag.moving = true; ch.classList.add('lg-drag'); ch.setPointerCapture(e.pointerId);
         th.style.opacity = '1';
       }
@@ -7119,7 +7120,7 @@ function applyChecks(refresh){
     ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
     // Une fois la bulle saisie, le doigt peut monter ou descendre : le menu ne défile pas et
     // Safari ne reprend pas le geste (sinon la bulle était lâchée en cours de route).
-    ch.addEventListener('touchmove', e => { if (drag && drag.moving) e.preventDefault(); }, { passive: false });
+    ch.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
     ch.addEventListener('lostpointercapture', e => { if (drag && e.target === ch) end(e); }); // (pas la perte venant de l'option touchée)
   };
   const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
@@ -7609,6 +7610,36 @@ editor.addEventListener('keydown', e => {
   const r = e.target.closest && e.target.closest('input[type=range]'); if (!r) return;
   r.classList.remove('lg-jelly'); void r.offsetWidth; r.classList.add('lg-jelly'); clearTimeout(r._j); r._j = setTimeout(() => r.classList.remove('lg-jelly'), 600);
 }, { passive: true, capture: true }));
+
+/* ---------- Bout de page élastique ----------
+   En haut ou en bas du document, tirer encore fait suivre la page un peu (avec résistance) ;
+   au lâcher, elle revient doucement. La barre ne bouge pas. Au doigt et au trackpad. */
+{
+  const page = $('.page'), RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const rub = d => 70 * (1 - Math.exp(-d / 140));
+  const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
+  let t0 = null, pull = 0, wheelT = 0, wheelAcc = 0;
+  const show = px => { pull = px; page.classList.remove('lg-rubber'); page.style.transform = px ? `translateY(${px.toFixed(1)}px)` : ''; };
+  const back = () => { if (!pull) return; page.classList.add('lg-rubber'); page.style.transform = ''; pull = 0; setTimeout(() => { if (!pull) page.classList.remove('lg-rubber'); }, 600); };
+  const ok = t => t && t.closest && t.closest('.page') && !t.closest('.pop,.selbar,.tablebar');
+  document.addEventListener('touchstart', e => { t0 = e.touches.length === 1 && ok(e.target) && !RM.matches ? { y: e.touches[0].clientY, edgeY: null, dir: 0 } : null; }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!t0 || e.touches.length !== 1) return;
+    const y = e.touches[0].clientY, atTop = scrollY <= 0, atBot = scrollY >= maxY() - 1;
+    if (t0.edgeY === null) { if ((atBot && y < t0.y) || (atTop && y > t0.y)) { t0.edgeY = y; t0.dir = atBot ? -1 : 1; } else return; }
+    const d = (y - t0.edgeY) * t0.dir;           // distance tirée au-delà du bout
+    show(d > 0 ? t0.dir * rub(d) : 0);
+  }, { passive: true });
+  const end = () => { t0 = null; back(); };
+  document.addEventListener('touchend', end, { passive: true }); document.addEventListener('touchcancel', end, { passive: true });
+  addEventListener('wheel', e => {
+    if (e.ctrlKey || RM.matches || !ok(e.target)) return;
+    const atBot = scrollY >= maxY() - 1 && e.deltaY > 0, atTop = scrollY <= 0 && e.deltaY < 0;
+    if (!atBot && !atTop) { if (pull) back(); wheelAcc = 0; return; }
+    wheelAcc += Math.abs(e.deltaY); show((atBot ? -1 : 1) * rub(wheelAcc * .5));
+    clearTimeout(wheelT); wheelT = setTimeout(() => { wheelAcc = 0; back(); }, 140);
+  }, { passive: true });
+}
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
