@@ -1834,6 +1834,18 @@ html{touch-action:manipulation}
 :root:not([data-glass="opaque"]) .lg-thumb{box-shadow:var(--lg-rim),0 2px 8px rgba(0,0,0,.12)!important}
 /* La pastille qu'on fait glisser grossit comme une lentille : la frange s'accentue */
 .chips.lg-seg.lg-drag .lg-thumb::after{padding:6px;-webkit-backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1);backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1)}
+/* Pastille des choix segmentés : gonfle à l'appui, rebondit en se posant */
+.lg-thumb.lg-hold{transform:scale(1.07,1.14);transition:left .42s cubic-bezier(.3,1.35,.45,1),width .42s cubic-bezier(.3,1.35,.45,1),transform .16s cubic-bezier(.2,.9,.3,1.3)}
+.lg-thumb.lg-snap{transition:left .6s cubic-bezier(.25,1.75,.4,1),width .6s cubic-bezier(.25,1.75,.4,1),transform .25s,box-shadow .25s,background .25s}
+.lg-thumb.lg-jelly{animation:lg-jelly .62s cubic-bezier(.3,.7,.4,1)}
+@keyframes lg-jelly{0%{transform:scale(1.07,1.14)}30%{transform:scale(.94,.9)}52%{transform:scale(1.04,1.06)}72%{transform:scale(.985,.98)}88%{transform:scale(1.005,1.005)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){ .lg-thumb.lg-jelly{animation:none} .lg-thumb.lg-hold{transform:none} }
+/* Réglettes : le bouton rond gonfle quand on le tient, rebondit quand on le lâche */
+input[type=range]::-webkit-slider-thumb{transition:transform .2s cubic-bezier(.2,.9,.3,1.3)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25)}
+input[type=range].lg-jelly::-webkit-slider-thumb{animation:lg-knob .55s cubic-bezier(.3,.7,.4,1)}
+@keyframes lg-knob{0%{transform:scale(1.25)}30%{transform:scale(.88)}55%{transform:scale(1.08)}78%{transform:scale(.97)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){ input[type=range]:active::-webkit-slider-thumb{transform:none} input[type=range].lg-jelly::-webkit-slider-thumb{animation:none} }
 </style>
 
 <header class="bar">
@@ -6984,9 +6996,12 @@ function applyChecks(refresh){
     requestAnimationFrame(() => place(ch, true));
     new MutationObserver(() => place(ch)).observe(ch, { subtree: true, attributes: true, attributeFilter: ['aria-checked'] });
     let drag = null;
+    // Rebond : la pastille gonfle sous le doigt, puis tremble comme de la gelée en se posant.
+    const jelly = () => { th.classList.remove('lg-hold', 'lg-jelly'); void th.offsetWidth; th.classList.add('lg-jelly'); clearTimeout(th._j); th._j = setTimeout(() => th.classList.remove('lg-jelly', 'lg-snap'), 700); };
     ch.addEventListener('pointerdown', e => {
       if (e.button) return;
       drag = { id: e.pointerId, x: e.clientX, moving: false };
+      th.classList.remove('lg-jelly'); th.classList.add('lg-hold');
     });
     ch.addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
@@ -7002,14 +7017,15 @@ function applyChecks(refresh){
     const end = e => {
       if (!drag || e.pointerId !== drag.id) return;
       const d = drag; drag = null;
-      if (!d.moving) return;
-      ch.classList.remove('lg-drag');
+      if (!d.moving) { jelly(); return; }
+      ch.classList.remove('lg-drag'); th.classList.add('lg-snap'); // retour à sa place avec un ressort
+      jelly();
       const c = th.offsetLeft + th.offsetWidth / 2;
       const best = opts(ch).reduce((a, b) => Math.abs(b.offsetLeft + b.offsetWidth / 2 - c) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - c) ? b : a);
       if (best.getAttribute('aria-checked') === 'true') place(ch); else best.click();
       requestAnimationFrame(() => place(ch));
     };
-    ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
+    ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', e => { end(e); th.classList.remove('lg-hold'); });
   };
   const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
   new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.classList.contains('chips')) setup(n); scan(n); } })
@@ -7492,6 +7508,12 @@ editor.addEventListener('keydown', e => {
   // Ctrl + molette (pincement du trackpad sur Mac et iPad) : idem.
   addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); zoomTo(Math.round(docZoom * Math.exp(-e.deltaY * .01) * 20) / 20); }, { passive: false });
 }
+
+// Réglettes : petit rebond du bouton rond quand on le lâche.
+['pointerup', 'pointercancel', 'touchend'].forEach(t => document.addEventListener(t, e => {
+  const r = e.target.closest && e.target.closest('input[type=range]'); if (!r) return;
+  r.classList.remove('lg-jelly'); void r.offsetWidth; r.classList.add('lg-jelly'); clearTimeout(r._j); r._j = setTimeout(() => r.classList.remove('lg-jelly'), 600);
+}, { passive: true, capture: true }));
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
