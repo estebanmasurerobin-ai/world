@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Plume</title>
 <meta name="description" content="Éditeur de texte simple, clair ou sombre, avec mode concentration, Claude intégré (relecture, écriture, questions) et formules LaTeX.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1777,6 +1777,38 @@ body.finding .page{padding-top:calc(var(--bar-h,0px) + var(--fb-h,0px) + 30px)}
 @media (max-width:600px){ body.finding .bar-toggle{display:none} }
 /* Boutons : le même verre que les menus (flou léger, on devine le texte derrière) */
 :root:not([data-glass="opaque"]) .tb-group{-webkit-backdrop-filter:blur(var(--veil-blur,1.5px)) saturate(150%)!important;backdrop-filter:blur(var(--veil-blur,1.5px)) saturate(150%)!important}
+/* Taille du texte : les deux A sont des boutons */
+button.z-a{border:0;background:none;color:inherit;font:inherit;padding:6px 8px;margin:-6px -2px;border-radius:999px;cursor:pointer;line-height:1}
+button.z-a.big{font-size:1.35em}
+/* Pas de zoom de la page au double toucher */
+html{touch-action:manipulation}
+
+/* ================= Liquid Glass : lumière et matière à l'interaction =================
+   Appui : le bouton gonfle comme une goutte (ressort), une lentille de lumière naît sous le
+   doigt et s'éteint doucement. Menus : ils jaillissent du bouton qui les ouvre, avec un léger
+   rebond, et y retournent en se fermant. Le reflet suit le doigt ou la souris. */
+.tb,.pop .mi,.btn,.lib-act,.lib-sort{position:relative;isolation:isolate}
+.tb{transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+.tb.lg-press:not(:disabled){transform:scale(1.13)!important;transition:transform .14s cubic-bezier(.2,.9,.3,1.25)}
+.tb::after,.pop .mi::after,.btn::after,.lib-act::after{content:"";position:absolute;inset:-3px;border-radius:inherit;pointer-events:none;opacity:0;
+  background:radial-gradient(46px circle at var(--px,50%) var(--py,50%),rgba(255,255,255,.95),rgba(255,255,255,.35) 40%,transparent 72%);
+  z-index:-1;transition:opacity .6s ease} /* sous la lettre ou l'icône */
+.lg-press::after{opacity:1!important;transition:opacity .06s!important}
+:root[data-theme="dark"] :is(.tb,.pop .mi,.btn,.lib-act)::after{background:radial-gradient(46px circle at var(--px,50%) var(--py,50%),rgba(255,255,255,.55),rgba(255,255,255,.15) 40%,transparent 72%)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) :is(.tb,.pop .mi,.btn,.lib-act)::after{background:radial-gradient(46px circle at var(--px,50%) var(--py,50%),rgba(255,255,255,.55),rgba(255,255,255,.15) 40%,transparent 72%)} }
+/* La capsule s'éclaire et respire avec le bouton pressé */
+.tb-group{transition:transform .55s cubic-bezier(.34,1.56,.64,1),box-shadow .4s}
+.tb-group.lg-live{transform:scale(1.025);box-shadow:var(--lg-cap-shadow),0 0 0 .5px rgba(255,255,255,.6),0 6px 22px -6px rgba(0,0,0,.18)}
+/* Menus : jaillissent du bouton */
+.pop.lg-in:not([hidden]){animation:lg-pop .46s cubic-bezier(.2,.9,.3,1) both!important}
+@keyframes lg-pop{0%{opacity:0;transform:scale(.4)}55%{opacity:1;transform:scale(1.035)}78%{transform:scale(.992)}100%{opacity:1;transform:scale(1)}}
+.pop-ghost.lg-out{animation:lg-pop-out .24s cubic-bezier(.4,0,.6,1) forwards!important}
+@keyframes lg-pop-out{to{opacity:0;transform:scale(.5)}}
+/* Bord de verre : un liseré de lumière qui glisse vers le doigt */
+.pop::before,.tb-group::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;
+  background:radial-gradient(160px circle at var(--mx,50%) var(--my,-30%),rgba(255,255,255,.95),rgba(255,255,255,.2) 45%,rgba(255,255,255,.08) 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);opacity:.75}
+@media (prefers-reduced-motion: reduce){ .tb,.tb-group{transition:none!important} .pop.lg-in:not([hidden]){animation:none!important} .lg-press:not(:disabled){transform:none!important} }
 </style>
 
 <header class="bar">
@@ -2341,7 +2373,7 @@ let popOwner = null;
 let popAt = 0;
 function closePop(){
   if (!pop.hidden && pop.innerHTML && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const g = pop.cloneNode(true); g.removeAttribute('id'); g.classList.add('pop-ghost'); g.setAttribute('aria-hidden', 'true');
+    const g = pop.cloneNode(true); g.removeAttribute('id'); g.classList.add('pop-ghost', 'lg-out'); g.classList.remove('lg-in'); g.setAttribute('aria-hidden', 'true');
     g.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
     document.body.append(g); setTimeout(() => g.remove(), 200);
   }
@@ -2352,6 +2384,9 @@ function openPop(btn, html, bind){
   pop.onclick = null; pop.innerHTML = html; pop.hidden = false; popOwner = btn; popAt = Date.now(); btn.setAttribute('aria-expanded','true');
   bind && bind(pop);
   placePop();
+  // Le menu jaillit du bouton : point d'origine de l'animation sous le bouton.
+  try { const rb = btn.getBoundingClientRect(), rp = pop.getBoundingClientRect(); pop.style.transformOrigin = `${Math.round(rb.left + rb.width / 2 - rp.left)}px ${Math.round(rb.top + rb.height / 2 - rp.top)}px`; } catch(e) {}
+  pop.classList.remove('lg-in'); void pop.offsetWidth; pop.classList.add('lg-in');
 }
 function placePop(){
   if (!popOwner) return;
@@ -4738,7 +4773,7 @@ function layoutHTML(){
     ${matchMedia('(max-width:600px)').matches ? '' : `<div class="mh">Largeur de la page</div>
     ${seg('width', /^\d/.test(w) ? '' : w, [['etroite','Étroite'],['normal','Normale'],['large','Large'],['plein','Pleine']])}`}
     <div class="mh">Taille du texte à l'écran</div>
-    <div class="dimrow wrow"><span class="z-a" aria-hidden="true">A</span><input type="range" class="dim-range" id="w-range" min="60" max="200" step="5" value="${Math.round(docZoom * 100)}" aria-label="Taille du texte à l'écran, en pourcentage"><span class="z-a big" aria-hidden="true">A</span><span id="w-val">${Math.round(docZoom * 100)} %</span></div>
+    <div class="dimrow wrow"><button class="z-a" data-z="-5" aria-label="Texte plus petit (−5 %)">A</button><input type="range" class="dim-range" id="w-range" min="60" max="200" step="5" value="${Math.round(docZoom * 100)}" aria-label="Taille du texte à l'écran, en pourcentage"><button class="z-a big" data-z="5" aria-label="Texte plus grand (+5 %)">A</button><span id="w-val">${Math.round(docZoom * 100)} %</span></div>
     <div class="mh">Interligne</div>
     ${seg('lh', prefs.lh, [['serre','Serré'],['normal','Normal'],['large','Aéré']])}
     <div class="mh">Espace entre les paragraphes</div>
@@ -4767,6 +4802,8 @@ function bindLayout(p){
       setZoom(+wr.value / 100); store.set('plume-zoom', String(docZoom));
       p.querySelector('#w-val').textContent = wr.value + ' %';
     };
+    // Petit A : −5 %, grand A : +5 % (plus précis que la barre sur un petit écran).
+    p.querySelectorAll('.z-a[data-z]').forEach(b => b.onclick = () => { wr.value = Math.min(200, Math.max(60, Math.round(docZoom * 100) + +b.dataset.z)); wr.oninput(); });
     p.querySelectorAll('[data-s]').forEach(sw => sw.onchange = () => {
       if (sw.dataset.s === 'autofs') { autoFs = sw.checked; store.set('plume-autofs', autoFs ? '1' : '0'); }
       else setPref(sw.dataset.s, sw.checked);
@@ -7393,6 +7430,43 @@ editor.addEventListener('keydown', e => {
   if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
   e.preventDefault();
 });
+
+/* ---------- Liquid Glass : appui lumineux, pincement pour la taille du texte ---------- */
+{
+  let pressed = null, pressAt = 0;
+  const release = () => {
+    const el = pressed; if (!el) return; pressed = null;
+    setTimeout(() => { el.classList.remove('lg-press'); el.closest('.tb-group')?.classList.remove('lg-live'); }, Math.max(0, 110 - (performance.now() - pressAt)));
+  };
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest && e.target.closest('.tb, .pop .mi, .btn, .lib-act'); if (!el || el.disabled) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--px', (e.clientX - r.left) + 'px'); el.style.setProperty('--py', (e.clientY - r.top) + 'px');
+    release(); pressed = el; pressAt = performance.now();
+    el.classList.add('lg-press'); el.closest('.tb-group')?.classList.add('lg-live');
+  }, { passive: true, capture: true });
+  ['pointerup', 'pointercancel', 'dragstart'].forEach(t => document.addEventListener(t, release, { passive: true, capture: true }));
+  document.addEventListener('pointerleave', release, { passive: true });
+
+  // Pincer à deux doigts (ou pincer sur le trackpad) : la taille du texte change, pas la page.
+  const zoomTo = z => { setZoom(z); clearTimeout(zoomTo.t); zoomTo.t = setTimeout(() => store.set('plume-zoom', String(docZoom)), 250); const v = $('#w-range'); if (v) { v.value = Math.round(docZoom * 100); const t = $('#w-val'); if (t) t.textContent = v.value + ' %'; } clearTimeout(zoomTo.tt); zoomTo.tt = setTimeout(() => toast(`Taille du texte : ${Math.round(docZoom * 100)} %`), 120); };
+  let g0 = 1;
+  document.addEventListener('gesturestart', e => { e.preventDefault(); g0 = docZoom; }, { passive: false });
+  document.addEventListener('gesturechange', e => { e.preventDefault(); zoomTo(Math.round(g0 * e.scale * 20) / 20); }, { passive: false });
+  document.addEventListener('gestureend', e => e.preventDefault(), { passive: false });
+  // Repli (navigateurs sans « gesture ») : deux doigts sur l'écran.
+  let pinch = null;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  document.addEventListener('touchstart', e => { if (e.touches.length === 2) pinch = { d: dist(e.touches), z: docZoom }; }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length !== 2 || !pinch) return;
+    e.preventDefault(); if (typeof GestureEvent !== 'undefined') return; // Safari : déjà géré ci-dessus
+    zoomTo(Math.round(pinch.z * dist(e.touches) / pinch.d * 20) / 20);
+  }, { passive: false });
+  document.addEventListener('touchend', e => { if (e.touches.length < 2) pinch = null; }, { passive: true });
+  // Ctrl + molette (pincement du trackpad sur Mac et iPad) : idem.
+  addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); zoomTo(Math.round(docZoom * Math.exp(-e.deltaY * .01) * 20) / 20); }, { passive: false });
+}
 
 /* ---------- Démarrage ---------- */
 const SAMPLE = String.raw`
