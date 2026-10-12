@@ -1876,6 +1876,21 @@ html{-webkit-tap-highlight-color:transparent}
 .chips.lg-seg .lg-ch{display:inline-block;transform-origin:50% 65%;white-space:pre;will-change:transform}
 .chips.lg-seg{touch-action:none!important} /* tant que le doigt est sur les choix, il tient la bulle */
 .page.lg-rubber{transition:transform .62s cubic-bezier(.2,1.32,.36,1)}
+.page.lg-rubber.lg-top{transition:transform .9s cubic-bezier(.22,.8,.26,1)}
+
+/* ---------- Formes douces partout : pilules et grands arrondis, comme sur iPadOS ---------- */
+.chips.lg-seg{border-radius:999px!important;padding:3px!important;gap:0!important}
+.chips.lg-seg .mi{border-radius:999px!important;justify-content:center}
+.lib-view .mi{min-height:36px;padding:0 16px!important}
+#lib-q,.lib-ask input,.findbar input:not(.switch),.st-goal input,.lf-in,.rv-name input{border-radius:999px!important}
+.lib-act{border-radius:24px!important}
+.lib-open,.lib-page{border-radius:18px!important}
+.lib-fcard,.lib-list{border-radius:22px!important}
+.lib-tr,.rv-item,.ol-row,.ol-i,.ver-i,.wl-i,.fb-hit{border-radius:14px!important}
+.toast,.tablebar{border-radius:999px!important}
+.tablebar button,.selbar button,.selbar a{border-radius:999px!important}
+.wl-pop,.ver-prev,.preview,.nt-card,.sd-card{border-radius:22px!important}
+#editor table,#editor pre,#editor img{border-radius:16px}
 </style>
 
 <header class="bar">
@@ -7621,7 +7636,8 @@ editor.addEventListener('keydown', e => {
   const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
   let t0 = null, pull = 0, wheelT = 0, wheelAcc = 0;
   const show = px => { pull = px; page.classList.remove('lg-rubber'); page.style.transform = px ? `translateY(${px.toFixed(1)}px)` : ''; };
-  const back = () => { if (!pull) return; page.classList.add('lg-rubber'); page.style.transform = ''; pull = 0; setTimeout(() => { if (!pull) page.classList.remove('lg-rubber'); }, 600); };
+  // En haut, retour plus lent et sans rebond : calme, comme une page qu'on repose.
+  const back = () => { if (!pull) return; page.classList.toggle('lg-top', pull > 0); page.classList.add('lg-rubber'); page.style.transform = ''; pull = 0; setTimeout(() => { if (!pull) page.classList.remove('lg-rubber', 'lg-top'); }, 950); };
   const ok = t => t && t.closest && t.closest('.page') && !t.closest('.pop,.selbar,.tablebar');
   document.addEventListener('touchstart', e => { t0 = e.touches.length === 1 && ok(e.target) && !RM.matches ? { y: e.touches[0].clientY, edgeY: null, dir: 0 } : null; }, { passive: true });
   document.addEventListener('touchmove', e => {
@@ -7630,7 +7646,7 @@ editor.addEventListener('keydown', e => {
     if (Math.abs(y - t0.y) > 12) t0.swiped = true;
     if (t0.edgeY === null) { if ((atBot && y < t0.y) || (atTop && y > t0.y)) { t0.edgeY = y; t0.dir = atBot ? -1 : 1; } else return; }
     const d = (y - t0.edgeY) * t0.dir;           // distance tirée au-delà du bout
-    show(d > 0 ? t0.dir * rub(d) : 0);
+    show(d > 0 ? t0.dir * rub(d) * (t0.dir > 0 ? .8 : 1) : 0);   // en haut, un peu plus retenu
   }, { passive: true });
   let tEnd = -1e9;
   const end = () => { if (t0 && t0.swiped) tEnd = performance.now(); t0 = null; back(); };
@@ -7645,10 +7661,10 @@ editor.addEventListener('keydown', e => {
     if (t0 || pull || RM.matches || Math.abs(v) < .6 || now - tEnd > 2500) return;
     const atBot = v > 0 && scrollY >= maxY() - 1, atTop = v < 0 && scrollY <= 0;
     if (!atBot && !atTop) return;
-    const px = Math.min(90, Math.abs(v) * 38) * (atBot ? -1 : 1);
-    page.classList.add('lg-rubber'); page.style.transition = 'transform .16s cubic-bezier(.2,.7,.3,1)';
+    const px = atBot ? -Math.min(90, Math.abs(v) * 38) : Math.min(40, Math.abs(v) * 16);
+    page.classList.add('lg-rubber'); page.style.transition = atBot ? 'transform .16s cubic-bezier(.2,.7,.3,1)' : 'transform .3s cubic-bezier(.25,.8,.3,1)';
     page.style.transform = `translateY(${px.toFixed(1)}px)`; pull = px; v = 0;
-    setTimeout(() => { page.style.transition = ''; back(); }, 160);
+    setTimeout(() => { page.style.transition = ''; back(); }, atBot ? 160 : 300);
   }, { passive: true });
   addEventListener('wheel', e => {
     if (e.ctrlKey || RM.matches || !ok(e.target)) return;
