@@ -7070,13 +7070,14 @@ function applyChecks(refresh){
     const swell = on => { const S = sp(th); S.b.t = on ? 1 : 0; th.classList.toggle('lg-hold', on); run(th); };
     ch.addEventListener('pointerdown', e => {
       if (e.button) return;
-      drag = { id: e.pointerId, x: e.clientX, moving: false };
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moving: false };
       swell(true); // la goutte gonfle sous le doigt, même sur l'option déjà choisie
     });
     ch.addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
       if (!drag.moving) {
-        if (Math.abs(e.clientX - drag.x) < 6) return;
+        const dx = Math.abs(e.clientX - drag.x), dy = Math.abs(e.clientY - drag.y);
+        if (dx < 6 || dx < dy) return; // un geste surtout vertical reste un défilement du menu
         drag.moving = true; ch.classList.add('lg-drag'); ch.setPointerCapture(e.pointerId);
         th.style.opacity = '1';
       }
@@ -7098,6 +7099,9 @@ function applyChecks(refresh){
       requestAnimationFrame(() => place(ch));
     };
     ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
+    // Une fois la bulle saisie, le doigt peut monter ou descendre : le menu ne défile pas et
+    // Safari ne reprend pas le geste (sinon la bulle était lâchée en cours de route).
+    ch.addEventListener('touchmove', e => { if (drag && drag.moving) e.preventDefault(); }, { passive: false });
     ch.addEventListener('lostpointercapture', e => { if (drag && e.target === ch) end(e); }); // (pas la perte venant de l'option touchée)
   };
   const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
