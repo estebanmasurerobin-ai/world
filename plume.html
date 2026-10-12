@@ -177,6 +177,7 @@ body.tw .page{padding-block:calc(var(--bar-h,0px) + 56px) 58vh} /* le haut reste
   outline:none;caret-color:var(--accent);overflow-wrap:break-word;
 }
 #editor.is-empty::before{content:attr(data-placeholder);position:absolute;top:0;left:0;color:var(--ui);pointer-events:none}
+#editor.indent.is-empty::before{text-indent:1.6em}
 #editor ::selection{background:var(--sel)}
 #editor > *:first-child{margin-top:0}
 #editor p,#editor div{margin:0 0 .85em}
@@ -1769,6 +1770,7 @@ html:not(.grips) .grip{display:none!important}
   .tools > *{flex:none}
 }
 .toast{bottom:calc(env(safe-area-inset-bottom,0px) + 20px + var(--kb,0px))!important}
+.toast{width:max-content;max-width:min(560px,calc(100vw - 32px));box-sizing:border-box}
 .style-pill,.ai-dock{bottom:calc(env(safe-area-inset-bottom,0px) + 16px + var(--kb,0px))}
 /* Recherche ouverte : la page laisse la place de la barre de recherche */
 body.finding .page{padding-top:calc(var(--bar-h,0px) + var(--fb-h,0px) + 30px)}
@@ -2165,10 +2167,25 @@ function exec(cmd, arg){
 // Retrait hors des listes : un décalage (data-ind 1 à 4), et non une citation déguisée.
 // Dans une liste, le retrait habituel (sous-liste), sauf pour le premier élément qui ne peut pas
 // devenir le sous-élément de rien. Renvoie true si c'est réglé ici.
+// Une sélection qui s'arrête au tout début d'un bloc (triple-clic de Safari, Maj+↓) ne touche pas ce bloc.
+function endsAtStartOf(r, el){
+  if (r.collapsed || el === r.startContainer || el.contains(r.startContainer)) return false;
+  if (!(el === r.endContainer || el.contains(r.endContainer))) return false;
+  const t = document.createRange(); t.setStart(el, 0); t.setEnd(r.endContainer, r.endOffset);
+  return !t.toString().replace(/\u200b/g, '') && !t.cloneContents().querySelector('img,.math,hr,table');
+}
+const hits = (r, els) => [...els].filter(el => r.intersectsNode(el) && !endsAtStartOf(r, el));
+// Curseur dans un sous-élément de liste : il remonte d'abord au premier niveau, pour que ce soit
+// lui (et non l'élément parent) qui change de style.
+function liftCaretLi(r){
+  if (!r.collapsed) return;
+  let li = anchorEl()?.closest('li'), guard = 6;
+  while (li && editor.contains(li) && li.parentElement.parentElement !== editor && guard--) { indentBlocks(false); li = anchorEl()?.closest('li'); }
+}
 function indentBlocks(more){
   const s = getSelection(); if (!s.rangeCount) return false;
   const r = s.getRangeAt(0);
-  let tops = [...editor.children].filter(el => r.intersectsNode(el));
+  let tops = hits(r, editor.children);
   if (!tops.length) { const t = topBlock(); if (t) tops = [t]; }
   const inList = tops.length && tops.every(el => /^(UL|OL)$/.test(el.tagName));
   if (inList) {
@@ -2527,6 +2544,8 @@ document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click',
    Chaque état est une copie du document avec la position du curseur ; la frappe est regroupée
    par rafales (une pause d'une demi-seconde, ou un clic, termine la rafale). */
 const hist = { list: [], i: -1, t: 0, busy: false, before: null };
+const CARET_ATOM = '.math,[contenteditable="false"]';
+const caretEmptyBlock = el => el.matches(BLOCKS) && !el.textContent && !el.querySelector(BLOCKS);
 function caretOffsets(){
   const s = getSelection(); if (!s.rangeCount || !editor.contains(s.anchorNode)) return null;
   const r = s.getRangeAt(0), pos = (node, off) => {
@@ -2534,31 +2553,57 @@ function caretOffsets(){
     try { pre.setEnd(node, off); } catch(e) { return 0; }
     return pre.toString().length;
   };
-  // Au tout début d'un bloc, la même position texte est aussi la fin du bloc précédent :
-  // on note le côté (3e et 4e valeurs) pour ne pas revenir à la fin du bloc d'avant.
   const atStart = (node, off) => { const el = node.nodeType === 1 ? node : node.parentElement, b = el && el.closest(BLOCKS); if (!b || !editor.contains(b)) return false; const t = document.createRange(); t.setStart(b, 0); try { t.setEnd(node, off); } catch(e) { return false; } return !t.toString(); };
-  return [pos(r.startContainer, r.startOffset), pos(r.endContainer, r.endOffset), atStart(r.startContainer, r.startOffset), atStart(r.endContainer, r.endOffset)];
+  // Plusieurs lignes vides au même endroit du texte : on note combien sont AVANT le curseur.
+  const emptiesBefore = (node, off, p) => {
+    const w = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT); let q = 0, k = 0, n;
+    const at = document.createRange(); at.setStart(node, off);
+    while ((n = w.nextNode()) && q <= p) {
+      if (n.nodeType === 3) { q += n.data.length; continue; }
+      if (q === p && caretEmptyBlock(n) && at.comparePoint(n, 0) < 0) k++;
+    }
+    return k;
+  };
+  const p0 = pos(r.startContainer, r.startOffset), p1 = pos(r.endContainer, r.endOffset);
+  const s0 = atStart(r.startContainer, r.startOffset), s1 = atStart(r.endContainer, r.endOffset);
+  return [p0, p1, s0, s1, s0 ? emptiesBefore(r.startContainer, r.startOffset, p0) : 0, s1 ? emptiesBefore(r.endContainer, r.endOffset, p1) : 0];
 }
-function setCaretOffsets(o){
+function setCaretOffsets(o, noFocus){
   if (!o) return;
   const w = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT); let pos = 0, n, a = null, b = null;
-  const emptyBlock = el => el.matches(BLOCKS) && !el.textContent && !el.querySelector(BLOCKS);
-  while ((n = w.nextNode())) {
+  let ka = o[4] || 0, kb = o[5] || 0;
+  n = w.nextNode();
+  while (n) {
+    if (n.nodeType === 1 && n.matches(CARET_ATOM)) {
+      // Formule : un seul bloc ; le curseur se pose avant ou après, jamais dans son texte caché.
+      const L = n.textContent.length, par = n.parentNode, i = [...par.childNodes].indexOf(n);
+      if (!a && ((o[0] > pos && o[0] <= pos + L) || (o[0] === pos && o[2] && !ka))) a = o[0] === pos ? [par, i] : [par, i + 1];
+      if (!b && ((o[1] > pos && o[1] <= pos + L) || (o[1] === pos && o[3] && !kb))) b = o[1] === pos ? [par, i] : [par, i + 1];
+      pos += L;
+      if (a && b) break;
+      let nx = w.nextSibling(); while (!nx) { if (!w.parentNode()) break; nx = w.nextSibling(); }
+      n = nx; continue;
+    }
     if (n.nodeType === 1) {
-      // Bloc vide (un simple <br>) exactement à la position cherchée, du côté « début de bloc ».
-      if (emptyBlock(n)) { if (!a && o[2] && o[0] === pos) a = [n, 0]; if (o[3] && o[1] === pos) { b = [n, 0]; if (a) break; } }
-      continue;
+      if (caretEmptyBlock(n)) {
+        if (!a && o[2] && o[0] === pos) { if (ka) ka--; else a = [n, 0]; }
+        if (!b && o[3] && o[1] === pos) { if (kb) kb--; else b = [n, 0]; }
+        if (a && b) break;
+      }
+      n = w.nextNode(); continue;
     }
     const L = n.data.length;
-    if (!a && (o[2] ? o[0] < pos + L || (o[0] === pos + L && !L) : o[0] <= pos + L)) a = [n, o[0] - pos];
-    if (!b && (o[3] ? o[1] < pos + L : o[1] <= pos + L)) { b = [n, o[1] - pos]; break; }
+    if (!a && (o[2] ? (o[0] < pos + L && !(o[0] === pos && ka)) || (o[0] === pos + L && !L) : o[0] <= pos + L)) a = [n, o[0] - pos];
+    if (!b && (o[3] ? (o[1] < pos + L && !(o[1] === pos && kb)) : o[1] <= pos + L)) { b = [n, o[1] - pos]; break; }
     pos += L;
+    n = w.nextNode();
   }
   if (a && !b && o[1] === o[0]) b = a;
-  if (!a || !b) { /* repli : ancienne règle */ const w2 = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT); let p2 = 0, m; a = a || null; b = b || null;
-    while ((m = w2.nextNode())) { const L = m.data.length; if (!a && o[0] <= p2 + L) a = [m, o[0] - p2]; if (!b && o[1] <= p2 + L) { b = [m, o[1] - p2]; break; } p2 += L; } }
+  if (!a || !b) { const w2 = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT); let p2 = 0, m;
+    while ((m = w2.nextNode())) { if (m.parentElement.closest(CARET_ATOM)) { p2 += m.data.length; continue; } const L = m.data.length; if (!a && o[0] <= p2 + L) a = [m, o[0] - p2]; if (!b && o[1] <= p2 + L) { b = [m, o[1] - p2]; break; } p2 += L; } }
   const r = document.createRange();
   if (a && b) { r.setStart(a[0], a[1]); r.setEnd(b[0], b[1]); } else { r.selectNodeContents(editor); r.collapse(false); }
+  if (noFocus) { saved = r; return; }
   editor.focus({ preventScroll: true }); setRange(r);
 }
 // Les propositions de l'IA ne font pas partie de l'historique : on garde le texte d'origine.
@@ -2800,12 +2845,16 @@ const BLOCK_TAGS = /^(P|H1|H2|H3|UL|OL|BLOCKQUOTE|PRE|TABLE|HR|DIV|FIGURE)$/;
 // navigateur recopie le style de l'ancien bloc en style figé (taille de titre, gras, italique),
 // qui devenait du vrai gras à la réouverture. Ces styles figés sont retirés.
 function stripMergeStyles(){
+  // Défaire un <span> déplace son texte : le navigateur perd alors le curseur (Safari le mettait
+  // au début du paragraphe, et la frappe suivante partait avant la lettre tapée). On le remet.
+  const s = getSelection(), keep = s.rangeCount && editor.contains(s.anchorNode) ? [s.anchorNode, s.anchorOffset, s.focusNode, s.focusOffset] : null;
   editor.querySelectorAll('span[style],b[style],i[style],a[style],strong[style],em[style],u[style],s[style],sub[style],sup[style]').forEach(el => {
     for (const pr of ['font-weight','font-style','font-family','text-wrap-mode','white-space','line-height','background-color','letter-spacing','text-transform','color','text-decoration','vertical-align']) el.style.removeProperty(pr);
     if (!el.hasAttribute('data-s')) el.style.removeProperty('font-size');
     if (!el.style.length) el.removeAttribute('style');
     if (el.tagName === 'SPAN' && !el.attributes.length) el.replaceWith(...el.childNodes);
   });
+  if (keep && editor.contains(keep[0]) && editor.contains(keep[2]) && (s.anchorNode !== keep[0] || s.anchorOffset !== keep[1] || s.focusNode !== keep[2] || s.focusOffset !== keep[3])) { try { s.setBaseAndExtent(keep[0], keep[1], keep[2], keep[3]); } catch (e) {} }
 }
 // Un document qui finit par un tableau, un séparateur ou un bloc de code garde une ligne pour écrire après.
 function ensureTail(){
@@ -2838,7 +2887,7 @@ editor.addEventListener('keydown', e => {
   if (mod && k === 'z') { e.preventDefault(); undoRedo(e.shiftKey ? 'redo' : 'undo'); return; }
   if (mod || e.key === 'Tab') histFlush();
   if (mod && e.code === 'Equal') { e.preventDefault(); exec(e.shiftKey ? 'superscript' : 'subscript'); }
-  else if (mod && k === 'k' && !e.shiftKey) { e.preventDefault(); openClaude('write'); }
+  else if (mod && k === 'k' && !e.shiftKey) { e.preventDefault(); window.plumeNoAI ? openLinkEditor() : openClaude('write'); }
   else if (mod && e.altKey && e.code === 'KeyM') { e.preventDefault(); addNote(); }
   else if (mod && k === 'm') { e.preventDefault(); openMath(null); }
   else if (mod && k === 'u') { e.preventDefault(); toggleUnderline(); }
@@ -3285,11 +3334,12 @@ let saveT;
 function changed(typing){ clearTimeout(saveT); saveT = setTimeout(save, 700); updateEmpty(); refold(); histMark(typing === true); updateUndoBtns(); } // le compteur garde son dernier résultat jusqu'au prochain comptage
 function save(){
   clearTimeout(saveT); saveT = 0;
-  let ok = store.set('plume-doc:' + activeId, serialize());
-  if (!ok && freeSpace()) ok = store.set('plume-doc:' + activeId, serialize());
+  const html = serialize(), same = html === store.get('plume-doc:' + activeId);
+  let ok = same || store.set('plume-doc:' + activeId, html);
+  if (!ok && freeSpace()) ok = store.set('plume-doc:' + activeId, html);
   if (!ok && Date.now() - (save.warned || 0) > 60000) { save.warned = Date.now(); toast('Mémoire pleine : ce document n’est plus enregistré. Supprime des images ou d’anciens documents.'); }
   const d = docs.find(x => x.id === activeId);
-  if (d) { const t = docTitle(); if (d.title !== t) { d.title = t; renderTabs(); } d.updated = Date.now(); saveDocs(); }
+  if (d) { const t = docTitle(); if (d.title !== t) { d.title = t; renderTabs(); } if (!same) { d.updated = Date.now(); saveDocs(); } }
   statusEl.textContent = ok ? countLabel() : 'Non enregistré · ' + countLabel();
   if (ok) addVersion(false);
 }
@@ -4278,7 +4328,8 @@ function openDoc(id){
   // On revient là où on en était dans ce document (curseur et défilement).
   const pos = docPos[id], libOpen = typeof library !== 'undefined' && !library.hidden;
   renderTabs();
-  if (libOpen) { const r = document.createRange(); r.selectNodeContents(editor.firstElementChild || editor); r.collapse(true); saved = r; } // pas de clavier par-dessus la bibliothèque
+  if (libOpen && pos && pos.caret) setCaretOffsets(pos.caret, true);
+  else if (libOpen) { const r = document.createRange(); r.selectNodeContents(editor.firstElementChild || editor); r.collapse(true); saved = r; } // pas de clavier par-dessus la bibliothèque
   else if (pos && pos.caret) { editor.focus({ preventScroll: true }); setCaretOffsets(pos.caret); }
   else restoreToStart();
   window.scrollTo(0, pos ? pos.y : 0); markCurrent();
@@ -4318,7 +4369,7 @@ function pushTrash(entry){
   toast('Mémoire pleine : le document est gardé. Supprime des images ou d’anciens documents.');
   return false;
 }
-const trashEntry = (d, html) => ({ id: d.id, title: d.title, html, at: Date.now(), goal: d.goal || 0, noCheck: d.noCheck ? 1 : 0, folder: d.folder || '', created: d.created || 0 });
+const trashEntry = (d, html) => ({ id: d.id, title: d.title, html, at: Date.now(), goal: d.goal || 0, noCheck: d.noCheck ? 1 : 0, folder: d.folder || '', created: d.created || 0, track: d.track ? 1 : 0 });
 function closeDoc(id){
   const i = docs.findIndex(d => d.id === id); if (i < 0) return;
   if (id === activeId) save();
@@ -4338,7 +4389,7 @@ function reopenClosed(){
   // Même identifiant qu'avant (les liens [[…]] vers lui marchent encore), même dossier, objectif et date.
   const id = d.id && /^[a-z0-9]{4,40}$/.test(d.id) && !docs.some(x => x.id === d.id) && !store.get('plume-doc:' + d.id) ? d.id : newId();
   const nd = { id, title: d.title || 'Sans titre', goal: d.goal || 0, updated: Date.now(), created: d.created || Date.now() };
-  if (d.noCheck) nd.noCheck = true; if (d.folder && folders.some(f => f.id === d.folder)) nd.folder = d.folder;
+  if (d.noCheck) nd.noCheck = true; if (d.track) nd.track = true; if (d.folder && folders.some(f => f.id === d.folder)) nd.folder = d.folder;
   if (!store.set('plume-doc:' + id, d.html || '<p><br></p>')) { toast('Mémoire pleine : impossible de rouvrir ce document.'); return; }
   store.set('plume-trash', JSON.stringify(trash));
   docs.push(nd); saveDocs();
@@ -4370,6 +4421,12 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) flush
 // Deux fenêtres ouvertes : dossiers et documents restent d'accord.
 window.addEventListener('storage', e => {
   if (e.key === 'plume-folders') { try { const f = JSON.parse(e.newValue || '[]'); if (Array.isArray(f)) folders = f.filter(x => x && x.id && x.name); } catch(_) {} if (typeof renderLibrary === 'function' && !library.hidden) renderLibrary(); }
+  if (activeId && e.key === 'plume-doc:' + activeId && e.newValue != null && !saveT && e.newValue !== serialize()) {
+    const c = editor.contains(getSelection().anchorNode) ? caretOffsets() : null, y = scrollY;
+    editor.innerHTML = sanitize(e.newValue); dropEmptyFmt(editor); ensureTail(); renderAllMath(); refold(); histReset(); renderNotes(); updateEmpty();
+    statusEl.textContent = countLabel(); if (c && document.activeElement === editor) setCaretOffsets(c); window.scrollTo(0, y); markCurrent();
+    return;
+  }
   if (e.key !== 'plume-docs') return;
   const cur = docs.find(d => d.id === activeId); loadDocs();
   if (cur && !docs.find(d => d.id === activeId)) { activeId = null; docs.length ? openDoc(docs[0].id) : newDoc(); toast('Ce document a été supprimé dans une autre fenêtre.'); }
@@ -4435,6 +4492,9 @@ function applyTheme(){
   const b = $('#theme-btn'); if (b) { b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label); }
   queueToolbar();
 }
+// Impression : toujours en clair (sinon, en mode sombre, texte blanc sur papier blanc)
+addEventListener('beforeprint', () => document.documentElement.setAttribute('data-theme', 'light'));
+addEventListener('afterprint', () => applyTheme());
 function setTheme(t){ theme = t; store.set('plume-theme', theme); applyTheme(); syncStatusColor(); }
 /* Largeur de la page et taille du texte : deux réglages séparés.
    - La largeur (Étroite, Normale, Large, Pleine, ou à la souris) ne change que la place prise.
@@ -4481,10 +4541,11 @@ document.querySelectorAll('.grip').forEach(g => {
     if (!prefs.grips && e.pointerType !== 'mouse') return; // poignée au survol : souris seulement
     e.preventDefault(); g.setPointerCapture(e.pointerId); g.classList.add('drag');
     const sheet = $('.sheet');
+    const r0 = sheet.getBoundingClientRect(), grab = Math.abs(e.clientX - (r0.left + r0.width / 2)) - r0.width / 2; // la poignée reste sous le doigt
     const move = ev => {
       const r = sheet.getBoundingClientRect(), cx = r.left + r.width / 2;
       const pg = $('.page'), inner = refWidth();
-      const w = Math.max(360, Math.min(pg.clientWidth - 2 * 56, 2 * Math.abs(ev.clientX - cx)));
+      const w = Math.max(360, Math.min(pg.clientWidth - 2 * 56, 2 * (Math.abs(ev.clientX - cx) - grab)));
       const pc = Math.max(25, Math.min(100, Math.round(w / inner * 100)));
       g._pc = pc; setWidth(pc + '%'); toast(`Largeur de la page : ${pc} %`);
     };
@@ -4556,7 +4617,7 @@ function applyPrefs(){
 // La zone de l'heure et de la batterie (iPhone, iPad, Mac) prend la couleur de la barre :
 // iOS la peint avec la « theme-color » de la page, qu'on met à jour à chaque changement.
 // iPhone / iPad, dans l'app World ou dans Safari (pas dans Plume, qui vit dans claude.ai)
-const IOS_APP = (navigator.maxTouchPoints > 1 && /Macintosh|iPad|iPhone/.test(navigator.userAgent) || /iPhone|iPad/.test(navigator.userAgent)) && window.top === window;
+const IOS_APP = (navigator.maxTouchPoints > 1 && /Macintosh|iPad|iPhone/.test(navigator.userAgent) || /iPhone|iPad/.test(navigator.userAgent)) && window.top === window && !window.plumeHost; // l'app IA Writer n'a pas besoin de se relancer
 function relaunchKeepingPlace(dark){
   try { const prev = JSON.parse(sessionStorage.getItem('plume-relaunch-at') || 'null'); if (prev && Date.now() - prev.at < 8000 && prev.dark === dark) return; sessionStorage.setItem('plume-relaunch-at', JSON.stringify({ at: Date.now(), dark })); } catch(e) {}
   try {
@@ -4723,7 +4784,7 @@ function docKeys(){
     <kbd>Ctrl ⌥ M</kbd><span>commenter la sélection</span>
     <kbd>Ctrl =</kbd><span>indice (x₂)</span>
     <kbd>Ctrl ⇧ =</kbd><span>exposant (x²)</span>
-    ${window.plumeNoAI ? '' : `<kbd>Ctrl K</kbd><span>demander à Claude d'écrire</span>
+    ${window.plumeNoAI ? '<kbd>Ctrl K</kbd><span>insérer un lien</span>' : `<kbd>Ctrl K</kbd><span>demander à Claude d'écrire</span>
     <kbd>Ctrl ⇧ H</kbd><span>masquer / afficher le texte de l'IA</span>`}
     <kbd>$x^2$</kbd><span>formule dans la ligne</span>
     <kbd>$$x^2$$</kbd><span>formule centrée</span>
@@ -4786,6 +4847,7 @@ function exportPDF(){
 }
 
 /* ---------- Export Markdown ---------- */
+const mdEscStart = s => s.split('\n').map(l => l.replace(/^(\s*)([#>+-]|\d+(?=[.)]))/, (m, sp, c) => sp + (/\d/.test(c) ? c + '\\' : '\\' + c))).join('\n');
 function toMarkdown(root){
   const inl = n => {
     if (n.nodeType === 3) return n.data.replace(/​/g, '').replace(/([*_`~\[\]])/g, '\\$1');
@@ -4797,7 +4859,7 @@ function toMarkdown(root){
     if (t === 'I' || t === 'EM') return wrapMd('*', kids());
     if (t === 'S' || t === 'STRIKE' || t === 'DEL') return wrapMd('~~', kids());
     if (t === 'CODE') return '`' + n.textContent + '`';
-    if (t === 'A') return `[${kids()}](${n.getAttribute('href')})`;
+    if (t === 'A') return `[${kids()}](${(n.getAttribute('href') || '').replace(/[()\s]/g, c => ({ '(': '%28', ')': '%29' })[c] || encodeURIComponent(c))})`;
     if (t === 'IMG') return `![](${n.getAttribute('src')})`;
     if (t === 'SUB') return '<sub>' + kids() + '</sub>';
     if (t === 'SUP') return '<sup>' + kids() + '</sup>';
@@ -4825,7 +4887,7 @@ function toMarkdown(root){
       const rows = [...b.querySelectorAll('tr')].map(r => '| ' + [...r.children].map(c => inl(c).trim().replace(/\|/g, '\\|').replace(/\n/g, ' ')).join(' | ') + ' |');
       if (rows.length) { const n = b.querySelector('tr').children.length; rows.splice(1, 0, '|' + ' --- |'.repeat(n)); }
       out.push(rows.join('\n'));
-    } else { const s = inl(b).trim(); if (s) out.push(s); }
+    } else { const s = inl(b).trim(); if (s) out.push(mdEscStart(s)); } // « - », « 1. », « # » en début de ligne restent du texte
   }
   return out.join('\n\n') + '\n';
 }
@@ -5559,7 +5621,10 @@ function insertCodeBlock(){
   // Dans un bloc de code : il redevient du texte.
   if (el && el.tagName === 'PRE') { setBlock('text'); return; }
   const s = getSelection(), r = s.rangeCount ? s.getRangeAt(0) : null;
-  const tops = r ? [...editor.children].filter(b => r.intersectsNode(b) && /^(P|H1|H2|H3|BLOCKQUOTE)$/.test(b.tagName)) : [];
+  const tops = r ? hits(r, editor.children) : [];
+  // Les blocs touchés à la suite : une liste donne une ligne par élément ; on s'arrête au premier
+  // tableau, séparateur… pour ne jamais faire passer du texte par-dessus.
+  { const k = tops.findIndex(b => !/^(P|H1|H2|H3|BLOCKQUOTE|UL|OL)$/.test(b.tagName)); if (k >= 0) tops.length = k; }
   if (tops.length > 1) {
     // Plusieurs paragraphes : un seul bloc de code, une ligne par paragraphe.
     const pre = document.createElement('pre'); pre.textContent = tops.map(b => b.innerText.replace(/\n$/, '')).join('\n');
@@ -5614,11 +5679,14 @@ function placeTablebar(){
   tablebar.hidden = false;
   tablebar.style.left = Math.max(8, Math.min(r.left, innerWidth - tablebar.offsetWidth - 8)) + 'px';
   tablebar.style.top = Math.max((barEl.getBoundingClientRect().bottom || 0) + 6, r.top - tablebar.offsetHeight - 8) + 'px';
+  const b = tablebar.getBoundingClientRect();
+  if ([...document.querySelectorAll('.notes-side,.outline-side,.side-panel')].some(pn => { const q = pn.getBoundingClientRect(); return q.width && getComputedStyle(pn).visibility !== 'hidden' && b.left < q.right && q.left < b.right && b.top < q.bottom && q.top < b.bottom; })) tablebar.hidden = true;
 }
 tablebar.addEventListener('mousedown', e => e.preventDefault());
 tablebar.addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) tableOp(b.dataset.t); });
 document.addEventListener('selectionchange', () => placeTablebar());
 window.addEventListener('scroll', () => { if (!tablebar.hidden) placeTablebar(); }, { passive: true });
+{ const re = () => { requestAnimationFrame(placeTablebar); }; addEventListener('resize', re); new MutationObserver(re).observe(document.body,{attributes:true,attributeFilter:['class','hidden'],subtree:false}); visualViewport?.addEventListener('resize', re); new MutationObserver(re).observe(document.body,{attributes:true,attributeFilter:['class','hidden'],subtree:false}); new ResizeObserver(re).observe(editor); }
 
 // Images : réduites à 1600 px de large au plus, et enregistrées dans le document.
 function pickImage(){ if (getSelection().rangeCount && editor.contains(getSelection().anchorNode)) saved = getSelection().getRangeAt(0).cloneRange(); pickFile('image/*', insertImageFile); }
@@ -5988,8 +6056,9 @@ async function docxToHTML(buf){
 function setBlock(tag){
   restore();
   const s = getSelection(); if (!s.rangeCount) return;
+  liftCaretLi(s.getRangeAt(0));
   const r = s.getRangeAt(0), keep = caretOffsets();
-  const tops = [...editor.children].filter(el => r.intersectsNode(el));
+  const tops = hits(r, editor.children);
   if (!tops.length) { const t = topBlock(); if (t) tops.push(t); }
   let done = false, lastNew = null; const heads = [];
   // Curseur dans un seul paragraphe : on le remettra au même endroit dans le nouveau bloc
@@ -5999,7 +6068,7 @@ function setBlock(tag){
   for (const el of tops) {
     if (/^(UL|OL)$/.test(el.tagName)) {
       // Dans une liste : chaque élément sélectionné devient un paragraphe du style demandé, hors de la liste.
-      const lis = [...el.querySelectorAll(':scope > li')].filter(li => r.intersectsNode(li));
+      const lis = hits(r, el.querySelectorAll(':scope > li'));
       if (lis.length) {
         const after = document.createElement(el.tagName); if (el.hasAttribute('data-check')) after.setAttribute('data-check', '');
         let n = lis[lis.length - 1].nextElementSibling; while (n) { const nx = n.nextElementSibling; after.append(n); n = nx; }
@@ -6117,10 +6186,14 @@ function renderLibrary(){
     ? `<button class="lib-crumb" data-go="">Documents</button>${path.map((f, i) => `<span class="lib-sep">›</span>${i < path.length - 1 ? `<button class="lib-crumb" data-go="${esc(f.id)}">${esc(f.name)}</button>` : `<span class="lib-here">${esc(f.name)}</span>`}`).join('')}`
     : 'Documents';
   $('#lib-back').hidden = !libFolder;
-  const withHtml = d => { const html = store.get('plume-doc:' + d.id) || ''; return { d, html, w: wordsOf(html) }; };
+  // Texte, mots et aperçu calculés une fois par version du document (la recherche ne reparse plus 200 documents à chaque lettre).
+  const libCache = renderLibrary.cache || (renderLibrary.cache = new Map());
+  const withHtml = d => { const html = store.get('plume-doc:' + d.id) || ''; let c = libCache.get(d.id);
+    if (!c || c.html !== html) { const text = textOf(html); c = { html, text, low: text.toLowerCase(), w: (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length, prev: null }; libCache.set(d.id, c); }
+    return { d, html, w: c.w, c }; };
   // Recherche : dans tous les dossiers ; sinon, le contenu du dossier ouvert.
   const list = sortDocs((q ? docs : docsIn(libFolder)).map(withHtml)
-    .filter(x => !q || x.d.title.toLowerCase().includes(q) || textOf(x.html).toLowerCase().includes(q)));
+    .filter(x => !q || x.d.title.toLowerCase().includes(q) || x.c.low.includes(q)));
   const subs = q ? folders.filter(f => f.name.toLowerCase().includes(q)) : subFolders(libFolder);
   subs.sort((a, b) => collator.compare(a.name, b.name));
   const trash = trashList();
@@ -6129,7 +6202,7 @@ function renderLibrary(){
   const dateOf = d => libDate((prefs.libSort === 'created' ? d.created : d.updated) || d.updated);
   const mots = n => `${fmtN(n)} mot${n > 1 ? 's' : ''}`;
   const card = x => `<div class="lib-card${x.d.id === activeId ? ' on' : ''}" data-id="${esc(x.d.id)}">
-      <button class="lib-open" data-open="${esc(x.d.id)}" aria-label="Ouvrir ${esc(x.d.title)}"><div class="lib-page">${docPreview(x.html)}</div></button>
+      <button class="lib-open" data-open="${esc(x.d.id)}" aria-label="Ouvrir ${esc(x.d.title)}"><div class="lib-page">${x.c.prev ??= docPreview(x.html)}</div></button>
       <div class="lib-meta"><div class="lib-t"><b>${esc(x.d.title)}</b><span>${esc(dateOf(x.d))} · ${mots(x.w)}${where(x.d)}</span></div>
       <button class="lib-more" data-more="${esc(x.d.id)}" aria-label="Actions">${DOTS}</button></div>
     </div>`;
@@ -6186,7 +6259,7 @@ function folderPicker(anchor, title, current, exclude, done){
       closePop(); done(b.dataset.to || null);
     });
 }
-libQ.addEventListener('input', renderLibrary);
+let libQT = 0; libQ.addEventListener('input', () => { clearTimeout(libQT); libQT = setTimeout(renderLibrary, 120); });
 $('#docs-btn').addEventListener('click', () => library.hidden ? openLibrary() : closeLibrary());
 $('#lib-close').addEventListener('click', closeLibrary);
 document.addEventListener('keydown', e => {
@@ -6250,7 +6323,7 @@ libBody.addEventListener('click', e => {
     if (t) {
       // Le document retrouve son identifiant (liens [[…]] et versions) et son dossier s'il existe encore.
       const id = t.id && /^[a-z0-9]{4,40}$/.test(t.id) && !docs.some(d => d.id === t.id) && !store.get('plume-doc:' + t.id) ? t.id : newId();
-      const d = { id, title: t.title || 'Sans titre', goal: t.goal || 0, updated: Date.now(), created: t.created || Date.now() }; if (t.noCheck) d.noCheck = true;
+      const d = { id, title: t.title || 'Sans titre', goal: t.goal || 0, updated: Date.now(), created: t.created || Date.now() }; if (t.noCheck) d.noCheck = true; if (t.track) d.track = true;
       if (t.folder && folderOf(t.folder)) d.folder = t.folder;
       if (!store.set('plume-doc:' + id, t.html || '<p><br></p>')) { trash.splice(+r.dataset.restore, 0, t); store.set('plume-trash', JSON.stringify(trash)); toast('Mémoire pleine : impossible de récupérer ce document.'); renderLibrary(); return; }
       docs.push(d); saveDocs(); toast('Document récupéré');
@@ -6273,7 +6346,7 @@ libBody.addEventListener('click', e => {
         if (m === 'move') { folderPicker(more, 'Déplacer vers', d.folder || null, null, to => { if (to) d.folder = to; else delete d.folder; saveDocs(); renderLibrary(); toast(to ? `Déplacé dans « ${folderOf(to)?.name} »` : 'Déplacé dans Documents'); }); return; }
         closePop();
         if (m === 'open') { closeLibrary(); openDoc(id); }
-        if (m === 'dup') { if (id === activeId) save(); const nid = newId(), src = store.get('plume-doc:' + id) || ''; let ok = store.set('plume-doc:' + nid, src); if (!ok && freeSpace()) ok = store.set('plume-doc:' + nid, src); if (!ok) { toast('Mémoire pleine : impossible de dupliquer ce document.'); return; } const nd = { id: nid, title: d.title, goal: d.goal || 0, updated: Date.now(), created: Date.now() }; if (d.noCheck) nd.noCheck = true; if (d.folder) nd.folder = d.folder; docs.push(nd); saveDocs(); renderLibrary(); toast('Document dupliqué'); }
+        if (m === 'dup') { if (id === activeId) save(); const nid = newId(), src = store.get('plume-doc:' + id) || ''; let ok = store.set('plume-doc:' + nid, src); if (!ok && freeSpace()) ok = store.set('plume-doc:' + nid, src); if (!ok) { toast('Mémoire pleine : impossible de dupliquer ce document.'); return; } const nd = { id: nid, title: d.title, goal: d.goal || 0, updated: Date.now(), created: Date.now() }; if (d.noCheck) nd.noCheck = true; if (d.track) nd.track = true; if (d.folder) nd.folder = d.folder; docs.push(nd); saveDocs(); renderLibrary(); toast('Document dupliqué'); }
         if (m === 'file') { if (id === activeId) save(); const box = document.createElement('div'); box.innerHTML = store.get('plume-doc:' + id) || ''; box.querySelectorAll('.math:empty').forEach(x => x.textContent = x.dataset.display === '1' ? `$$${x.dataset.tex}$$` : `$${x.dataset.tex}$`); deliver([fileFor(box.innerHTML, d.title)]); }
         if (m === 'del') { if (trashDoc(id) !== false) toast('Document supprimé. Il reste récupérable dans « Supprimés récemment ».'); renderLibrary(); }
       });
@@ -6588,15 +6661,16 @@ editor.addEventListener('input', e => {
 function toggleList(kind){
   restore();
   const s = getSelection(); if (!s.rangeCount) return;
+  liftCaretLi(s.getRangeAt(0));
   const r = s.getRangeAt(0), keep = caretOffsets(), TAG = kind === 'ol' ? 'OL' : 'UL';
-  let tops = [...editor.children].filter(el => r.intersectsNode(el));
+  let tops = hits(r, editor.children);
   if (!tops.length) { const t = topBlock(); if (t) tops = [t]; }
   if (!tops.length) return;
   const lists = tops.filter(el => /^(UL|OL)$/.test(el.tagName));
   if (lists.length === tops.length && lists.every(l => l.tagName === TAG && !l.hasAttribute('data-check'))) {
     // Déjà ce type de liste : les éléments touchés redeviennent des paragraphes.
     for (const l of lists) {
-      const lis = [...l.children].filter(li => li.tagName === 'LI' && r.intersectsNode(li));
+      const lis = hits(r, l.children).filter(li => li.tagName === 'LI');
       if (!lis.length) continue;
       // Les éléments qui suivent le dernier élément touché restent dans une liste à part, après les paragraphes.
       const after = document.createElement(l.tagName);
