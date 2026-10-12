@@ -1823,10 +1823,35 @@ html{touch-action:manipulation}
 .pop-ghost.lg-out{animation:lg-pop-out .24s cubic-bezier(.4,0,.6,1) forwards!important}
 @keyframes lg-pop-out{to{opacity:0;transform:scale(.5)}}
 /* Bord de verre : un liseré de lumière qui glisse vers le doigt */
-.pop::before,.tb-group::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;
+.tb-group::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;
   background:radial-gradient(160px circle at var(--mx,50%) var(--my,-30%),rgba(255,255,255,.95),rgba(255,255,255,.2) 45%,rgba(255,255,255,.08) 70%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);opacity:.75}
 @media (prefers-reduced-motion: reduce){ .tb,.tb-group{transition:none!important} .pop.lg-in:not([hidden]){animation:none!important} .lg-press:not(:disabled){transform:none!important} }
+/* ================= Choix segmentés façon iOS : pilule et pastille de verre ================= */
+.pop .chips.lg-seg{border-radius:999px!important;padding:3px!important;gap:0!important}
+.pop .chips.lg-seg .mi{border-radius:999px!important;min-height:34px;padding:0 12px!important;justify-content:center;font-size:15px}
+.lg-thumb,.pop .lg-thumb{border-radius:999px!important}
+
+/* ================= Bord du verre : réfraction, reflet et frange irisée =================
+   Inspiré du Liquid Glass d'Apple : au bord, le verre « courbe » et éclaire ce qu'il y a
+   derrière (anneau plus saturé et plus lumineux), la lumière accroche le bord en haut à
+   gauche, et une fine frange colorée (cyan, rose, jaune, violet) trahit le prisme. */
+:root{--lg-rim:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.95),inset -1px -1px 1px -.5px rgba(255,255,255,.55),
+  inset 3px 0 4px -3px rgba(0,190,255,.5),inset -3px 0 4px -3px rgba(255,60,170,.45),inset 0 3px 4px -3px rgba(255,220,80,.4),inset 0 -3px 4px -3px rgba(130,90,255,.38)}
+:root[data-theme="dark"]{--lg-rim:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),inset -1px -1px 1px -.5px rgba(255,255,255,.18),
+  inset 3px 0 4px -3px rgba(0,200,255,.6),inset -3px 0 4px -3px rgba(255,80,190,.55),inset 0 3px 4px -3px rgba(255,220,100,.4),inset 0 -3px 4px -3px rgba(150,110,255,.5)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--lg-rim:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),inset -1px -1px 1px -.5px rgba(255,255,255,.18),
+  inset 3px 0 4px -3px rgba(0,200,255,.6),inset -3px 0 4px -3px rgba(255,80,190,.55),inset 0 3px 4px -3px rgba(255,220,100,.4),inset 0 -3px 4px -3px rgba(150,110,255,.5)} }
+/* Anneau de réfraction (capsules de la barre, pastilles des choix segmentés) */
+:root:not([data-glass="opaque"]) :is(.tb-group,.lg-thumb)::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;padding:4px;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  -webkit-backdrop-filter:saturate(2.1) brightness(1.12) contrast(1.06);backdrop-filter:saturate(2.1) brightness(1.12) contrast(1.06);
+  box-shadow:var(--lg-rim)}
+/* Menus et pastilles : la frange et le reflet sur le bord lui-même */
+:root:not([data-glass="opaque"]) .pop{box-shadow:var(--lg-rim),var(--pop-shadow,0 10px 30px -8px rgba(0,0,0,.22))!important}
+:root:not([data-glass="opaque"]) .lg-thumb{box-shadow:var(--lg-rim),0 2px 8px rgba(0,0,0,.12)!important}
+/* La pastille qu'on fait glisser grossit comme une lentille : la frange s'accentue */
+.chips.lg-seg.lg-drag .lg-thumb::after{padding:6px;-webkit-backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1);backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1)}
 </style>
 
 <header class="bar">
