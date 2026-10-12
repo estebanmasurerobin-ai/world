@@ -1,61 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><style>.d{display:none}@media (prefers-color-scheme:dark){.l{display:none}.d{display:inline}}</style><g class="l">
 <defs>
- <radialGradient id="lbg" cx="30%" cy="20%" r="95%"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e4e9f7"/></radialGradient>
- <filter id="lblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="90"/></filter>
- <filter id="lrefr" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/><feColorMatrix type="saturate" values="1.8"/></filter>
- <filter id="lshadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="26"/></filter>
- <filter id="lsoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
- <linearGradient id="lbody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgba(255,255,255,.62)"/><stop offset="1" stop-color="rgba(120,140,255,.22)"/></linearGradient>
- <linearGradient id="lrim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgba(255,255,255,1)"/><stop offset=".5" stop-color="rgba(255,255,255,.35)"/><stop offset="1" stop-color="rgba(255,255,255,1)"/></linearGradient>
- <linearGradient id="lnib" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a6798"/><stop offset="1" stop-color="#1d2440"/></linearGradient>
- <clipPath id="lvclip"><path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z"/></clipPath>
+<linearGradient id="lbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f1f3f6"/></linearGradient>
+<linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="0" y1="250" x2="0" y2="790"><stop offset="0" stop-color="#b9c6d8"/><stop offset="1" stop-color="#8193ad"/></linearGradient>
+<linearGradient id="lgw" gradientUnits="userSpaceOnUse" x1="0" y1="250" x2="0" y2="700"><stop offset="0" stop-color="#3a3a3e"/><stop offset="1" stop-color="#0b0b0d"/></linearGradient>
+<filter id="lhil" x="-20%" y="-20%" width="140%" height="140%"><feMorphology in="SourceAlpha" operator="erode" radius="4" result="e"/><feOffset in="e" dx="0" dy="5" result="o"/><feComposite in="SourceGraphic" in2="o" operator="out"/></filter>
+<filter id="lsh" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>
 </defs>
-<rect width="1024" height="1024" fill="url(#lbg)"/><g filter="url(#lblur)"><circle cx="330" cy="300" r="330" fill="#5b8cff" opacity="0.42"/><circle cx="720" cy="760" r="300" fill="#c77dff" opacity="0.38"/><circle cx="790" cy="250" r="220" fill="#36d1ff" opacity="0.3"/></g>
-<g transform="translate(530 540) rotate(40) scale(1.22)">
- <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="rgba(40,60,130,.28)" filter="url(#lshadow)" transform="translate(-18 34)"/>
- <path d="M -7 170 L 7 170 L 6 320 L -6 320 Z" opacity=".5" fill="rgba(40,60,130,.28)" filter="url(#lshadow)" transform="translate(-18 34)"/>
- <g clip-path="url(#lvclip)">
-  <g transform="rotate(-40) translate(-530 -540) translate(30 -20)" filter="url(#lrefr)"><circle cx="330" cy="300" r="330" fill="#5b8cff" opacity="0.42"/><circle cx="720" cy="760" r="300" fill="#c77dff" opacity="0.38"/><circle cx="790" cy="250" r="220" fill="#36d1ff" opacity="0.3"/></g>
-  <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="url(#lbody)"/>
-  <g stroke="rgba(255,255,255,.75)" stroke-width="3" fill="none" stroke-linecap="round"><path d="M 0 150 Q -40 140 -150 60" /><path d="M 0 106 Q -40 96 -150 16" /><path d="M 0 62 Q -40 52 -150 -28" /><path d="M 0 18 Q -40 8 -150 -72" /><path d="M 0 -26 Q -40 -36 -150 -116" /><path d="M 0 -70 Q -40 -80 -150 -160" /><path d="M 0 -114 Q -40 -124 -150 -204" /><path d="M 0 -158 Q -40 -168 -150 -248" /><path d="M 0 -202 Q -40 -212 -150 -292" /><path d="M 0 -246 Q -40 -256 -150 -336" /><path d="M 0 -290 Q -40 -300 -150 -380" /><path d="M 0 -334 Q -40 -344 -150 -424" /><path d="M 0 -378 Q -40 -388 -150 -468" /><path d="M 2 128 Q 40 116 150 32" /><path d="M 2 84 Q 40 72 150 -12" /><path d="M 2 40 Q 40 28 150 -56" /><path d="M 2 -4 Q 40 -16 150 -100" /><path d="M 2 -48 Q 40 -60 150 -144" /><path d="M 2 -92 Q 40 -104 150 -188" /><path d="M 2 -136 Q 40 -148 150 -232" /><path d="M 2 -180 Q 40 -192 150 -276" /><path d="M 2 -224 Q 40 -236 150 -320" /><path d="M 2 -268 Q 40 -280 150 -364" /><path d="M 2 -312 Q 40 -324 150 -408" /><path d="M 2 -356 Q 40 -368 150 -452" /><path d="M 2 -400 Q 40 -412 150 -496" /></g>
-  <path d="M -88 -20 C -98 -150 -70 -280 -6 -380" stroke="#fff" stroke-opacity=".95" stroke-width="12" fill="none" stroke-linecap="round" filter="url(#lsoft)"/>
- </g>
- <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="none" stroke="rgba(70,90,170,.35)" stroke-width="9"/>
- <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="none" stroke="url(#lrim)" stroke-width="5"/>
- <path d="M 6 -416 Q -8 -130 2 170" stroke="rgba(60,75,140,.55)" stroke-width="7" fill="none" stroke-linecap="round"/>
- <!-- tuyau et bec -->
- <path d="M -8 168 L 8 168 L 8 262 C 8 290 3 310 0 336 C -3 310 -8 290 -8 262 Z" fill="url(#lnib)"/>
- <path d="M -3 176 L -3 262" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
- <path d="M 0 280 L 0 318" stroke="#e4e9f7" stroke-width="2"/>
+<rect width="1024" height="1024" fill="url(#lbg)"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M 262 282 L 387 628 L 512 362 L 637 628 L 762 282" stroke="rgba(60,80,110,.16)" stroke-width="96" filter="url(#lsh)" transform="translate(0 18)"/>
+ <path d="M 236 760 L 788 760" stroke="rgba(60,80,110,.16)" stroke-width="44" filter="url(#lsh)" transform="translate(0 18)"/>
+ <path d="M 262 282 L 387 628 L 512 362 L 637 628 L 762 282" stroke="url(#lgw)" stroke-width="96"/>
+ <path d="M 236 760 L 788 760" stroke="url(#lg)" stroke-width="44"/>
+ <path d="M 262 282 L 387 628 L 512 362 L 637 628 L 762 282" stroke="rgba(255,255,255,.22)" stroke-width="96" filter="url(#lhil)"/>
+ <path d="M 236 760 L 788 760" stroke="rgba(255,255,255,.75)" stroke-width="44" filter="url(#lhil)"/>
 </g>
 </g><g class="d">
 <defs>
- <radialGradient id="dbg" cx="30%" cy="20%" r="95%"><stop offset="0" stop-color="#151a2e"/><stop offset="1" stop-color="#05060c"/></radialGradient>
- <filter id="dblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="90"/></filter>
- <filter id="drefr" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/><feColorMatrix type="saturate" values="1.8"/></filter>
- <filter id="dshadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="26"/></filter>
- <filter id="dsoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
- <linearGradient id="dbody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgba(255,255,255,.20)"/><stop offset="1" stop-color="rgba(255,255,255,.04)"/></linearGradient>
- <linearGradient id="drim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgba(255,255,255,.95)"/><stop offset=".5" stop-color="rgba(255,255,255,.12)"/><stop offset="1" stop-color="rgba(255,255,255,.95)"/></linearGradient>
- <linearGradient id="dnib" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e9ecff"/><stop offset="1" stop-color="#8d97c9"/></linearGradient>
- <clipPath id="dvclip"><path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z"/></clipPath>
+<linearGradient id="dbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a1c"/><stop offset="1" stop-color="#000000"/></linearGradient>
+<linearGradient id="dg" gradientUnits="userSpaceOnUse" x1="0" y1="250" x2="0" y2="790"><stop offset="0" stop-color="#b9c6d8"/><stop offset="1" stop-color="#8193ad"/></linearGradient>
+<linearGradient id="dgw" gradientUnits="userSpaceOnUse" x1="0" y1="250" x2="0" y2="700"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6e8ec"/></linearGradient>
+<filter id="dhil" x="-20%" y="-20%" width="140%" height="140%"><feMorphology in="SourceAlpha" operator="erode" radius="4" result="e"/><feOffset in="e" dx="0" dy="5" result="o"/><feComposite in="SourceGraphic" in2="o" operator="out"/></filter>
+<filter id="dsh" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>
 </defs>
-<rect width="1024" height="1024" fill="url(#dbg)"/><g filter="url(#dblur)"><circle cx="330" cy="300" r="330" fill="#3b5bff" opacity="0.55"/><circle cx="720" cy="760" r="300" fill="#b04dff" opacity="0.45"/><circle cx="780" cy="260" r="220" fill="#00c2ff" opacity="0.35"/></g>
-<g transform="translate(530 540) rotate(40) scale(1.22)">
- <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="rgba(0,0,0,.6)" filter="url(#dshadow)" transform="translate(-18 34)"/>
- <path d="M -7 170 L 7 170 L 6 320 L -6 320 Z" opacity=".5" fill="rgba(0,0,0,.6)" filter="url(#dshadow)" transform="translate(-18 34)"/>
- <g clip-path="url(#dvclip)">
-  <g transform="rotate(-40) translate(-530 -540) translate(30 -20)" filter="url(#drefr)"><circle cx="330" cy="300" r="330" fill="#3b5bff" opacity="0.55"/><circle cx="720" cy="760" r="300" fill="#b04dff" opacity="0.45"/><circle cx="780" cy="260" r="220" fill="#00c2ff" opacity="0.35"/></g>
-  <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="url(#dbody)"/>
-  <g stroke="rgba(255,255,255,.22)" stroke-width="3" fill="none" stroke-linecap="round"><path d="M 0 150 Q -40 140 -150 60" /><path d="M 0 106 Q -40 96 -150 16" /><path d="M 0 62 Q -40 52 -150 -28" /><path d="M 0 18 Q -40 8 -150 -72" /><path d="M 0 -26 Q -40 -36 -150 -116" /><path d="M 0 -70 Q -40 -80 -150 -160" /><path d="M 0 -114 Q -40 -124 -150 -204" /><path d="M 0 -158 Q -40 -168 -150 -248" /><path d="M 0 -202 Q -40 -212 -150 -292" /><path d="M 0 -246 Q -40 -256 -150 -336" /><path d="M 0 -290 Q -40 -300 -150 -380" /><path d="M 0 -334 Q -40 -344 -150 -424" /><path d="M 0 -378 Q -40 -388 -150 -468" /><path d="M 2 128 Q 40 116 150 32" /><path d="M 2 84 Q 40 72 150 -12" /><path d="M 2 40 Q 40 28 150 -56" /><path d="M 2 -4 Q 40 -16 150 -100" /><path d="M 2 -48 Q 40 -60 150 -144" /><path d="M 2 -92 Q 40 -104 150 -188" /><path d="M 2 -136 Q 40 -148 150 -232" /><path d="M 2 -180 Q 40 -192 150 -276" /><path d="M 2 -224 Q 40 -236 150 -320" /><path d="M 2 -268 Q 40 -280 150 -364" /><path d="M 2 -312 Q 40 -324 150 -408" /><path d="M 2 -356 Q 40 -368 150 -452" /><path d="M 2 -400 Q 40 -412 150 -496" /></g>
-  <path d="M -88 -20 C -98 -150 -70 -280 -6 -380" stroke="#fff" stroke-opacity=".55" stroke-width="12" fill="none" stroke-linecap="round" filter="url(#dsoft)"/>
- </g>
- <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="none" stroke="rgba(0,0,0,0)" stroke-width="9"/>
- <path d="M 2 170 C -40 150 -88 70 -98 -40 L -76 -52 L -102 -92 C -110 -200 -74 -320 6 -420 C 44 -360 80 -280 86 -196 L 64 -184 L 90 -150 C 94 -60 74 50 42 112 L 26 104 L 30 138 C 22 152 12 164 2 170 Z" fill="none" stroke="url(#drim)" stroke-width="5"/>
- <path d="M 6 -416 Q -8 -130 2 170" stroke="rgba(255,255,255,.85)" stroke-width="7" fill="none" stroke-linecap="round"/>
- <!-- tuyau et bec -->
- <path d="M -8 168 L 8 168 L 8 262 C 8 290 3 310 0 336 C -3 310 -8 290 -8 262 Z" fill="url(#dnib)"/>
- <path d="M -3 176 L -3 262" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
- <path d="M 0 280 L 0 318" stroke="#05060c" stroke-width="2"/>
+<rect width="1024" height="1024" fill="url(#dbg)"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M 262 282 L 387 628 L 512 362 L 637 628 L 762 282" stroke="rgba(0,0,0,.35)" stroke-width="96" filter="url(#dsh)" transform="translate(0 18)"/>
+ <path d="M 236 760 L 788 760" stroke="rgba(0,0,0,.35)" stroke-width="44" filter="url(#dsh)" transform="translate(0 18)"/>
+ <path d="M 262 282 L 387 628 L 512 362 L 637 628 L 762 282" stroke="url(#dgw)" stroke-width="96"/>
+ <path d="M 236 760 L 788 760" stroke="url(#dg)" stroke-width="44"/>
+ <path d="M 262 282 L 387 628 L 512 362 L 637 628 L 762 282" stroke="rgba(255,255,255,.55)" stroke-width="96" filter="url(#dhil)"/>
+ <path d="M 236 760 L 788 760" stroke="rgba(255,255,255,.55)" stroke-width="44" filter="url(#dhil)"/>
 </g>
 </g></svg>
