@@ -3,7 +3,7 @@
 // Polices et moteur de formules : cache d'abord.
 const CACHE = 'world-__VERSION__';
 const SHELL = ['./', './index.html', './standalone.js', './manifest.webmanifest',
-               './icon-192.png', './icon-512.png', './apple-touch-icon.png', './apple-touch-icon-dark.png', './favicon.svg'];
+               './icone-noire-180.png', './icone-noire-192.png', './icone-noire-512.png', './favicon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
