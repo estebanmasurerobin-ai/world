@@ -1790,7 +1790,7 @@ html{touch-action:manipulation}
 .tb,.pop .mi,.btn,.lib-act,.lib-sort{position:relative;isolation:isolate}
 .tb{transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
 .tb.lg-press:not(:disabled){transform:scale(1.13)!important;transition:transform .14s cubic-bezier(.2,.9,.3,1.25)}
-.tb::after,.pop .mi::after,.btn::after,.lib-act::after{content:"";position:absolute;inset:-3px;border-radius:inherit;pointer-events:none;opacity:0;
+.tb::after,.pop .mi::after,.btn::after,.lib-act::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
   background:radial-gradient(46px circle at var(--px,50%) var(--py,50%),rgba(255,255,255,.95),rgba(255,255,255,.35) 40%,transparent 72%);
   z-index:-1;transition:opacity .6s ease} /* sous la lettre ou l'icône */
 .lg-press::after{opacity:1!important;transition:opacity .06s!important}
