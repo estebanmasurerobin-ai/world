@@ -1853,10 +1853,14 @@ html{touch-action:manipulation}
 /* La pastille qu'on fait glisser grossit comme une lentille : la frange s'accentue */
 .chips.lg-seg.lg-drag .lg-thumb::after{padding:6px;-webkit-backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1);backdrop-filter:saturate(2.6) brightness(1.18) contrast(1.1)}
 /* Pastille des choix segmentés : gonfle à l'appui, rebondit en se posant */
-.lg-thumb.lg-hold{transform:scale(1.07,1.14);transition:left .42s cubic-bezier(.3,1.35,.45,1),width .42s cubic-bezier(.3,1.35,.45,1),transform .16s cubic-bezier(.2,.9,.3,1.3)}
+.lg-thumb.lg-hold,.chips.lg-seg.lg-drag .lg-thumb{transform:scale(1.3,1.45)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.04)),color-mix(in srgb,var(--bg) 12%,transparent)!important;
+  box-shadow:var(--lg-rim),inset 0 0 0 1px rgba(255,255,255,.45),0 10px 26px rgba(0,0,0,.2)!important}
+.lg-thumb.lg-hold{transition:left .42s cubic-bezier(.3,1.35,.45,1),width .42s cubic-bezier(.3,1.35,.45,1),transform .28s cubic-bezier(.2,1.4,.4,1),background .2s,box-shadow .2s!important}
+.chips.lg-seg.lg-drag .lg-thumb{transition:transform .28s cubic-bezier(.2,1.4,.4,1),background .2s,box-shadow .2s!important}
 .lg-thumb.lg-snap{transition:left .6s cubic-bezier(.25,1.75,.4,1),width .6s cubic-bezier(.25,1.75,.4,1),transform .25s,box-shadow .25s,background .25s}
-.lg-thumb.lg-jelly{animation:lg-jelly .62s cubic-bezier(.3,.7,.4,1)}
-@keyframes lg-jelly{0%{transform:scale(1.07,1.14)}30%{transform:scale(.94,.9)}52%{transform:scale(1.04,1.06)}72%{transform:scale(.985,.98)}88%{transform:scale(1.005,1.005)}100%{transform:scale(1)}}
+.lg-thumb.lg-jelly{animation:lg-jelly .7s cubic-bezier(.3,.7,.4,1)}
+@keyframes lg-jelly{0%{transform:scale(1.3,1.45)}28%{transform:scale(.9,.84)}50%{transform:scale(1.07,1.1)}70%{transform:scale(.97,.96)}86%{transform:scale(1.01,1.01)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){ .lg-thumb.lg-jelly{animation:none} .lg-thumb.lg-hold{transform:none} }
 /* Réglettes : le bouton rond gonfle quand on le tient, rebondit quand on le lâche */
 input[type=range]::-webkit-slider-thumb{transition:transform .2s cubic-bezier(.2,.9,.3,1.3)}
@@ -7030,7 +7034,9 @@ function applyChecks(refresh){
       }
       const r = ch.getBoundingClientRect(), w = th.offsetWidth || opts(ch)[0].offsetWidth;
       if (!th.offsetWidth) th.style.width = opts(ch)[0].offsetWidth + 'px';
-      th.style.left = Math.max(2, Math.min(r.width - w - 2, e.clientX - r.left - w / 2)) + 'px';
+      // Au-delà du bord, la pastille suit encore un peu, avec une résistance élastique.
+      const raw = e.clientX - r.left - w / 2, lo = 3, hi = r.width - w - 3, rub = d => 28 * (1 - Math.exp(-d / 45));
+      th.style.left = (raw < lo ? lo - rub(lo - raw) : raw > hi ? hi + rub(raw - hi) : raw) + 'px';
     });
     const end = e => {
       if (!drag || e.pointerId !== drag.id) return;
