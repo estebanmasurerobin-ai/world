@@ -7068,7 +7068,7 @@ function applyChecks(refresh){
       requestAnimationFrame(() => place(ch));
     };
     ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
-    ch.addEventListener('lostpointercapture', e => { if (drag) end(e); });
+    ch.addEventListener('lostpointercapture', e => { if (drag && e.target === ch) end(e); }); // (pas la perte venant de l'option touchée)
   };
   const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
   new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.classList.contains('chips')) setup(n); scan(n); } })
