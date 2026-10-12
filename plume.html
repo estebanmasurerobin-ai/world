@@ -1775,6 +1775,8 @@ html:not(.grips) .grip{display:none!important}
 /* Recherche ouverte : la page laisse la place de la barre de recherche */
 body.finding .page{padding-top:calc(var(--bar-h,0px) + var(--fb-h,0px) + 30px)}
 @media (max-width:600px){ body.finding .bar-toggle{display:none} }
+/* Boutons : le même verre que les menus (flou léger, on devine le texte derrière) */
+:root:not([data-glass="opaque"]) .tb-group{-webkit-backdrop-filter:blur(var(--veil-blur,1.5px)) saturate(150%)!important;backdrop-filter:blur(var(--veil-blur,1.5px)) saturate(150%)!important}
 </style>
 
 <header class="bar">
