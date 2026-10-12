@@ -7063,7 +7063,7 @@ function applyChecks(refresh){
     const cx = S.x.v + S.w.v / 2, half = Math.max(1, S.w.v * sx / 2), cr = ch.getBoundingClientRect();
     for (const c of list) {
       const r = c.getBoundingClientRect(), x = r.left + r.width / 2 - cr.left, d = (x - cx) / half; // −1 et 1 : les bords
-      const edge = Math.exp(-(((Math.abs(d) - .92) / .3) ** 2)), inside = Math.abs(d) < 1 ? 1 : 0;
+      const u = Math.abs(d), edge = u < 1 ? Math.exp(-(((u - .8) / .17) ** 2)) * Math.min(1, (1 - u) / .1) : 0, inside = u < 1 ? 1 : 0; // seulement dans l'eau, près du bord
       const m = 1 + I * (.26 * edge + .06 * inside);
       const side = Math.sign(d) || 1, k = (I * edge).toFixed(3);
       c.style.transform = m > 1.002 ? `scale(${m.toFixed(3)}) translateY(${(-1.5 * I * edge).toFixed(2)}px)` : '';
