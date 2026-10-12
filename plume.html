@@ -1858,6 +1858,8 @@ html{-webkit-tap-highlight-color:transparent}
 .chips.lg-seg .mi:hover,.chips.lg-seg .mi:active,.chips.lg-seg .mi:focus{background:transparent!important}
 .tb:active:not(:disabled),:root[data-theme="dark"] .tb:active:not(:disabled){background:transparent!important}
 .pop .mi:active{background:transparent!important}
+.chips.lg-seg .lg-word{display:inline;white-space:nowrap}
+.chips.lg-seg .lg-ch{display:inline-block;transform-origin:50% 65%;white-space:pre;will-change:transform}
 </style>
 
 <header class="bar">
@@ -7015,10 +7017,40 @@ function applyChecks(refresh){
       const sx = 1 + .3 * S.b.v + st, sy = 1 + .45 * S.b.v - st * .6;
       th.style.width = Math.max(0, S.w.v) + 'px';
       th.style.transform = `translateX(${S.x.v.toFixed(2)}px) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+      lens(th, S, sx, still);
       if (still) { S.raf = 0; return; }
       S.raf = requestAnimationFrame(frame);
     };
     S.raf = requestAnimationFrame(frame);
+  };
+  // Loupe au bord de la goutte : les lettres que le bord traverse grossissent, s'éclairent et
+  // prennent une fine frange irisée (cyan d'un côté, rose de l'autre), puis reprennent leur taille.
+  const chars = ch => {
+    if (!ch._chars) {
+      ch._chars = [];
+      opts(ch).forEach(b => [...b.childNodes].forEach(n => {
+        if (n.nodeType !== 3 || !n.data.trim()) return;
+        const f = document.createElement('span'); f.className = 'lg-word'; // le mot reste un seul bloc
+        for (const c of n.data) { const sp = document.createElement('span'); sp.className = 'lg-ch'; sp.textContent = c; f.append(sp); ch._chars.push(sp); }
+        n.replaceWith(f);
+      }));
+    }
+    return ch._chars;
+  };
+  const lens = (th, S, sx, still) => {
+    const ch = th.parentElement; if (!ch) return;
+    const list = chars(ch), I = Math.min(1, S.b.v * 1.1 + Math.abs(S.x.s) / 900);
+    if (still && I < .01) { if (ch._lensOn) { list.forEach(c => { c.style.transform = ''; c.style.textShadow = ''; }); ch._lensOn = false; } return; }
+    ch._lensOn = true;
+    const cx = S.x.v + S.w.v / 2, half = Math.max(1, S.w.v * sx / 2), cr = ch.getBoundingClientRect();
+    for (const c of list) {
+      const r = c.getBoundingClientRect(), x = r.left + r.width / 2 - cr.left, d = (x - cx) / half; // −1 et 1 : les bords
+      const edge = Math.exp(-(((Math.abs(d) - .92) / .3) ** 2)), inside = Math.abs(d) < 1 ? 1 : 0;
+      const m = 1 + I * (.26 * edge + .06 * inside);
+      const side = Math.sign(d) || 1, k = (I * edge).toFixed(3);
+      c.style.transform = m > 1.002 ? `scale(${m.toFixed(3)}) translateY(${(-1.5 * I * edge).toFixed(2)}px)` : '';
+      c.style.textShadow = I * edge > .03 ? `0 0 ${(6 * I * edge).toFixed(1)}px rgba(255,255,255,${(.9 * k).toFixed(2)}),${(-.9 * side).toFixed(1)}px 0 rgba(0,190,255,${(.55 * k).toFixed(2)}),${(.9 * side).toFixed(1)}px 0 rgba(255,60,170,${(.5 * k).toFixed(2)})` : '';
+    }
   };
   const sp = th => th._sp || (th._sp = { x: { v: 0, t: 0, s: 0 }, w: { v: 0, t: 0, s: 0 }, b: { v: 0, t: 0, s: 0 }, raf: 0 });
   const place = (ch, instant) => {
