@@ -7627,49 +7627,88 @@ editor.addEventListener('keydown', e => {
 }, { passive: true, capture: true }));
 
 /* ---------- Bout de page élastique ----------
-   En haut ou en bas du document, tirer encore fait suivre la page un peu (avec résistance) ;
-   au lâcher, elle revient doucement. La barre ne bouge pas. Au doigt et au trackpad. */
+   En haut ou en bas du document, la page continue un peu sur sa lancée puis revient comme un ressort mou.
+   Un vrai ressort amorti (pas une animation fixe) : l'élan du défilement devient la vitesse de départ,
+   sans rupture. Tirer au bout fait suivre la page avec résistance ; au lâcher, le même ressort la ramène.
+   La barre ne bouge pas. Au doigt et au trackpad. */
 {
   const page = $('.page'), RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const K = 26, ZETA = .66, C = 2 * ZETA * Math.sqrt(K);   // ressort mou : il s'étire, revient, rebondit un peu
+  const CAP = 130;                                        // dépassement visible maximal (adouci)
   // Résistance façon iOS : la page suit bien au début, puis de plus en plus dur.
   const rub = d => { const H = innerHeight || 800; return (1 - 1 / (d * .55 / H + 1)) * H; };
+  const rubInv = r => { const H = innerHeight || 800, q = Math.min(.95, r / H); return (1 / (1 - q) - 1) * H / .55; };
+  const soft = x => Math.sign(x) * CAP * (1 - Math.exp(-Math.abs(x) / CAP));
   const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
-  let t0 = null, pull = 0, wheelT = 0, wheelAcc = 0;
-  const show = px => { pull = px; page.classList.remove('lg-rubber'); page.style.transform = px ? `translateY(${px.toFixed(1)}px)` : ''; };
-  // En haut, retour plus lent et sans rebond : calme, comme une page qu'on repose.
-  const back = () => { if (!pull) return; page.classList.toggle('lg-top', pull > 0); page.classList.add('lg-rubber'); page.style.transform = ''; pull = 0; setTimeout(() => { if (!pull) page.classList.remove('lg-rubber', 'lg-top'); }, 950); };
+  let t0 = null, pull = 0, wheelT = 0, wheelAcc = 0, sim = null;
+  const paint = px => { page.style.transform = Math.abs(px) > .05 ? `translateY(${px.toFixed(2)}px)` : ''; };
+  const stop = () => { if (sim) { cancelAnimationFrame(sim.raf); sim = null; } };
+  // Ressort : x = décalage (px), v = vitesse (px/s). Affiché adouci par soft().
+  // capped : l'élan d'une arrivée lancée est adouci (soft) ; au lâcher d'un tirage, on part du décalage réel.
+  const spring = (x, v, capped) => {
+    stop(); page.classList.remove('lg-rubber', 'lg-top');
+    const S = sim = { x, v, capped, last: performance.now(), raf: 0 };
+    const step = now => {
+      if (sim !== S) return;
+      let dt = Math.min(.034, (now - S.last) / 1000); S.last = now;
+      for (let i = 0; i < 2; i++) { const h = dt / 2, a = -K * S.x - C * S.v; S.v += a * h; S.x += S.v * h; }
+      pull = S.capped ? soft(S.x) : S.x; paint(pull);
+      if (Math.abs(S.x) < .25 && Math.abs(S.v) < 6) { pull = 0; paint(0); sim = null; return; }
+      S.raf = requestAnimationFrame(step);
+    };
+    S.raf = requestAnimationFrame(step);
+  };
+  // Inverse de soft() : pour repartir du décalage affiché.
+  const unsoft = px => { const r = Math.min(.999, Math.abs(px) / CAP); return -Math.sign(px) * CAP * Math.log(1 - r); };
+  const show = px => { stop(); page.classList.remove('lg-rubber', 'lg-top'); pull = px; paint(px); };
+  const back = (v = 0) => { if (!pull && !v) return; if (sim && sim.capped) spring(unsoft(pull), v, true); else spring(pull, v, false); };
   const ok = t => t && t.closest && t.closest('.page') && !t.closest('.pop,.selbar,.tablebar');
-  document.addEventListener('touchstart', e => { t0 = e.touches.length === 1 && ok(e.target) && !RM.matches ? { y: e.touches[0].clientY, edgeY: null, dir: 0 } : null; }, { passive: true });
+  let tEnd = -1e9;
+  document.addEventListener('touchstart', e => {
+    t0 = e.touches.length === 1 && ok(e.target) && !RM.matches ? { y: e.touches[0].clientY, edgeY: null, dir: 0, base: pull, ly: e.touches[0].clientY, lt: performance.now(), fv: 0 } : null;
+    tEnd = -1e9;
+  }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (!t0 || e.touches.length !== 1) return;
-    const y = e.touches[0].clientY, atTop = scrollY <= 0, atBot = scrollY >= maxY() - 1;
+    const y = e.touches[0].clientY, now = performance.now(), atTop = scrollY <= 0, atBot = scrollY >= maxY() - 1;
+    if (now > t0.lt) { t0.fv = .7 * t0.fv + .3 * (y - t0.ly) / (now - t0.lt) * 1000; t0.ly = y; t0.lt = now; }
     if (Math.abs(y - t0.y) > 12) t0.swiped = true;
-    if (t0.edgeY === null) { if ((atBot && y < t0.y) || (atTop && y > t0.y)) { t0.edgeY = y; t0.dir = atBot ? -1 : 1; } else return; }
-    const d = (y - t0.edgeY) * t0.dir;           // distance tirée au-delà du bout
-    show(d > 0 ? t0.dir * rub(d) * (t0.dir > 0 ? .8 : 1) : 0);   // en haut, un peu plus retenu
+    if (t0.edgeY === null) {
+      if ((atBot && y < t0.y) || (atTop && y > t0.y) || (sim && pull)) { t0.edgeY = y; t0.dir = pull ? Math.sign(pull) : atBot ? -1 : 1; t0.base = Math.abs(pull) ? Math.abs(pull) : 0; stop(); }
+      else return;
+    }
+    const d = (t0.base ? rubInv(t0.base) : 0) + (y - t0.edgeY) * t0.dir;   // distance tirée au-delà du bout
+    show(d > 0 ? t0.dir * rub(d) : 0);
   }, { passive: true });
-  let tEnd = -1e9;
-  const end = () => { if (t0 && t0.swiped) tEnd = performance.now(); t0 = null; back(); };
+  const end = () => {
+    if (t0 && t0.swiped) tEnd = performance.now();
+    const fv = t0 && t0.edgeY !== null ? t0.fv : 0;
+    t0 = null;
+    // Au lâcher, le ressort ramène la page (avec un peu de l'élan du doigt s'il repartait vers l'intérieur).
+    if (pull) back(Math.sign(fv) === -Math.sign(pull) ? fv * .5 : 0);
+  };
   document.addEventListener('touchend', end, { passive: true }); document.addEventListener('touchcancel', end, { passive: true });
-  // Arrivée lancée en bout de document (le doigt déjà levé) : la page dépasse un peu puis revient.
-  let lastY = scrollY, lastT = performance.now(), v = 0;
+  // Arrivée lancée en bout de document (doigt levé, la page glisse encore) : l'élan continue dans le ressort.
+  let lastY = scrollY, lastT = performance.now(), vs = 0;
   addEventListener('scroll', () => {
-    const now = performance.now(), dt = now - lastT;
-    if (dt > 0) v = (scrollY - lastY) / dt;
+    const now = performance.now(), dt = now - lastT, dy = scrollY - lastY;
+    const vi = dt > 0 ? dy / dt : 0;                       // px/ms
+    const before = vs;
+    vs = dt > 120 ? vi : .55 * vs + .45 * vi;
     lastY = scrollY; lastT = now;
     // Seulement l'élan d'un glissement du doigt, jamais un défilement fait par l'app (curseur, recherche…).
-    if (t0 || pull || RM.matches || Math.abs(v) < .6 || now - tEnd > 2500) return;
-    const atBot = v > 0 && scrollY >= maxY() - 1, atTop = v < 0 && scrollY <= 0;
+    if (t0 || sim || pull || RM.matches || now - tEnd > 4000) return;
+    const atBot = dy > 0 && scrollY >= maxY() - 1, atTop = dy < 0 && scrollY <= 0;
     if (!atBot && !atTop) return;
-    const px = atBot ? -Math.min(90, Math.abs(v) * 38) : Math.min(40, Math.abs(v) * 16);
-    page.classList.add('lg-rubber'); page.style.transition = atBot ? 'transform .16s cubic-bezier(.2,.7,.3,1)' : 'transform .3s cubic-bezier(.25,.8,.3,1)';
-    page.style.transform = `translateY(${px.toFixed(1)}px)`; pull = px; v = 0;
-    setTimeout(() => { page.style.transition = ''; back(); }, atBot ? 160 : 300);
+    // Vitesse juste avant le bout (la dernière étape est écourtée par le bord).
+    const v = Math.max(Math.abs(before), Math.abs(vi));
+    if (v < .25) return;
+    spring(0, -Math.sign(dy) * Math.min(3.5, v) * 1000, true);
   }, { passive: true });
   addEventListener('wheel', e => {
     if (e.ctrlKey || RM.matches || !ok(e.target)) return;
     const atBot = scrollY >= maxY() - 1 && e.deltaY > 0, atTop = scrollY <= 0 && e.deltaY < 0;
-    if (!atBot && !atTop) { if (pull) back(); wheelAcc = 0; return; }
+    if (!atBot && !atTop) { if (pull && !sim) back(); wheelAcc = 0; return; }
     wheelAcc += Math.abs(e.deltaY); show((atBot ? -1 : 1) * rub(wheelAcc * .5));
     clearTimeout(wheelT); wheelT = setTimeout(() => { wheelAcc = 0; back(); }, 140);
   }, { passive: true });
