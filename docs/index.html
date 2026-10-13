@@ -1874,7 +1874,7 @@ html{-webkit-tap-highlight-color:transparent}
 .pop .mi:active{background:transparent!important}
 .chips.lg-seg .lg-word{display:inline;white-space:nowrap}
 .chips.lg-seg .lg-ch{display:inline-block;transform-origin:50% 65%;white-space:pre;will-change:transform}
-.chips.lg-seg{touch-action:none!important} /* tant que le doigt est sur les choix, il tient la bulle */
+.chips.lg-seg{touch-action:pan-y!important} /* vers le haut ou le bas : on défile ; sur le côté : on tient la bulle */
 
 /* ---------- Formes douces partout : pilules et grands arrondis, comme sur iPadOS ---------- */
 .chips.lg-seg{border-radius:999px!important;padding:3px!important;gap:0!important}
@@ -2472,15 +2472,20 @@ function openPop(btn, html, bind){
 }
 function placePop(){
   if (!popOwner) return;
+  const keepScroll = pop.scrollTop;                      // le défilement dans le menu ne doit pas sauter
   pop.style.left = '0px'; pop.style.top = '0px'; // mesuré libre, pas gêné par sa position précédente
   pop.style.maxHeight = '';
   const r = popOwner.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
   pop.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
   // Partie vraiment visible de l'écran : sur iPad, le clavier à l'écran en cache le bas.
-  const vv = window.visualViewport, vt = vv ? vv.offsetTop : 0, vb = vv ? vv.offsetTop + vv.height : innerHeight;
+  // Sans clavier, on ignore les petits mouvements de la zone visible (élan, rebond en bout de page) :
+  // sinon le menu tremblait pendant qu'on fait défiler le texte.
+  const vv = window.visualViewport, kb = vv && innerHeight - vv.height > 120;
+  const vt = kb ? vv.offsetTop : 0, vb = kb ? vv.offsetTop + vv.height : innerHeight;
   let top = Math.max(vt + 8, Math.min(r.bottom + 6, vb - h - 8));
   if (top + h > vb - 8) { top = Math.max(vt + 8, Math.min(r.bottom + 6, vb - 8 - 160)); pop.style.maxHeight = Math.max(160, vb - 8 - top) + 'px'; }
   pop.style.top = top + 'px';
+  if (keepScroll) pop.scrollTop = keepScroll;
 }
 // Sous-menu, comme sur iOS : la page remplace le menu, avec « ‹ Retour » en tête.
 function popPage(title, html, bind, back){
@@ -7111,7 +7116,11 @@ function applyChecks(refresh){
     ch.addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
       if (!drag.moving) {
-        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return; // doigt posé sur les choix : c'est la bulle qu'on manipule
+        const dx = Math.abs(e.clientX - drag.x), dy = Math.abs(e.clientY - drag.y);
+        if (Math.hypot(dx, dy) < 5) return;
+        // Un geste qui part vers le haut ou le bas fait défiler le menu (ou la page) : on lâche la bulle.
+        // Un geste qui part sur le côté saisit la bulle, et le doigt peut ensuite dériver sans la perdre.
+        if (e.pointerType !== 'mouse' && dy > dx) { drag = null; swell(false); return; }
         drag.moving = true; ch.classList.add('lg-drag'); ch.setPointerCapture(e.pointerId);
         th.style.opacity = '1';
       }
@@ -7135,7 +7144,7 @@ function applyChecks(refresh){
     ch.addEventListener('pointerup', end); ch.addEventListener('pointercancel', end);
     // Une fois la bulle saisie, le doigt peut monter ou descendre : le menu ne défile pas et
     // Safari ne reprend pas le geste (sinon la bulle était lâchée en cours de route).
-    ch.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
+    ch.addEventListener('touchmove', e => { if (drag && drag.moving) e.preventDefault(); }, { passive: false });
     ch.addEventListener('lostpointercapture', e => { if (drag && e.target === ch) end(e); }); // (pas la perte venant de l'option touchée)
   };
   const scan = root => (root.querySelectorAll ? root.querySelectorAll('.chips') : []).forEach(setup);
