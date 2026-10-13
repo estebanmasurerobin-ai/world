@@ -1873,6 +1873,8 @@ html{-webkit-tap-highlight-color:transparent}
 .tablebar button,.selbar button,.selbar a{border-radius:999px!important}
 .wl-pop,.ver-prev,.preview,.nt-card,.sd-card{border-radius:22px!important}
 #editor table,#editor pre,#editor img{border-radius:16px}
+.pop{max-width:calc(100vw - 16px)!important;box-sizing:border-box}
+.pop,.library,.lib-body,#outline,.ol-list,#notes-panel,.side,.sheet{overscroll-behavior:contain}
 </style>
 
 <header class="bar">
@@ -2490,6 +2492,8 @@ new MutationObserver(() => { popScrim.hidden = pop.hidden || !barMenuOpen(); }).
 pop.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 $('.bar').addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 window.addEventListener('resize', () => { if (!pop.hidden) placePop(); });
+// Le contenu d'un menu peut s'élargir après coup (bulles des choix, polices chargées) : on le recale, jamais hors de l'écran.
+new ResizeObserver(() => { if (!pop.hidden) placePop(); }).observe(pop);
 // Un défilement fait par le mode machine à écrire ne doit pas fermer le menu qu'on vient d'ouvrir.
 // Juste après l'ouverture (le curseur vient d'être placé et la page se recentre), le menu suit au lieu de se fermer.
 window.addEventListener('scroll', () => { if (!pop.hidden) placePop(); }, { passive:true });
