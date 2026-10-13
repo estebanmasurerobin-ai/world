@@ -4225,6 +4225,17 @@ let placeRaf = 0;
 const placeSoon = () => { if (!placeRaf) placeRaf = requestAnimationFrame(() => { placeRaf = 0; placeBar(); }); };
 window.visualViewport?.addEventListener('scroll', placeSoon);
 window.visualViewport?.addEventListener('resize', placeSoon);
+// Clavier ouvert : pendant qu'on fait défiler, la barre suit la zone visible à chaque image
+// (les événements de Safari arrivent en retard, et la barre semblait sauter).
+{
+  let until = 0, raf = 0;
+  const loop = () => { placeBar(); raf = performance.now() < until ? requestAnimationFrame(loop) : 0; };
+  const follow = () => {
+    const vv = window.visualViewport; if (!vv || innerHeight - vv.height <= 120) return;
+    until = performance.now() + 700; if (!raf) raf = requestAnimationFrame(loop);
+  };
+  ['touchmove', 'scroll', 'touchend'].forEach(t => addEventListener(t, follow, { passive: true }));
+}
 function setBarHidden(h){
   // L'animation ne sert qu'à masquer ou réafficher : le reste du temps, la barre ne doit jamais
   // « glisser » (sinon elle semblait sauter pendant un défilement rapide).
@@ -7601,14 +7612,33 @@ editor.addEventListener('keydown', e => {
     const el = pressed; if (!el) return; pressed = null;
     setTimeout(() => { el.classList.remove('lg-press'); el.closest('.tb-group')?.classList.remove('lg-live'); }, Math.max(0, 110 - (performance.now() - pressAt)));
   };
-  document.addEventListener('pointerdown', e => {
-    const el = e.target.closest && e.target.closest('.tb, .pop .mi, .btn, .lib-act'); if (!el || el.disabled) return;
+  // Au doigt, l'éclat n'apparaît qu'après un court instant sans bouger : en faisant glisser la barre
+  // ou un menu, les boutons survolés ne gonflent plus au passage (la barre « sautait »).
+  let wait = 0, from = null;
+  const light = (el, e) => {
     const r = el.getBoundingClientRect();
     el.style.setProperty('--px', (e.clientX - r.left) + 'px'); el.style.setProperty('--py', (e.clientY - r.top) + 'px');
     release(); pressed = el; pressAt = performance.now();
     el.classList.add('lg-press'); el.closest('.tb-group')?.classList.add('lg-live');
+  };
+  const cancelWait = () => { clearTimeout(wait); wait = 0; from = null; };
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest && e.target.closest('.tb, .pop .mi, .btn, .lib-act'); if (!el || el.disabled) return;
+    cancelWait();
+    if (e.pointerType !== 'touch') { light(el, e); return; }
+    from = { x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY };
+    wait = setTimeout(() => { if (from) light(el, { clientX: from.cx, clientY: from.cy }); wait = 0; from = null; }, 90);
   }, { passive: true, capture: true });
-  ['pointerup', 'pointercancel', 'dragstart'].forEach(t => document.addEventListener(t, release, { passive: true, capture: true }));
+  document.addEventListener('pointermove', e => {
+    if (!from) return;
+    from.cx = e.clientX; from.cy = e.clientY;
+    if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > 8) cancelWait();
+  }, { passive: true, capture: true });
+  // Un glissement de la barre ou d'un menu annule l'éclat (et l'éteint s'il venait d'apparaître).
+  document.addEventListener('scroll', () => { cancelWait(); release(); }, { passive: true, capture: true });
+  // Toucher bref (sans attendre l'éclat) : on l'allume quand même un instant, pour le retour visuel.
+  document.addEventListener('pointerup', e => { if (wait && from) { const el = e.target.closest && e.target.closest('.tb, .pop .mi, .btn, .lib-act'); cancelWait(); if (el && !el.disabled) { light(el, e); release(); } } }, { passive: true, capture: true });
+  ['pointerup', 'pointercancel', 'dragstart'].forEach(t => document.addEventListener(t, e => { if (t !== 'pointerup') cancelWait(); release(); }, { passive: true, capture: true }));
   document.addEventListener('pointerleave', release, { passive: true });
 
   // Pincer à deux doigts (ou pincer sur le trackpad) : la taille du texte change, pas la page.
